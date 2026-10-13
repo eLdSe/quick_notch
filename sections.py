@@ -1,0 +1,1052 @@
+from __future__ import annotations
+
+import os
+import sys
+import time
+from datetime import datetime
+
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
+from PySide6.QtGui import QColor, QGuiApplication, QPen
+
+import theme
+import ui
+import winapi
+import winrt_api
+from bg import run_bg
+from store import (LINKS_PATH, fetch_weather, read_links, weather_description,
+                   write_links)
+
+TILES = (
+    ("browser", "Браузер"),
+    ("explorer", "Проводник"),
+    ("notepad", "Блокнот"),
+    ("calculator", "Калькулятор"),
+)
+
+LIST_H = 252          # высота списка буфера: ровно 5 строк
+ROW_H = 44
+GAP = 8
+STEP = ROW_H + GAP
+MAX_ITEMS = 30
+PRIVATE_FORMAT = "ExcludeClipboardContentFromMonitorProcessing"
+
+DIM_MIN, DIM_MAX = 0.2, 0.9        # диапазон затухания над видео
+DELAY_MIN, DELAY_MAX = 0.5, 8.0    # диапазон задержки автосворачивания, секунды
+
+
+def ago(ts: float | None) -> str:
+    if ts is None:
+        return ""
+    s = int(time.time() - ts)
+    if s < 10:
+        return "сейчас"
+    if s < 60:
+        return f"{s} с назад"
+    if s < 3600:
+        return f"{s // 60} мин назад"
+    if s < 86400:
+        return f"{s // 3600} ч назад"
+    return f"{s // 86400} д назад"
+
+
+class Section:
+    key = ""
+    title = ""
+
+    def paint(self, isl, p, rect: QRectF) -> None: ...
+
+    def click(self, isl, key: str) -> None: ...
+
+    def attach(self, isl) -> None:
+        """Один раз при старте, когда остров уже создан."""
+
+    def enter(self, isl) -> None:
+        """Вызывается при переходе в раздел."""
+
+    def tick(self, isl) -> None:
+        """Раз в секунду, пока раздел открыт."""
+
+    def wheel(self, isl, notches: float) -> None:
+        """Колёсико над островом (положительное значение = вверх)."""
+
+    def drag(self, isl, key: str, pos) -> None:
+        """Мышь двигается с зажатой кнопкой над ползунком key."""
+
+    def drag_end(self, isl, key: str) -> None:
+        """Кнопку отпустили."""
+
+
+def note(isl, p, rect: QRectF, text: str, color=theme.MUTED, size: float = 10) -> None:
+    ui.label(isl, p, text, rect, size, color, wrap=True,
+             align=Qt.AlignLeft | Qt.AlignTop)
+
+
+# ------------------------------------------------------------------ Обзор
+
+class Home(Section):
+    key, title = "home", "Обзор"
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        gap = 12
+        tw = (rect.width() - 3 * gap) / 4
+        for i, (name, text) in enumerate(TILES):
+            r = QRectF(rect.left() + i * (tw + gap), rect.top(), tw, 96)
+            with ui.panel(isl, p, f"launch:{name}", r):
+                ui.label(isl, p, text,
+                         QRectF(r.left() + 20, r.top() + 18, tw - 32, 28), 14, bold=True)
+                ui.label(isl, p, "Открыть",
+                         QRectF(r.left() + 20, r.top() + 56, tw - 32, 20),
+                         10, theme.MUTED)
+
+        snap = isl.snapshot
+        top = rect.top() + 112
+        if snap is None:
+            ui.label(isl, p, "Собираю системные данные…",
+                     QRectF(rect.left() + 4, top, 400, 24), 11, theme.MUTED)
+            return
+        sw = (rect.width() - 2 * gap) / 3
+        items = (
+            ("Процессор", snap["cpu"], "Общая загрузка", snap["cpu_f"]),
+            ("Память", snap["memory_percent"], snap["memory"], snap["mem_f"]),
+            ("Диск", snap["disk_percent"], snap["disk"], snap["disk_f"]),
+        )
+        for i, (title, value, detail, frac) in enumerate(items):
+            x = rect.left() + i * (sw + gap)
+            ui.card(p, QRectF(x, top, sw, 150), theme.SURFACE, 24)
+            ui.label(isl, p, title, QRectF(x + 20, top + 16, sw - 40, 20),
+                     11, theme.MUTED, True)
+            ui.label(isl, p, value, QRectF(x + 20, top + 38, sw - 40, 44), 30, bold=True)
+            ui.label(isl, p, detail, QRectF(x + 20, top + 92, sw - 40, 20),
+                     10, theme.MUTED)
+            ui.bar(p, QRectF(x + 20, top + 120, sw - 40, 6), frac, theme.ACCENT)
+
+    def click(self, isl, key: str) -> None:
+        if key.startswith("launch:"):
+            try:
+                winapi.launch(key.split(":", 1)[1])
+            except OSError as error:
+                isl.alert(f"Не удалось запустить:\n{error}")
+
+
+# ------------------------------------------------------------------ Звук
+
+class Sound(Section):
+    key, title = "sound", "Звук"
+
+    def __init__(self) -> None:
+        self.muted = False
+        self.error: str | None = None
+        self.dragging = False
+        self.track = QRectF()
+
+    def enter(self, isl) -> None:
+        self.refresh(isl)
+
+    def tick(self, isl) -> None:
+        if not self.dragging:       # не мешаем, пока человек тянет ползунок
+            self.refresh(isl)
+
+    def refresh(self, isl) -> None:
+        try:
+            level, self.muted = winapi.get_volume()
+        except Exception as error:  # noqa: BLE001 — показываем причину в интерфейсе
+            self.error = str(error)
+            return
+        self.error = None
+        isl.nsp("volume").target = level      # пружина плавно доедет до значения
+        isl.kick()
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        box = QRectF(rect.left(), rect.top(), rect.width(), 220)
+        ui.card(p, box, theme.SURFACE, 26)
+        level = ui.clamp(isl.nsp("volume").x)
+
+        ui.label(isl, p, "Громкость",
+                 QRectF(box.left() + 28, box.top() + 20, 300, 28), 15, bold=True)
+        value = "Без звука" if self.muted else f"{round(level * 100)}%"
+        ui.label(isl, p, value, QRectF(box.right() - 28 - 160, box.top() + 20, 160, 28),
+                 15, theme.MUTED if self.muted else theme.ACCENT_HOT, True,
+                 Qt.AlignRight | Qt.AlignVCenter)
+
+        # ползунок
+        track = QRectF(box.left() + 36, box.top() + 88, box.width() - 72, 8)
+        self.track = track
+        ui.bar(p, track, level, theme.MUTED if self.muted else theme.ACCENT)
+        grow = max(isl.hv("slider:volume"), isl.pv("slider:volume"))
+        r = 11 * (1 + 0.15 * grow)
+        cx = track.left() + track.width() * level
+        p.setPen(Qt.NoPen)
+        p.setBrush(theme.TEXT)
+        p.drawEllipse(QPointF(cx, track.center().y()), r, r)
+        isl.add_hit("slider:volume", track.adjusted(-14, -16, 14, 16))
+
+        ui.button(isl, p, "vol:mute", QRectF(box.left() + 28, box.top() + 146, 200, 48),
+                  "Включить звук" if self.muted else "Без звука")
+
+        text = self.error or "Ползунок меняет системную громкость Windows."
+        note(isl, p, QRectF(rect.left() + 6, box.bottom() + 12, rect.width() - 12, 40),
+             text, theme.RED if self.error else theme.MUTED)
+
+    def drag(self, isl, key: str, pos) -> None:
+        if key != "slider:volume" or self.track.width() <= 0:
+            return
+        self.dragging = True
+        level = ui.clamp((pos.x() - self.track.left()) / self.track.width())
+        sp = isl.nsp("volume")
+        sp.x = sp.target = level            # без пружины: ползунок идёт точно за мышью
+        sp.v = 0.0
+        try:
+            if self.muted:
+                winapi.set_mute(False)
+                self.muted = False
+            winapi.set_volume(level)
+            self.error = None
+        except Exception as error:  # noqa: BLE001
+            if self.error is None:
+                isl.alert(f"Не удалось изменить громкость:\n{error}")
+            self.error = str(error)
+        isl.kick()
+
+    def drag_end(self, isl, key: str) -> None:
+        self.dragging = False
+
+    def click(self, isl, key: str) -> None:
+        if key != "vol:mute":
+            return
+        try:
+            winapi.set_mute(not self.muted)
+            self.muted = not self.muted
+        except Exception as error:  # noqa: BLE001
+            isl.alert(f"Не удалось переключить звук:\n{error}")
+        isl.kick()
+
+
+# ------------------------------------------------------------------ Медиа
+
+class Media(Section):
+    key, title = "media", "Медиа"
+
+    def enter(self, isl) -> None:
+        isl.refresh_media()
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        box = QRectF(rect.left(), rect.top(), rect.width(), 210)
+        ui.card(p, box, theme.SURFACE, 26)
+        m = isl.media
+        ui.label(isl, p, m["title"] or "Ничего не играет",
+                 QRectF(box.left() + 28, box.top() + 20, box.width() - 56, 30),
+                 17, bold=True)
+        if m["title"]:
+            sub = m["artist"]
+        elif winrt_api.MEDIA_OK:
+            sub = "Запустите плеер"
+        else:
+            sub = "Название трека недоступно: не установлен winrt"
+        ui.label(isl, p, sub, QRectF(box.left() + 28, box.top() + 52,
+                                     box.width() - 56, 22), 12, theme.MUTED)
+
+        cx, cy = box.center().x(), box.top() + 142
+        v = ui.clamp(isl.nsp("play").x)
+        with ui.round_button(isl, p, "media:prev", QPointF(cx - 110, cy), 30):
+            ui.media_icon(p, "prev", QPointF(cx - 110, cy), 12)
+        with ui.round_button(isl, p, "media:toggle", QPointF(cx, cy), 40, True):
+            ui.media_icon(p, "play", QPointF(cx, cy), 16, 1 - v)
+            ui.media_icon(p, "pause", QPointF(cx, cy), 16, v)
+        with ui.round_button(isl, p, "media:next", QPointF(cx + 110, cy), 30):
+            ui.media_icon(p, "next", QPointF(cx + 110, cy), 12)
+
+        note(isl, p, QRectF(rect.left() + 6, box.bottom() + 12, rect.width(), 20),
+             "Команды идут активному плееру через мультимедийные клавиши.")
+
+    def click(self, isl, key: str) -> None:
+        action = key.split(":", 1)[1]
+        if action == "prev":
+            winapi.media_key("previous")
+        elif action == "next":
+            winapi.media_key("next")
+        elif action == "toggle":
+            winapi.media_key("play_pause")
+            isl.set_playing(not isl.media["playing"])
+        isl.refresh_media(delay_ms=900)
+
+
+# ------------------------------------------------------------------ Система
+
+class System(Section):
+    key, title = "system", "Система"
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        snap = isl.snapshot
+        box = QRectF(rect.left(), rect.top(), rect.width(), rect.height())
+        ui.card(p, box, theme.SURFACE, 26)
+        if snap is None:
+            ui.label(isl, p, "Собираю системные данные…",
+                     QRectF(box.left() + 28, box.top() + 22, 400, 24), 12, theme.MUTED)
+            return
+        pct, charging = isl.battery
+        rows = [
+            ("Процессор", snap["cpu"], snap["cpu_f"]),
+            ("Оперативная память",
+             f"{snap['memory']}  ·  {snap['memory_percent']}", snap["mem_f"]),
+            ("Системный диск",
+             f"{snap['disk']}  ·  {snap['disk_percent']}", snap["disk_f"]),
+        ]
+        if pct is not None:
+            rows.append(("Батарея" + ("  ·  заряжается" if charging else ""),
+                         f"{pct}%", pct / 100))
+        for i, (name, value, frac) in enumerate(rows):
+            y = box.top() + 22 + i * 70
+            ui.label(isl, p, name, QRectF(box.left() + 28, y, 300, 20),
+                     12, theme.MUTED, True)
+            ui.label(isl, p, value,
+                     QRectF(box.right() - 28 - 320, y, 320, 22), 13, bold=True,
+                     align=Qt.AlignRight | Qt.AlignVCenter)
+            color = theme.YELLOW if name.startswith("Батарея") else theme.ACCENT
+            ui.bar(p, QRectF(box.left() + 28, y + 30, box.width() - 56, 6), frac, color)
+
+
+# ------------------------------------------------------------------ Настройки
+
+class Settings(Section):
+    key, title = "settings", "Настройки"
+    TABS = (("system", "Система"), ("island", "Остров"))
+
+    def __init__(self) -> None:
+        self.tab = "system"
+        self.tracks: dict[str, QRectF] = {}
+        self.dragging = False
+        # Wi-Fi и Bluetooth
+        self.states: dict[str, bool | None] = {"WiFi": None, "Bluetooth": None}
+        self.busy = False
+        self.error: str | None = None
+        self.next_refresh = 0.0
+        # яркость
+        self.br_known = False
+        self.br_busy = False
+        self.br_pending: int | None = None
+        self.br_error: str | None = None
+        self.br_next = 0.0
+        # тема Windows
+        self.dark = False
+
+    # ---------- жизненный цикл ----------
+
+    def attach(self, isl) -> None:
+        self.dark = winapi.get_dark_theme()
+        sp = isl.nsp("sys:dark")
+        sp.x = sp.target = 1.0 if self.dark else 0.0
+
+    def enter(self, isl) -> None:
+        self.dark = winapi.get_dark_theme()
+        isl.nsp("sys:dark").target = 1.0 if self.dark else 0.0
+        self.refresh(isl)
+        self.refresh_brightness(isl)
+
+    def tick(self, isl) -> None:
+        if not self.busy and time.perf_counter() >= self.next_refresh:
+            self.refresh(isl)
+        if time.perf_counter() >= self.br_next:
+            self.refresh_brightness(isl)
+
+    # ---------- Wi-Fi и Bluetooth ----------
+
+    def refresh(self, isl, toggle: tuple[str, bool] | None = None) -> None:
+        if self.busy:
+            return
+        self.busy = True
+        self.next_refresh = time.perf_counter() + 30
+
+        def job():
+            if toggle:
+                winrt_api.set_radio(*toggle)
+            return winrt_api.read_radios()
+
+        run_bg(job, lambda res, err: self._done(isl, toggle, res, err))
+        isl.kick()
+
+    def _done(self, isl, toggle, res, err) -> None:
+        self.busy = False
+        if err is not None:
+            self.error = str(err)
+            if toggle:
+                self.states[toggle[0]] = not toggle[1]   # откат ползунка
+                isl.alert(f"Не удалось переключить {toggle[0]}:\n{err}")
+        else:
+            self.error = None
+            self.states.update(res)
+        for kind, state in self.states.items():
+            isl.nsp(f"radio:{kind}").target = 1.0 if state else 0.0
+        isl.kick()
+
+    def toggle(self, isl, kind: str) -> None:
+        if self.busy:
+            return
+        state = self.states.get(kind)
+        if state is None:
+            self.refresh(isl)
+            return
+        self.states[kind] = not state                 # интерфейс меняется сразу
+        isl.nsp(f"radio:{kind}").target = 0.0 if state else 1.0
+        isl.kick()
+        self.refresh(isl, (kind, not state))          # Windows догоняет в фоне
+
+    # ---------- яркость ----------
+
+    def refresh_brightness(self, isl) -> None:
+        if self.br_busy or self.dragging:
+            return
+        self.br_busy = True
+        self.br_next = time.perf_counter() + 15
+
+        def done(res, err) -> None:
+            self.br_busy = False
+            if err is not None:
+                self.br_error = str(err)
+                self.br_next = time.perf_counter() + 60
+            else:
+                self.br_error = None
+                self.br_known = True
+                if not self.dragging:
+                    isl.nsp("brightness").target = res / 100
+            if self.br_pending is not None:
+                self._push_brightness(isl)
+            isl.kick()
+
+        run_bg(winapi.get_brightness, done)
+
+    def _push_brightness(self, isl) -> None:
+        """Отправляет в Windows последнее значение; пока идёт запрос, новые копятся."""
+        if self.br_busy or self.br_pending is None:
+            return
+        value, self.br_pending = self.br_pending, None
+        self.br_busy = True
+
+        def done(_res, err) -> None:
+            self.br_busy = False
+            if err is not None:
+                if self.br_error is None:
+                    isl.alert(f"Не удалось изменить яркость:\n{err}")
+                self.br_error = str(err)
+            else:
+                self.br_error = None
+            if self.br_pending is not None:
+                self._push_brightness(isl)
+            isl.kick()
+
+        run_bg(lambda: winapi.set_brightness(value), done)
+
+    # ---------- тема Windows ----------
+
+    def toggle_dark(self, isl) -> None:
+        want = not self.dark
+        try:
+            winapi.set_dark_theme(want)
+        except OSError as error:
+            isl.alert(f"Не удалось сменить тему:\n{error}")
+            return
+        self.dark = want
+        isl.nsp("sys:dark").target = 1.0 if want else 0.0
+        run_bg(winapi.broadcast_theme_change, lambda _r, _e: None)
+        isl.kick()
+
+    # ---------- отрисовка ----------
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        v = isl.nsp("settings_tab").x
+        ui.segmented(isl, p, QRectF(rect.left(), rect.top(), 260, 36),
+                     self.TABS, v, "stab")
+        body = QRectF(rect.left(), rect.top() + 48, rect.width(), rect.height() - 48)
+
+        t = ui.clamp(v)       # плавно перетекаем между вкладками
+        for name, op in (("system", 1 - t), ("island", t)):
+            if op < 0.02:
+                continue
+            live = isl.content_live
+            if op < 0.9:
+                isl.content_live = False
+            p.save()
+            p.setOpacity(p.opacity() * op)
+            (self._paint_system if name == "system" else self._paint_island)(isl, p, body)
+            p.restore()
+            isl.content_live = live
+
+    def _toggle_row(self, isl, p, key: str, text: str, r: QRectF, v: float,
+                    status: str, enabled: bool = True, on: bool = False) -> None:
+        with ui.panel(isl, p, key, r, r.height() / 2):
+            ui.label(isl, p, text,
+                     QRectF(r.left() + 18, r.top(), r.width() - 110, r.height()), 11)
+            ui.label(isl, p, status, QRectF(r.right() - 112, r.top(), 60, r.height()), 9,
+                     theme.ACCENT if on else theme.MUTED,
+                     align=Qt.AlignRight | Qt.AlignVCenter)
+            ui.switch(p, QRectF(r.right() - 50, r.center().y() - 10, 36, 20), v, enabled)
+
+    def _radio_row(self, isl, p, kind: str, text: str, r: QRectF) -> None:
+        state = self.states[kind]
+        enabled = state is not None
+        status = ("Вкл" if state else "Выкл") if enabled else (
+            "…" if self.busy else "Нет")
+        self._toggle_row(isl, p, f"radio:{kind}", text, r,
+                         isl.nsp(f"radio:{kind}").x, status, enabled, state is True)
+
+    def _paint_system(self, isl, p, body: QRectF) -> None:
+        tw = (body.width() - 24) / 3
+
+        def cell(col: int, row: int, span: int = 1) -> QRectF:
+            return QRectF(body.left() + col * (tw + 12), body.top() + row * 62,
+                          tw * span + 12 * (span - 1), 52)
+
+        self._radio_row(isl, p, "WiFi", "Wi-Fi", cell(0, 0))
+        self._radio_row(isl, p, "Bluetooth", "Bluetooth", cell(1, 0))
+        awake = isl.state["keep_awake"]
+        self._toggle_row(isl, p, "sys:awake", "Не засыпать", cell(2, 0),
+                         isl.nsp("sys:awake").x, "Вкл" if awake else "Выкл", True, awake)
+        self._toggle_row(isl, p, "sys:dark", "Тёмная тема", cell(0, 1),
+                         isl.nsp("sys:dark").x, "Вкл" if self.dark else "Выкл",
+                         True, self.dark)
+        r = cell(1, 1, 2)
+        with ui.panel(isl, p, "sys:winsettings", r, 26):
+            ui.label(isl, p, "Открыть параметры Windows",
+                     QRectF(r.left() + 20, r.top(), r.width() - 40, r.height()), 11)
+
+        # яркость
+        box = QRectF(body.left(), body.top() + 124, body.width(), 96)
+        ui.card(p, box, theme.SURFACE, 24)
+        ui.label(isl, p, "Яркость экрана",
+                 QRectF(box.left() + 28, box.top() + 14, 300, 28), 13, bold=True)
+        if self.br_error and not self.br_known:
+            note(isl, p, QRectF(box.left() + 28, box.top() + 46, box.width() - 56, 44),
+                 self.br_error, theme.RED, 11)
+        else:
+            level = ui.clamp(isl.nsp("brightness").x)
+            ui.label(isl, p, f"{round(level * 100)}%",
+                     QRectF(box.right() - 28 - 120, box.top() + 14, 120, 28), 13,
+                     theme.ACCENT_HOT, True, Qt.AlignRight | Qt.AlignVCenter)
+            track = QRectF(box.left() + 36, box.top() + 62, box.width() - 72, 8)
+            self.tracks["slider:brightness"] = track
+            ui.slider(isl, p, "slider:brightness", track, level)
+
+        text = self.error or self.br_error if self.br_known else self.error
+        note(isl, p, QRectF(body.left() + 6, body.top() + 232, body.width() - 12, 24),
+             text or "Wi-Fi и Bluetooth переключаются прямо здесь.",
+             theme.RED if text else theme.MUTED)
+
+    def _slider_card(self, isl, p, r: QRectF, title: str, toggle_key: str,
+                     slider_key: str, enabled: bool, value_text: str,
+                     frac: float) -> None:
+        hot = isl.hv(toggle_key)
+        ui.card(p, r, ui.mix(theme.SURFACE, theme.SURFACE_2, hot), 24)
+        ui.label(isl, p, title, QRectF(r.left() + 20, r.top() + 10, r.width() - 110, 28),
+                 13, bold=True)
+        v = isl.nsp(toggle_key, 1.0 if enabled else 0.0).x
+        ui.switch(p, QRectF(r.right() - 20 - 44, r.top() + 12, 44, 26), v)
+        isl.add_hit(toggle_key, QRectF(r.left(), r.top(), r.width(), 48))
+        ui.label(isl, p, value_text, QRectF(r.left() + 20, r.top() + 44, 220, 20),
+                 11, theme.MUTED)
+        track = QRectF(r.left() + 20, r.top() + 76, r.width() - 40, 8)
+        self.tracks[slider_key] = track
+        ui.slider(isl, p, slider_key, track, frac, enabled)
+
+    def _paint_island(self, isl, p, body: QRectF) -> None:
+        # акцентный цвет
+        row = QRectF(body.left(), body.top(), body.width(), 52)
+        ui.card(p, row, theme.SURFACE, 26)
+        ui.label(isl, p, "Акцентный цвет",
+                 QRectF(row.left() + 28, row.top(), 300, row.height()), 13, bold=True)
+        n, r, gap = len(theme.ACCENTS), 11, 14
+        x0 = row.right() - 28 - (n * 2 * r + (n - 1) * gap)
+        cy = row.center().y()
+        for i, (key, main, _hot) in enumerate(theme.ACCENTS):
+            cx = x0 + r + i * (2 * r + gap)
+            k = f"accent:{key}"
+            rect = QRectF(cx - r - 4, cy - r - 4, 2 * r + 8, 2 * r + 8)
+            with ui.pressable(isl, p, k, rect):
+                if theme.current_accent == key:
+                    p.setPen(QPen(theme.TEXT, 2))
+                    p.setBrush(Qt.NoBrush)
+                    p.drawEllipse(QPointF(cx, cy), r + 4, r + 4)
+                p.setPen(Qt.NoPen)
+                p.setBrush(QColor(main))
+                rr = r * (1 + 0.12 * isl.hv(k))
+                p.drawEllipse(QPointF(cx, cy), rr, rr)
+            isl.add_hit(k, rect)
+
+        # затухание над видео и автосворачивание
+        cw = (body.width() - 12) / 2
+        level = isl.opt("dim_level")
+        self._slider_card(
+            isl, p, QRectF(body.left(), body.top() + 60, cw, 100),
+            "Бледнеть над видео", "opt:dim_enabled", "slider:dim",
+            isl.opt("dim_enabled"), f"затухание {round(level * 100)}%",
+            (level - DIM_MIN) / (DIM_MAX - DIM_MIN))
+        delay = isl.opt("leave_delay")
+        self._slider_card(
+            isl, p, QRectF(body.left() + cw + 12, body.top() + 60, cw, 100),
+            "Сворачивать при уходе мыши", "opt:leave_collapse", "slider:delay",
+            isl.opt("leave_collapse"), f"через {delay:.1f} с",
+            (delay - DELAY_MIN) / (DELAY_MAX - DELAY_MIN))
+
+        # автозапуск
+        box = QRectF(body.left(), body.top() + 168, body.width(), 60)
+        with ui.panel(isl, p, "autostart", box, 24):
+            ui.label(isl, p, "Запускать вместе с Windows",
+                     QRectF(box.left() + 28, box.top() + 8, 400, 24), 13, bold=True)
+            ui.label(isl, p, "Quick Notch появится после входа в систему",
+                     QRectF(box.left() + 28, box.top() + 34, 400, 18), 10, theme.MUTED)
+            ui.switch(p, QRectF(box.right() - 28 - 52, box.center().y() - 15, 52, 30),
+                      isl.nsp("autostart").x)
+
+    # ---------- события ----------
+
+    def drag(self, isl, key: str, pos) -> None:
+        track = self.tracks.get(key)
+        if track is None or track.width() <= 0:
+            return
+        self.dragging = True
+        f = ui.clamp((pos.x() - track.left()) / track.width())
+        if key == "slider:brightness":
+            sp = isl.nsp("brightness")
+            sp.x = sp.target = f
+            sp.v = 0.0
+            self.br_pending = round(f * 100)
+            self._push_brightness(isl)
+        elif key == "slider:dim":
+            isl.state["dim_level"] = round(DIM_MIN + (DIM_MAX - DIM_MIN) * f, 2)
+        elif key == "slider:delay":
+            isl.state["leave_delay"] = round(DELAY_MIN + (DELAY_MAX - DELAY_MIN) * f, 1)
+        isl.kick()
+
+    def drag_end(self, isl, key: str) -> None:
+        self.dragging = False
+        if key in ("slider:dim", "slider:delay"):
+            isl.save_state()
+
+    def click(self, isl, key: str) -> None:
+        if key.startswith("stab:"):
+            self.tab = key.split(":", 1)[1]
+            isl.nsp("settings_tab").target = 0.0 if self.tab == "system" else 1.0
+            isl.kick()
+        elif key.startswith("radio:"):
+            self.toggle(isl, key.split(":", 1)[1])
+        elif key == "sys:awake":
+            isl.set_keep_awake(not isl.state["keep_awake"])
+        elif key == "sys:dark":
+            self.toggle_dark(isl)
+        elif key == "sys:winsettings":
+            try:
+                winapi.open_windows_settings("")
+            except OSError as error:
+                isl.alert(f"Не удалось открыть параметры:\n{error}")
+        elif key.startswith("accent:"):
+            isl.set_accent(key.split(":", 1)[1])
+        elif key.startswith("opt:"):
+            isl.toggle_opt(key.split(":", 1)[1])
+        elif key == "autostart":
+            isl.toggle_autostart()
+
+
+# ------------------------------------------------------------------ Ссылки
+
+class Links(Section):
+    key, title = "links", "Ссылки"
+
+    def __init__(self) -> None:
+        try:
+            self.links = read_links(LINKS_PATH)
+            self.error: str | None = None
+        except ValueError as error:
+            self.links, self.error = [], str(error)
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        h = rect.height()
+        if self.error:
+            note(isl, p, QRectF(rect.left() + 4, rect.top() + 6, rect.width() - 8, 60),
+                 self.error, theme.RED)
+        else:
+            bw = (rect.width() - 12) / 2
+            for i, item in enumerate(self.links[:8]):
+                row, col = divmod(i, 2)
+                r = QRectF(rect.left() + col * (bw + 12), rect.top() + row * 52, bw, 44)
+                with ui.panel(isl, p, f"link:{i}", r, 22):
+                    ui.label(isl, p, item["label"],
+                             QRectF(r.left() + 20, r.top(), bw - 60, r.height()), 11)
+                ui.close_dot(isl, p, f"linkdel:{i}", QPointF(r.right() - 26, r.center().y()))
+            if not self.links:
+                ui.label(isl, p, "Ссылок пока нет. Добавьте первую.",
+                         QRectF(rect.left() + 6, rect.top() + 8, 400, 24), 12, theme.MUTED)
+            if len(self.links) > 8:
+                ui.label(isl, p, f"Показаны первые 8 из {len(self.links)}",
+                         QRectF(rect.left() + 240, rect.top() + h - 28, 300, 20),
+                         10, theme.MUTED)
+        ui.button(isl, p, "link:add", QRectF(rect.left(), rect.top() + h - 40, 220, 36),
+                  "+  Добавить ссылку", True)
+
+    def click(self, isl, key: str) -> None:
+        action, _, arg = key.partition(":")
+        try:
+            if key == "link:add":
+                label = isl.ask("Быстрая ссылка", "Название ссылки:")
+                if not label:
+                    return
+                target = isl.ask("Быстрая ссылка",
+                                 "Адрес сайта, путь к папке или программе:")
+                if not target:
+                    return
+                self.links.append({"label": label, "target": target})
+                write_links(LINKS_PATH, self.links)
+                self.error = None
+            elif action == "link":
+                os.startfile(self.links[int(arg)]["target"])
+            elif action == "linkdel":
+                del self.links[int(arg)]
+                write_links(LINKS_PATH, self.links)
+        except (OSError, ValueError, IndexError) as error:
+            isl.alert(f"Не удалось выполнить действие:\n{error}")
+
+
+# ------------------------------------------------------------------ Буфер
+
+class Clipboard(Section):
+    key, title = "clipboard", "Буфер"
+
+    def __init__(self) -> None:
+        self.items: list[dict] = []     # {"text", "time", "pinned"}
+        self.own: str | None = None     # то, что мы сами положили в буфер
+        self.flash_text: str | None = None
+        self.flash_until = 0.0
+
+    def attach(self, isl) -> None:
+        for text in isl.state.get("clip_pinned", []):
+            if isinstance(text, str) and text.strip():
+                self.items.append({"text": text, "time": None, "pinned": True})
+        QGuiApplication.clipboard().dataChanged.connect(
+            lambda: QTimer.singleShot(40, lambda: self.capture(isl)))
+        QTimer.singleShot(300, lambda: self.capture(isl))
+
+    def capture(self, isl) -> None:
+        board = QGuiApplication.clipboard()
+        mime = board.mimeData()
+        if mime is None or not mime.hasText():
+            return
+        if any(PRIVATE_FORMAT in fmt for fmt in mime.formats()):
+            return                       # менеджер паролей просит не сохранять
+        text = (board.text() or "").strip()[:2000]
+        if not text or text == self.own:
+            return
+        self.own = None
+        for item in self.items:
+            if item["text"] == text:     # уже есть: поднимаем наверх
+                if not item["pinned"]:
+                    self.items.remove(item)
+                    item["time"] = time.time()
+                    self.items.insert(self._pinned_count(), item)
+                break
+        else:
+            self.items.insert(self._pinned_count(),
+                              {"text": text, "time": time.time(), "pinned": False})
+            self._trim()
+        isl.kick()
+
+    def _pinned_count(self) -> int:
+        return sum(1 for i in self.items if i["pinned"])
+
+    def _trim(self) -> None:
+        while len(self.items) > MAX_ITEMS:
+            for idx in range(len(self.items) - 1, -1, -1):
+                if not self.items[idx]["pinned"]:
+                    del self.items[idx]
+                    break
+            else:
+                return
+
+    def _save(self, isl) -> None:
+        isl.state["clip_pinned"] = [i["text"] for i in self.items if i["pinned"]]
+        isl.save_state()
+
+    def _max_scroll(self) -> float:
+        return max(0.0, len(self.items) * STEP - GAP - LIST_H)
+
+    def _clamp_scroll(self, isl) -> None:
+        sp = isl.nsp("clip_scroll")
+        sp.target = min(sp.target, self._max_scroll())
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        area = QRectF(rect.left(), rect.top(), rect.width(), LIST_H)
+        scroll = isl.nsp("clip_scroll").x
+
+        if not self.items:
+            ui.card(p, QRectF(rect.left(), rect.top(), rect.width(), 120),
+                    theme.SURFACE, 26)
+            ui.label(isl, p, "Скопируйте текст, и он появится здесь.",
+                     QRectF(rect.left(), rect.top(), rect.width(), 120),
+                     12, theme.MUTED, align=Qt.AlignCenter)
+        else:
+            p.save()
+            p.setClipRect(area, Qt.IntersectClip)   # не вылезаем за список
+            for i, item in enumerate(self.items):
+                y = area.top() + i * STEP - scroll
+                if y + ROW_H < area.top() or y > area.bottom():
+                    continue
+                self._row(isl, p, i, item,
+                          QRectF(area.left(), y, area.width(), ROW_H), area)
+            self._scrollbar(p, area, scroll)
+            p.restore()
+
+        h = rect.height()
+        note(isl, p, QRectF(rect.left() + 6, rect.top() + h - 30, rect.width() - 150, 28),
+             "Закреплённые сохраняются на диске. Прокрутка: колёсико мыши.")
+        ui.button(isl, p, "clip:clear",
+                  QRectF(rect.right() - 120, rect.top() + h - 38, 120, 32),
+                  "Очистить", size=10)
+
+    def _row(self, isl, p, i: int, item: dict, r: QRectF, area: QRectF) -> None:
+        key = f"clip:{i}"
+        isl.add_hit(key, r.intersected(area))   # сначала строка, потом кнопки: они сверху
+        flashing = (item["text"] == self.flash_text
+                    and time.perf_counter() < self.flash_until)
+        with ui.pressable(isl, p, key, r):
+            fill = ui.mix(theme.SURFACE, theme.SURFACE_2, isl.hv(key))
+            if flashing:
+                fill = ui.mix(theme.SURFACE, theme.ACCENT, 0.4)
+            ui.card(p, r, fill, 20)
+
+            tx, tw = r.left() + 18, r.width() - 120
+            if flashing:
+                ui.label(isl, p, "Скопировано",
+                         QRectF(tx, r.top(), tw, r.height()), 12, theme.TEXT, True)
+            else:
+                lines = item["text"].splitlines()
+                ui.label(isl, p, lines[0].strip() or "…",
+                         QRectF(tx, r.top() + 5, tw, 20), 12)
+                parts = []
+                if len(lines) > 1:
+                    parts.append(f"{len(lines)} стр.")
+                parts.append(f"{len(item['text'])} симв.")
+                when = ago(item["time"])
+                if when:
+                    parts.append(when)
+                ui.label(isl, p, "  ·  ".join(parts),
+                         QRectF(tx, r.top() + 24, tw, 16), 10, theme.MUTED)
+
+            c = r.center().y()
+            pin_c = QPointF(r.right() - 66, c)
+            with ui.round_button(isl, p, f"clip:pin:{i}", pin_c, 11, item["pinned"]):
+                self._pin(p, pin_c, item["pinned"])
+            ui.close_dot(isl, p, f"clip:del:{i}", QPointF(r.right() - 28, c))
+
+    @staticmethod
+    def _pin(p, c: QPointF, pinned: bool) -> None:
+        col = theme.TEXT if pinned else theme.MUTED
+        p.setPen(QPen(col, 1.6, Qt.SolidLine, Qt.RoundCap))
+        p.drawLine(QPointF(c.x(), c.y() + 0.5), QPointF(c.x(), c.y() + 5))
+        p.setPen(Qt.NoPen)
+        p.setBrush(col)
+        p.drawEllipse(QPointF(c.x(), c.y() - 2.5), 3.2, 3.2)
+
+    def _scrollbar(self, p, area: QRectF, scroll: float) -> None:
+        mx = self._max_scroll()
+        if mx <= 0:
+            return
+        thumb = max(28.0, LIST_H * LIST_H / (LIST_H + mx))
+        y = area.top() + (LIST_H - thumb) * ui.clamp(scroll / mx)
+        ui.card(p, QRectF(area.right() - 6, y, 3, thumb),
+                ui.mix(theme.SURFACE_3, theme.MUTED, 0.5), 1.5)
+
+    def click(self, isl, key: str) -> None:
+        parts = key.split(":")                  # clip:3 / clip:pin:3 / clip:clear
+        if parts[1] == "clear":
+            self.items = [i for i in self.items if i["pinned"]]
+        else:
+            try:
+                item = self.items[int(parts[-1])]
+            except (ValueError, IndexError):
+                return
+            action = parts[1] if len(parts) == 3 else "copy"
+            if action == "copy":
+                self._copy(isl, item)
+            elif action == "pin":
+                item["pinned"] = not item["pinned"]
+                self.items.sort(key=lambda it: not it["pinned"])   # закреплённые наверх
+                self._save(isl)
+            elif action == "del":
+                self.items.remove(item)
+                if item["pinned"]:
+                    self._save(isl)
+        self._clamp_scroll(isl)
+        isl.kick()
+
+    def _copy(self, isl, item: dict) -> None:
+        self.own = item["text"]                 # чтобы capture не переставил запись
+        QGuiApplication.clipboard().setText(item["text"])
+        self.flash_text = item["text"]
+        self.flash_until = time.perf_counter() + 1.1
+        QTimer.singleShot(1150, isl.kick)       # перерисовать, когда подсветка кончится
+
+    def wheel(self, isl, notches: float) -> None:
+        if not self.items:
+            return
+        sp = isl.nsp("clip_scroll")
+        sp.target = ui.clamp(sp.target - notches * STEP, 0.0, self._max_scroll())
+        isl.kick()
+
+
+# ------------------------------------------------------------------ Календарь
+
+class Calendar(Section):
+    key, title = "calendar", "Календарь"
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        today = datetime.now()
+        h = rect.height()
+        left = QRectF(rect.left(), rect.top(), 250, h)
+        ui.card(p, left, theme.SURFACE, 26)
+        ui.label(isl, p, ui.WEEKDAYS[today.weekday()].upper(),
+                 QRectF(left.left() + 26, left.top() + 24, 200, 20), 11, theme.RED, True)
+        ui.label(isl, p, str(today.day),
+                 QRectF(left.left() + 24, left.top() + 44, 200, 96), 72, bold=True)
+        ui.label(isl, p, f"{ui.MONTHS_NOM[today.month - 1]} {today.year}",
+                 QRectF(left.left() + 28, left.top() + 152, 200, 24), 14, theme.MUTED)
+
+        rx = rect.left() + 266
+        rw = rect.width() - 266
+        right = QRectF(rx, rect.top(), rw, h)
+        ui.card(p, right, theme.SURFACE, 26)
+        ui.label(isl, p, "Напоминания", QRectF(rx + 24, rect.top() + 18, 200, 28),
+                 14, bold=True)
+        ui.button(isl, p, "rem:add", QRectF(rx + rw - 24 - 132, rect.top() + 12, 132, 36),
+                  "+  Новое", True, 11)
+        reminders = isl.reminders
+        if not reminders:
+            ui.label(isl, p, "Нет активных напоминаний",
+                     QRectF(rx, rect.top() + 150, rw, 40), 12, theme.MUTED,
+                     align=Qt.AlignCenter)
+        for i, item in enumerate(reminders[:4]):
+            y = rect.top() + 64 + i * 58
+            due = datetime.fromtimestamp(item["due"])
+            when = due.strftime("%H:%M" if due.date() == today.date() else "%d.%m %H:%M")
+            ui.card(p, QRectF(rx + 16, y, rw - 32, 50), theme.SURFACE_2, 18)
+            ui.label(isl, p, item["label"], QRectF(rx + 34, y + 6, rw - 100, 22),
+                     12, bold=True)
+            ui.label(isl, p, f"в {when}", QRectF(rx + 34, y + 27, rw - 100, 18),
+                     10, theme.MUTED)
+            ui.close_dot(isl, p, f"rem:del:{i}", QPointF(rx + rw - 40, y + 25))
+
+    def click(self, isl, key: str) -> None:
+        if key == "rem:add":
+            isl.add_reminder()
+        elif key.startswith("rem:del:"):
+            isl.delete_reminder(int(key.rsplit(":", 1)[1]))
+
+
+# ------------------------------------------------------------------ Погода
+
+class Weather(Section):
+    key, title = "weather", "Погода"
+
+    def __init__(self) -> None:
+        self.data: dict | None = None
+        self.error: str | None = None
+        self.loading = False
+
+    @staticmethod
+    def city(isl) -> str:
+        city = isl.state.get("weather_city")
+        return city.strip() if isinstance(city, str) and city.strip() else "Москва"
+
+    def enter(self, isl) -> None:
+        city = isl.state.get("weather_city")
+        if isinstance(city, str) and city.strip() and self.data is None and not self.loading:
+            self._load(isl, city.strip())
+
+    def _load(self, isl, city: str) -> None:
+        isl.state["weather_city"] = city
+        isl.save_state()
+        self.error = None
+        self.loading = True
+
+        def done(res, err) -> None:
+            self.loading = False
+            if err is not None:
+                self.data = None
+                self.error = str(err) or "Не удалось получить погоду."
+            else:
+                self.data = res
+            isl.kick()
+
+        run_bg(lambda: fetch_weather(city), done)
+        isl.kick()
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        box = QRectF(rect.left(), rect.top(), rect.width(), rect.height())
+        ui.card(p, box, theme.SURFACE, 26)
+        ui.label(isl, p, self.city(isl), QRectF(box.left() + 28, box.top() + 22, 400, 30),
+                 17, bold=True)
+        button_y = box.top() + 20
+        ui.button(isl, p, "weather:refresh",
+                  QRectF(box.right() - 28 - 252, button_y, 116, 40),
+                  "Обновить", True)
+        ui.button(isl, p, "weather:city",
+                  QRectF(box.right() - 28 - 128, button_y, 128, 40),
+                  "Сменить город")
+        x, y = box.left() + 28, box.top()
+        if self.loading:
+            ui.label(isl, p, "Загружаю прогноз…", QRectF(x, y + 100, 400, 24),
+                     12, theme.MUTED)
+        elif self.error:
+            note(isl, p, QRectF(x, y + 100, box.width() - 56, 60), self.error,
+                 theme.RED, 11)
+        elif self.data is None:
+            ui.label(isl, p, "Нажмите «Сменить город», чтобы выбрать город.",
+                     QRectF(x, y + 100, 500, 24), 12, theme.MUTED)
+        else:
+            d = self.data
+            ui.label(isl, p, f"{round(d['temperature_2m'])}°",
+                     QRectF(x, y + 78, 300, 84), 64, bold=True)
+            ui.label(isl, p, weather_description(int(d.get("weather_code", -1))),
+                     QRectF(x + 4, y + 168, 400, 26), 14, theme.ACCENT_HOT, True)
+            ui.label(isl, p,
+                     f"Ощущается как {round(d['apparent_temperature'])}°   ·   "
+                     f"Влажность {d['relative_humidity_2m']}%",
+                     QRectF(x + 4, y + 204, box.width() - 56, 22), 11, theme.MUTED)
+
+    def click(self, isl, key: str) -> None:
+        if key == "weather:refresh":
+            if not self.loading:
+                self._load(isl, self.city(isl))
+            return
+        if key != "weather:city" or self.loading:
+            return
+        city = isl.ask("Погода", "Введите город:", self.city(isl))
+        if not isinstance(city, str) or not city.strip():
+            return
+        self._load(isl, city.strip())
+
+
+# ------------------------------------------------------------------ Снимок
+
+class Screenshot(Section):
+    key, title = "screenshot", "Снимок"
+
+    def paint(self, isl, p, rect: QRectF) -> None:
+        box = QRectF(rect.left(), rect.top(), rect.width(), 190)
+        ui.card(p, box, theme.SURFACE, 26)
+        ui.label(isl, p, "Снимок экрана",
+                 QRectF(box.left() + 28, box.top() + 22, 400, 30), 17, bold=True)
+        ui.label(isl, p, "Откроется встроенный инструмент Windows для выбора области.",
+                 QRectF(box.left() + 28, box.top() + 58, box.width() - 56, 22),
+                 11, theme.MUTED)
+        ui.button(isl, p, "shot:go", QRectF(box.left() + 28, box.top() + 104, 240, 52),
+                  "Сделать снимок", True)
+
+    def click(self, isl, key: str) -> None:
+        if key == "shot:go":
+            try:
+                winapi.start_screen_capture()
+            except OSError as error:
+                isl.alert(f"Не удалось запустить:\n{error}")
+
+
+SECTIONS: list[Section] = [
+    Home(), Sound(), Media(), System(), Settings(),
+    Links(), Clipboard(), Calendar(), Weather(), Screenshot(),
+]
+BY_KEY = {s.key: s for s in SECTIONS}

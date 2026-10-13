@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QLineEdit,
 import theme
 import ui
 from spring import ease_out_back
-from winapi import dark_titlebar
+from winapi import dark_titlebar, set_timer_resolution
 
 
 class Toast(QWidget):
@@ -50,6 +50,8 @@ class Toast(QWidget):
         self.anim = QTimer(self)
         self.anim.setInterval(14)
         self.anim.timeout.connect(self._step)
+        self._timer_resolution_owner = object()
+        set_timer_resolution(True, self._timer_resolution_owner)
         self.anim.start()
         if timeout_ms:
             QTimer.singleShot(timeout_ms, self.dismiss)
@@ -61,6 +63,7 @@ class Toast(QWidget):
         self.setWindowOpacity(min(1.0, p * 3))
         if p >= 1:
             self.anim.stop()
+            set_timer_resolution(False, self._timer_resolution_owner)
 
     def paintEvent(self, _event) -> None:
         p = QPainter(self)
@@ -87,6 +90,7 @@ class Toast(QWidget):
             return
         self.closed = True
         self.anim.stop()
+        set_timer_resolution(False, self._timer_resolution_owner)
         if self in self.app.toasts:
             self.app.toasts.remove(self)
         self.close()

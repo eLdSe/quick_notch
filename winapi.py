@@ -66,6 +66,7 @@ _set_execution_state = _kernel32.SetThreadExecutionState
 _set_execution_state.argtypes = [ctypes.c_uint]
 _set_execution_state.restype = ctypes.c_uint
 _last_cpu: tuple[int, int, int] | None = None
+_timer_resolution_users: set[object] = set()
 
 _user32 = ctypes.WinDLL("user32", use_last_error=True)
 _user32.GetForegroundWindow.restype = ctypes.c_void_p
@@ -91,10 +92,34 @@ def already_running() -> bool:
     return ctypes.get_last_error() == 183
 
 
-def set_timer_resolution(enabled: bool) -> None:
+def set_timer_resolution(enabled: bool, owner: object) -> None:
+    """Запрашивает точный системный таймер, пока он нужен активной анимации."""
+    global _timer_resolution_users
+    if enabled == (owner in _timer_resolution_users):
+        return
+
     try:
         winmm = ctypes.windll.winmm
-        (winmm.timeBeginPeriod if enabled else winmm.timeEndPeriod)(1)
+        if enabled:
+            if not _timer_resolution_users and winmm.timeBeginPeriod(1) != 0:
+                return
+            _timer_resolution_users.add(owner)
+        else:
+            _timer_resolution_users.remove(owner)
+            if not _timer_resolution_users:
+                winmm.timeEndPeriod(1)
+    except (AttributeError, OSError):
+        pass
+
+
+def clear_timer_resolution() -> None:
+    """Освобождает запрос таймера при завершении приложения."""
+    global _timer_resolution_users
+    if not _timer_resolution_users:
+        return
+    _timer_resolution_users.clear()
+    try:
+        ctypes.windll.winmm.timeEndPeriod(1)
     except (AttributeError, OSError):
         pass
 
@@ -178,8 +203,19 @@ def fullscreen_app_active(own_hwnd: int) -> bool:
     if not _user32.GetMonitorInfoW(monitor, ctypes.byref(info)):
         return False
     m = info.rcMonitor
-    return (rect.left <= m.left and rect.top <= m.top
-            and rect.right >= m.right and rect.bottom >= m.bottom)
+
+    def covers(area: Rect) -> bool:
+        return (rect.left <= area.left and rect.top <= area.top
+                and rect.right >= area.right and rect.bottom >= area.bottom)
+
+    if covers(m):
+        return True
+
+    work = info.rcWork
+    if (covers(work) and (work.left, work.top, work.right, work.bottom)
+            != (m.left, m.top, m.right, m.bottom)):
+        return True
+    return False
 
 
 # ---------- действия ----------

@@ -18,7 +18,8 @@ from sections import BY_KEY, SECTIONS
 from spring import Spring
 from store import STATE_PATH, read_state, write_state
 from winapi import (autostart_enabled, battery_info, fullscreen_app_active,
-                    set_autostart, set_keep_awake, system_snapshot)
+                    set_autostart, set_keep_awake, set_timer_resolution,
+                    system_snapshot)
 
 COLLAPSED = (250, 40)
 LIVE_EXTRA = 120            # на сколько остров шире, пока играет музыка
@@ -73,7 +74,7 @@ class Island(QWidget):
         self.content_live = False
         self.busy = 0                    # открытые диалоги
         self.toasts: list[Toast] = []
-        self._alpha = 1.0
+        self._alpha = -1.0
         self.fullscreen = False
 
         # данные
@@ -97,7 +98,9 @@ class Island(QWidget):
         self.frame_timer.setTimerType(Qt.PreciseTimer)
         self.frame_timer.setInterval(8)
         self.frame_timer.timeout.connect(self._frame)
+        self._frame_timer_owner = object()
         self.last_frame = time.perf_counter()
+        self.last_tick = time.time()
 
         self.clock_timer = QTimer(self)
         self.clock_timer.setInterval(1000)
@@ -107,6 +110,7 @@ class Island(QWidget):
         self.eq_timer = QTimer(self)      # анимация эквалайзера
         self.eq_timer.setInterval(40)
         self.eq_timer.timeout.connect(self.update)
+        self._eq_timer_owner = object()
 
         self.leave_timer = QTimer(self)
         self.leave_timer.setSingleShot(True)
@@ -288,7 +292,7 @@ class Island(QWidget):
 
         def done(res, err) -> None:
             self.media_busy = False
-            if err is None and res is not None:
+            if err is None and res is not None and res != self.media:
                 self.media = res
                 self._apply_media()
 
@@ -308,9 +312,11 @@ class Island(QWidget):
     def _update_eq(self) -> None:
         want = self.sp_live.target == 1.0 and self.target == 0.0
         if want and not self.eq_timer.isActive():
+            set_timer_resolution(True, self._eq_timer_owner)
             self.eq_timer.start()
         elif not want and self.eq_timer.isActive():
             self.eq_timer.stop()
+            set_timer_resolution(False, self._eq_timer_owner)
 
     # ---------- анимация ----------
 
@@ -341,6 +347,7 @@ class Island(QWidget):
 
     def _start_frames(self) -> None:
         if not self.frame_timer.isActive():
+            set_timer_resolution(True, self._frame_timer_owner)
             self.last_frame = time.perf_counter() - 0.008
             self.frame_timer.start()
 
@@ -374,6 +381,7 @@ class Island(QWidget):
                 s.snap()
             self.prev_tab = None
             self.frame_timer.stop()
+            set_timer_resolution(False, self._frame_timer_owner)
 
         alpha = round(1 - self.opt("dim_level") * ui.clamp(self.sp_dim.x), 3)
         if alpha != self._alpha:
@@ -382,6 +390,14 @@ class Island(QWidget):
         self.update()
 
     def _tick(self) -> None:
+        now = time.time()
+        resumed = now - self.last_tick > 5
+        self.last_tick = now
+        if resumed:
+            self.last_frame = time.perf_counter()
+            self._alpha = -1.0
+            self._start_frames()
+
         self.battery = battery_info()
         self._refresh_snapshot()
         try:
@@ -389,7 +405,7 @@ class Island(QWidget):
         except Exception:  # noqa: BLE001
             self.fullscreen = False
         self._update_dim()
-        if self.tick_n % 2 == 0:
+        if resumed or self.tick_n % 2 == 0:
             self.refresh_media()
         self.tick_n += 1
         self._check_reminders()

@@ -22,7 +22,6 @@ The interface features smooth animations, rounded corners, and a compact layout:
 - Keeps a local clipboard history while the relevant section is open.
 - Shows reminders based on app runtime.
 - Fetches weather for a selected city via Open-Meteo after a button press.
-- Launches the built-in Windows screen capture tool.
 - Can start with Windows via a checkbox in the interface.
 
 ## Running the app

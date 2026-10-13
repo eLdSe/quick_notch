@@ -6,7 +6,7 @@ from datetime import datetime
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import (QFont, QFontMetricsF, QGuiApplication, QPainter,
-                           QPainterPath, QPen)
+                           QPainterPath, QPen, QPixmap)
 from PySide6.QtWidgets import QApplication, QWidget
 
 import theme
@@ -27,11 +27,24 @@ EXPANDED = (860, 520)
 PAD = 44
 TOP_MARGIN = 6
 
+_MEDIA_VISUAL_FIELDS = ("active", "playing", "title", "artist", "app",
+                        "dur", "can_seek")
+
 
 def _num(value, lo: float, hi: float, default: float) -> float:
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         return min(hi, max(lo, float(value)))
     return default
+
+
+def _media_visual_changed(previous: dict, current: dict) -> bool:
+    return any(previous.get(key) != current.get(key) for key in _MEDIA_VISUAL_FIELDS)
+
+
+def _empty_media() -> dict:
+    return {"active": False, "playing": False, "title": "", "artist": "",
+            "app": "", "pos": 0.0, "dur": 0.0, "can_seek": False,
+            "stamp": time.time()}
 
 
 class Island(QWidget):
@@ -81,8 +94,11 @@ class Island(QWidget):
         self.battery = battery_info()
         self.snapshot = None
         self.snap_busy = False
-        self.media = {"active": False, "playing": False, "title": "", "artist": ""}
+        self.media = _empty_media()
         self.media_busy = False
+        self.cover: QPixmap | None = None
+        self._cover_data: bytes | None = None
+        self._cover_cache: dict[int, QPixmap] = {}
         self.tick_n = 0
         self.state = read_state(STATE_PATH)
         self._sanitize_state()
@@ -282,6 +298,8 @@ class Island(QWidget):
 
         run_bg(system_snapshot, done)
 
+    # ---------- медиа ----------
+
     def refresh_media(self, delay_ms: int = 0) -> None:
         if delay_ms:
             QTimer.singleShot(delay_ms, self.refresh_media)
@@ -292,15 +310,54 @@ class Island(QWidget):
 
         def done(res, err) -> None:
             self.media_busy = False
-            if err is None and res is not None and res != self.media:
+            if err is None and res is not None:
+                cover_changed = self._set_cover(res.pop("cover", None))
+                visual_changed = _media_visual_changed(self.media, res)
                 self.media = res
-                self._apply_media()
+                if visual_changed or cover_changed:
+                    self._apply_media()
 
         run_bg(winrt_api.read_media, done)
 
+    def media_pos(self) -> float:
+        """Позиция трека с учётом времени, прошедшего с последнего опроса."""
+        m = self.media
+        pos = m.get("pos", 0.0)
+        if m.get("playing"):
+            pos += time.time() - m.get("stamp", time.time())
+        dur = m.get("dur", 0.0)
+        return min(pos, dur) if dur > 0 else pos
+
     def set_playing(self, playing: bool) -> None:
+        self.media["pos"] = self.media_pos()      # фиксируем позицию до переключения
+        self.media["stamp"] = time.time()
         self.media["playing"] = playing
         self._apply_media()
+
+    def _set_cover(self, data) -> bool:
+        if data == self._cover_data:
+            return False
+        self._cover_data = data
+        self._cover_cache.clear()
+        pixmap = QPixmap()
+        self.cover = pixmap if data and pixmap.loadFromData(data) else None
+        return True
+
+    def cover_pixmap(self, size: int) -> QPixmap | None:
+        """Обложка, обрезанная до квадрата и отмасштабированная под экран."""
+        if self.cover is None:
+            return None
+        pixmap = self._cover_cache.get(size)
+        if pixmap is None:
+            dpr = self.devicePixelRatioF()
+            px = max(1, round(size * dpr))
+            scaled = self.cover.scaled(px, px, Qt.KeepAspectRatioByExpanding,
+                                       Qt.SmoothTransformation)
+            pixmap = scaled.copy((scaled.width() - px) // 2,
+                                 (scaled.height() - px) // 2, px, px)
+            pixmap.setDevicePixelRatio(dpr)
+            self._cover_cache[size] = pixmap
+        return pixmap
 
     def _apply_media(self) -> None:
         self.nsp("play").target = 1.0 if self.media["playing"] else 0.0

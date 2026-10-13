@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
-from PySide6.QtGui import QColor, QGuiApplication, QPen
+from PySide6.QtGui import QColor, QFontMetricsF, QGuiApplication, QPen
 
 import theme
 import ui
@@ -32,6 +32,9 @@ PRIVATE_FORMAT = "ExcludeClipboardContentFromMonitorProcessing"
 
 DIM_MIN, DIM_MAX = 0.2, 0.9        # диапазон затухания над видео
 DELAY_MIN, DELAY_MAX = 0.5, 8.0    # диапазон задержки автосворачивания, секунды
+WEATHER_TTL = 1800                 # погода считается свежей 30 минут
+MAX_APPS = 4                       # сколько приложений показывать в «Звуке»
+MAX_DEVICES = 4
 
 
 def ago(ts: float | None) -> str:
@@ -47,6 +50,19 @@ def ago(ts: float | None) -> str:
     if s < 86400:
         return f"{s // 3600} ч назад"
     return f"{s // 86400} д назад"
+
+
+def until(ts: float) -> str:
+    secs = ts - time.time()
+    if secs < 60:
+        return "меньше минуты"
+    minutes = int(secs // 60)
+    if minutes < 60:
+        return f"через {minutes} мин"
+    hours, mins = divmod(minutes, 60)
+    if hours < 24:
+        return f"через {hours} ч {mins} мин" if mins else f"через {hours} ч"
+    return f"через {hours // 24} д"
 
 
 class Section:
@@ -86,6 +102,12 @@ def note(isl, p, rect: QRectF, text: str, color=theme.MUTED, size: float = 10) -
 class Home(Section):
     key, title = "home", "Обзор"
 
+    def enter(self, isl) -> None:
+        BY_KEY["weather"].ensure(isl)
+
+    def tick(self, isl) -> None:
+        BY_KEY["weather"].ensure(isl)
+
     def paint(self, isl, p, rect: QRectF) -> None:
         gap = 12
         tw = (rect.width() - 3 * gap) / 4
@@ -98,30 +120,104 @@ class Home(Section):
                          QRectF(r.left() + 20, r.top() + 56, tw - 32, 20),
                          10, theme.MUTED)
 
-        snap = isl.snapshot
         top = rect.top() + 112
-        if snap is None:
-            ui.label(isl, p, "Собираю системные данные…",
-                     QRectF(rect.left() + 4, top, 400, 24), 11, theme.MUTED)
-            return
         sw = (rect.width() - 2 * gap) / 3
-        items = (
-            ("Процессор", snap["cpu"], "Общая загрузка", snap["cpu_f"]),
-            ("Память", snap["memory_percent"], snap["memory"], snap["mem_f"]),
-            ("Диск", snap["disk_percent"], snap["disk"], snap["disk_f"]),
-        )
-        for i, (title, value, detail, frac) in enumerate(items):
-            x = rect.left() + i * (sw + gap)
-            ui.card(p, QRectF(x, top, sw, 150), theme.SURFACE, 24)
-            ui.label(isl, p, title, QRectF(x + 20, top + 16, sw - 40, 20),
+        self._reminder_card(isl, p, QRectF(rect.left(), top, sw, 150))
+        self._media_card(isl, p, QRectF(rect.left() + sw + gap, top, sw, 150))
+        self._weather_card(isl, p, QRectF(rect.left() + 2 * (sw + gap), top, sw, 150))
+
+    def _reminder_card(self, isl, p, r: QRectF) -> None:
+        with ui.panel(isl, p, "go:calendar", r, 24):
+            ui.label(isl, p, "Ближайшее напоминание",
+                     QRectF(r.left() + 20, r.top() + 16, r.width() - 40, 20),
                      11, theme.MUTED, True)
-            ui.label(isl, p, value, QRectF(x + 20, top + 38, sw - 40, 44), 30, bold=True)
-            ui.label(isl, p, detail, QRectF(x + 20, top + 92, sw - 40, 20),
-                     10, theme.MUTED)
-            ui.bar(p, QRectF(x + 20, top + 120, sw - 40, 6), frac, theme.ACCENT)
+            items = isl.reminders
+            if not items:
+                ui.label(isl, p, "Нет напоминаний",
+                         QRectF(r.left() + 20, r.top() + 50, r.width() - 40, 28),
+                         15, bold=True)
+                ui.label(isl, p, "Добавьте в календаре",
+                         QRectF(r.left() + 20, r.top() + 82, r.width() - 40, 20),
+                         11, theme.MUTED)
+                return
+            first = items[0]
+            ui.label(isl, p, ui.trim(first["label"], 42),
+                     QRectF(r.left() + 20, r.top() + 46, r.width() - 40, 52),
+                     16, bold=True, wrap=True, align=Qt.AlignLeft | Qt.AlignTop)
+            due = datetime.fromtimestamp(first["due"])
+            when = due.strftime("%H:%M" if due.date() == datetime.now().date()
+                                else "%d.%m %H:%M")
+            ui.label(isl, p, f"в {when}  ·  {until(first['due'])}",
+                     QRectF(r.left() + 20, r.top() + 104, r.width() - 40, 20),
+                     11, theme.ACCENT_HOT)
+            if len(items) > 1:
+                ui.label(isl, p, f"и ещё {len(items) - 1}",
+                         QRectF(r.left() + 20, r.top() + 126, r.width() - 40, 16),
+                         10, theme.MUTED)
+
+    def _media_card(self, isl, p, r: QRectF) -> None:
+        m = isl.media
+        with ui.panel(isl, p, "go:media", r, 24):
+            ui.label(isl, p, "Сейчас играет",
+                     QRectF(r.left() + 20, r.top() + 16, r.width() - 40, 20),
+                     11, theme.MUTED, True)
+            if not m["title"]:
+                ui.label(isl, p, "Ничего не играет",
+                         QRectF(r.left() + 20, r.top() + 50, r.width() - 40, 28),
+                         15, bold=True)
+                ui.label(isl, p, "Запустите плеер",
+                         QRectF(r.left() + 20, r.top() + 82, r.width() - 40, 20),
+                         11, theme.MUTED)
+                return
+            ui.cover(isl, p, QRectF(r.left() + 20, r.top() + 46, 64, 64), 14)
+            tx, tw = r.left() + 98, r.width() - 118
+            ui.label(isl, p, m["title"], QRectF(tx, r.top() + 48, tw, 22), 13, bold=True)
+            ui.label(isl, p, m["artist"], QRectF(tx, r.top() + 72, tw, 18),
+                     11, theme.MUTED)
+            ui.label(isl, p, m["app"], QRectF(tx, r.top() + 92, tw, 16),
+                     10, theme.ACCENT_HOT)
+            dur = m["dur"]
+            frac = isl.media_pos() / dur if dur > 0 else 0.0
+            ui.bar(p, QRectF(r.left() + 20, r.top() + 128, r.width() - 40, 5),
+                   frac, theme.ACCENT)
+
+    def _weather_card(self, isl, p, r: QRectF) -> None:
+        w = BY_KEY["weather"]
+        with ui.panel(isl, p, "go:weather", r, 24):
+            ui.label(isl, p, "Погода",
+                     QRectF(r.left() + 20, r.top() + 16, r.width() - 40, 20),
+                     11, theme.MUTED, True)
+            if w.data is not None:
+                d = w.data
+                ui.label(isl, p, f"{round(d['temperature_2m'])}°",
+                         QRectF(r.left() + 20, r.top() + 38, r.width() - 40, 54),
+                         38, bold=True)
+                ui.label(isl, p, weather_description(int(d.get("weather_code", -1))),
+                         QRectF(r.left() + 20, r.top() + 94, r.width() - 40, 20),
+                         13, theme.ACCENT_HOT, True)
+                ui.label(isl, p,
+                         f"{w.city(isl)}  ·  ощущается как {round(d['apparent_temperature'])}°",
+                         QRectF(r.left() + 20, r.top() + 120, r.width() - 40, 18),
+                         10, theme.MUTED)
+            elif w.loading:
+                ui.label(isl, p, "Загружаю…",
+                         QRectF(r.left() + 20, r.top() + 54, r.width() - 40, 28),
+                         14, theme.MUTED)
+            elif w.error:
+                note(isl, p, QRectF(r.left() + 20, r.top() + 46, r.width() - 40, 80),
+                     ui.trim(w.error, 90), theme.RED, 11)
+            else:
+                ui.label(isl, p, "Выберите город",
+                         QRectF(r.left() + 20, r.top() + 50, r.width() - 40, 28),
+                         15, bold=True)
+                ui.label(isl, p, "Раздел «Погода»",
+                         QRectF(r.left() + 20, r.top() + 82, r.width() - 40, 20),
+                         11, theme.MUTED)
 
     def click(self, isl, key: str) -> None:
-        if key.startswith("launch:"):
+        if key.startswith("go:"):
+            isl.select(key.split(":", 1)[1])
+        elif key.startswith("launch:"):
             try:
                 winapi.launch(key.split(":", 1)[1])
             except OSError as error:
@@ -136,8 +232,13 @@ class Sound(Section):
     def __init__(self) -> None:
         self.muted = False
         self.error: str | None = None
+        self.dev_error: str | None = None
+        self.app_error: str | None = None
+        self.devices: list[dict] = []
+        self.default_id: str | None = None
+        self.apps: list[dict] = []
         self.dragging = False
-        self.track = QRectF()
+        self.tracks: dict[str, QRectF] = {}
 
     def enter(self, isl) -> None:
         self.refresh(isl)
@@ -154,70 +255,147 @@ class Sound(Section):
             return
         self.error = None
         isl.nsp("volume").target = level      # пружина плавно доедет до значения
+        try:
+            self.devices, self.default_id = winapi.list_output_devices()
+            self.dev_error = None
+        except Exception as error:  # noqa: BLE001
+            self.dev_error = str(error)
+        try:
+            self.apps = winapi.list_app_volumes()
+            self.app_error = None
+        except Exception as error:  # noqa: BLE001
+            self.app_error = str(error)
         isl.kick()
 
     def paint(self, isl, p, rect: QRectF) -> None:
-        box = QRectF(rect.left(), rect.top(), rect.width(), 220)
+        self._paint_master(isl, p, QRectF(rect.left(), rect.top(), 380, rect.height()))
+        self._paint_apps(isl, p, QRectF(rect.left() + 396, rect.top(),
+                                        rect.width() - 396, rect.height()))
+
+    def _paint_master(self, isl, p, box: QRectF) -> None:
         ui.card(p, box, theme.SURFACE, 26)
         level = ui.clamp(isl.nsp("volume").x)
 
         ui.label(isl, p, "Громкость",
-                 QRectF(box.left() + 28, box.top() + 20, 300, 28), 15, bold=True)
+                 QRectF(box.left() + 24, box.top() + 16, 120, 32), 15, bold=True)
         value = "Без звука" if self.muted else f"{round(level * 100)}%"
-        ui.label(isl, p, value, QRectF(box.right() - 28 - 160, box.top() + 20, 160, 28),
-                 15, theme.MUTED if self.muted else theme.ACCENT_HOT, True,
-                 Qt.AlignRight | Qt.AlignVCenter)
+        ui.label(isl, p, value, QRectF(box.left() + 138, box.top() + 16, 100, 32),
+                 15, theme.MUTED if self.muted else theme.ACCENT_HOT, True)
+        ui.button(isl, p, "vol:mute",
+                  QRectF(box.right() - 24 - 108, box.top() + 16, 108, 32),
+                  "Включить" if self.muted else "Без звука", size=11)
 
-        # ползунок
-        track = QRectF(box.left() + 36, box.top() + 88, box.width() - 72, 8)
-        self.track = track
-        ui.bar(p, track, level, theme.MUTED if self.muted else theme.ACCENT)
-        grow = max(isl.hv("slider:volume"), isl.pv("slider:volume"))
-        r = 11 * (1 + 0.15 * grow)
-        cx = track.left() + track.width() * level
-        p.setPen(Qt.NoPen)
-        p.setBrush(theme.TEXT)
-        p.drawEllipse(QPointF(cx, track.center().y()), r, r)
-        isl.add_hit("slider:volume", track.adjusted(-14, -16, 14, 16))
+        track = QRectF(box.left() + 34, box.top() + 78, box.width() - 68, 8)
+        self.tracks["slider:volume"] = track
+        ui.slider(isl, p, "slider:volume", track, level, not self.error)
 
-        ui.button(isl, p, "vol:mute", QRectF(box.left() + 28, box.top() + 146, 200, 48),
-                  "Включить звук" if self.muted else "Без звука")
+        if self.error:
+            note(isl, p, QRectF(box.left() + 24, box.top() + 108, box.width() - 48, 80),
+                 self.error, theme.RED, 11)
+            return
 
-        text = self.error or "Ползунок меняет системную громкость Windows."
-        note(isl, p, QRectF(rect.left() + 6, box.bottom() + 12, rect.width() - 12, 40),
-             text, theme.RED if self.error else theme.MUTED)
+        ui.label(isl, p, "УСТРОЙСТВО ВЫВОДА",
+                 QRectF(box.left() + 24, box.top() + 106, 300, 16), 10, theme.MUTED, True)
+        if self.dev_error:
+            note(isl, p, QRectF(box.left() + 24, box.top() + 130, box.width() - 48, 60),
+                 self.dev_error, theme.RED, 11)
+            return
+        for i, dev in enumerate(self.devices[:MAX_DEVICES]):
+            r = QRectF(box.left() + 16, box.top() + 130 + i * 44, box.width() - 32, 38)
+            selected = dev["id"] == self.default_id
+            with ui.panel(isl, p, f"dev:{i}", r, 19):
+                ui.label(isl, p, dev["name"],
+                         QRectF(r.left() + 18, r.top(), r.width() - 56, r.height()),
+                         11, theme.TEXT if selected else theme.MUTED, selected)
+                if selected:
+                    p.setPen(Qt.NoPen)
+                    p.setBrush(theme.ACCENT)
+                    p.drawEllipse(QPointF(r.right() - 22, r.center().y()), 5, 5)
+
+    def _paint_apps(self, isl, p, box: QRectF) -> None:
+        ui.card(p, box, theme.SURFACE, 26)
+        ui.label(isl, p, "Приложения",
+                 QRectF(box.left() + 24, box.top() + 16, 240, 32), 15, bold=True)
+        if self.app_error:
+            note(isl, p, QRectF(box.left() + 24, box.top() + 60, box.width() - 48, 80),
+                 self.app_error, theme.RED, 11)
+            return
+        if not self.apps:
+            ui.label(isl, p, "Нет приложений со звуком",
+                     QRectF(box.left(), box.top() + 60, box.width(), 200),
+                     12, theme.MUTED, align=Qt.AlignCenter)
+            return
+        for i, app in enumerate(self.apps[:MAX_APPS]):
+            y = box.top() + 62 + i * 58
+            ui.label(isl, p, app["name"],
+                     QRectF(box.left() + 24, y, box.width() - 110, 22), 12, bold=True)
+            ui.label(isl, p, f"{round(app['level'] * 100)}%",
+                     QRectF(box.right() - 24 - 56, y, 56, 22), 11, theme.MUTED,
+                     align=Qt.AlignRight | Qt.AlignVCenter)
+            key = f"slider:app:{i}"
+            track = QRectF(box.left() + 34, y + 36, box.width() - 68, 6)
+            self.tracks[key] = track
+            ui.slider(isl, p, key, track, app["level"])
+        if len(self.apps) > MAX_APPS:
+            ui.label(isl, p, f"Показаны первые {MAX_APPS} из {len(self.apps)}",
+                     QRectF(box.left() + 24, box.bottom() - 28, box.width() - 48, 18),
+                     10, theme.MUTED)
 
     def drag(self, isl, key: str, pos) -> None:
-        if key != "slider:volume" or self.track.width() <= 0:
+        track = self.tracks.get(key)
+        if track is None or track.width() <= 0:
             return
         self.dragging = True
-        level = ui.clamp((pos.x() - self.track.left()) / self.track.width())
-        sp = isl.nsp("volume")
-        sp.x = sp.target = level            # без пружины: ползунок идёт точно за мышью
-        sp.v = 0.0
-        try:
-            if self.muted:
-                winapi.set_mute(False)
-                self.muted = False
-            winapi.set_volume(level)
-            self.error = None
-        except Exception as error:  # noqa: BLE001
-            if self.error is None:
-                isl.alert(f"Не удалось изменить громкость:\n{error}")
-            self.error = str(error)
+        f = ui.clamp((pos.x() - track.left()) / track.width())
+        if key == "slider:volume":
+            sp = isl.nsp("volume")
+            sp.x = sp.target = f            # без пружины: ползунок идёт точно за мышью
+            sp.v = 0.0
+            try:
+                if self.muted:
+                    winapi.set_mute(False)
+                    self.muted = False
+                winapi.set_volume(f)
+                self.error = None
+            except Exception as error:  # noqa: BLE001
+                if self.error is None:
+                    isl.alert(f"Не удалось изменить громкость:\n{error}")
+                self.error = str(error)
+        elif key.startswith("slider:app:"):
+            try:
+                app = self.apps[int(key.rsplit(":", 1)[1])]
+            except (ValueError, IndexError):
+                return
+            app["level"] = f
+            try:
+                winapi.set_app_volume(app["vols"], f)
+                self.app_error = None
+            except Exception as error:  # noqa: BLE001 — сессия могла закрыться
+                self.app_error = str(error)
         isl.kick()
 
     def drag_end(self, isl, key: str) -> None:
         self.dragging = False
 
     def click(self, isl, key: str) -> None:
-        if key != "vol:mute":
-            return
-        try:
-            winapi.set_mute(not self.muted)
-            self.muted = not self.muted
-        except Exception as error:  # noqa: BLE001
-            isl.alert(f"Не удалось переключить звук:\n{error}")
+        if key == "vol:mute":
+            try:
+                winapi.set_mute(not self.muted)
+                self.muted = not self.muted
+            except Exception as error:  # noqa: BLE001
+                isl.alert(f"Не удалось переключить звук:\n{error}")
+        elif key.startswith("dev:"):
+            try:
+                device = self.devices[int(key.split(":", 1)[1])]
+            except (ValueError, IndexError):
+                return
+            if device["id"] != self.default_id:
+                try:
+                    winapi.set_default_device(device["id"])
+                    self.default_id = device["id"]
+                    self.refresh(isl)
+                except Exception as error:  # noqa: BLE001
+                    isl.alert(f"Не удалось переключить устройство:\n{error}")
         isl.kick()
 
 
@@ -226,37 +404,95 @@ class Sound(Section):
 class Media(Section):
     key, title = "media", "Медиа"
 
+    def __init__(self) -> None:
+        self.track = QRectF()
+        self.dragging = False
+        self.seek_frac = 0.0
+
     def enter(self, isl) -> None:
         isl.refresh_media()
 
     def paint(self, isl, p, rect: QRectF) -> None:
-        box = QRectF(rect.left(), rect.top(), rect.width(), 210)
+        box = QRectF(rect.left(), rect.top(), rect.width(), 262)
         ui.card(p, box, theme.SURFACE, 26)
         m = isl.media
+
+        ui.cover(isl, p, QRectF(box.left() + 28, box.top() + 28, 150, 150), 22)
+
+        x0 = box.left() + 206
+        wcol = box.width() - 206 - 28
         ui.label(isl, p, m["title"] or "Ничего не играет",
-                 QRectF(box.left() + 28, box.top() + 20, box.width() - 56, 30),
-                 17, bold=True)
+                 QRectF(x0, box.top() + 28, wcol, 32), 19, bold=True)
         if m["title"]:
             sub = m["artist"]
         elif winrt_api.MEDIA_OK:
             sub = "Запустите плеер"
         else:
             sub = "Название трека недоступно: не установлен winrt"
-        ui.label(isl, p, sub, QRectF(box.left() + 28, box.top() + 52,
-                                     box.width() - 56, 22), 12, theme.MUTED)
+        ui.label(isl, p, sub, QRectF(x0, box.top() + 62, wcol, 22), 13, theme.MUTED)
 
-        cx, cy = box.center().x(), box.top() + 142
+        if m["app"]:
+            fm = QFontMetricsF(isl._font(10, True))
+            pill = QRectF(x0, box.top() + 96, min(fm.horizontalAdvance(m["app"]) + 26, wcol), 24)
+            ui.card(p, pill, theme.SURFACE_2, 12)
+            ui.label(isl, p, m["app"], pill, 10, theme.MUTED, True, Qt.AlignCenter)
+
+        # перемотка
+        dur = m["dur"]
+        can_seek = m["can_seek"] and dur > 0
+        pos = isl.media_pos()
+        frac = self.seek_frac if self.dragging else (pos / dur if dur > 0 else 0.0)
+        track = QRectF(x0, box.top() + 146, wcol, 8)
+        self.track = track
+        if can_seek:
+            ui.slider(isl, p, "slider:seek", track, frac)
+        else:
+            ui.bar(p, track, frac, theme.MUTED)
+        shown = frac * dur if self.dragging else pos
+        ui.label(isl, p, ui.fmt_time(shown) if m["title"] else "",
+                 QRectF(x0, box.top() + 160, 80, 18), 10, theme.MUTED)
+        ui.label(isl, p, ui.fmt_time(dur) if dur > 0 else "",
+                 QRectF(x0 + wcol - 80, box.top() + 160, 80, 18), 10, theme.MUTED,
+                 align=Qt.AlignRight | Qt.AlignVCenter)
+
+        # кнопки
+        cx, cy = box.center().x(), box.top() + 214
         v = ui.clamp(isl.nsp("play").x)
-        with ui.round_button(isl, p, "media:prev", QPointF(cx - 110, cy), 30):
-            ui.media_icon(p, "prev", QPointF(cx - 110, cy), 12)
-        with ui.round_button(isl, p, "media:toggle", QPointF(cx, cy), 40, True):
-            ui.media_icon(p, "play", QPointF(cx, cy), 16, 1 - v)
-            ui.media_icon(p, "pause", QPointF(cx, cy), 16, v)
-        with ui.round_button(isl, p, "media:next", QPointF(cx + 110, cy), 30):
-            ui.media_icon(p, "next", QPointF(cx + 110, cy), 12)
+        with ui.round_button(isl, p, "media:prev", QPointF(cx - 90, cy), 24):
+            ui.media_icon(p, "prev", QPointF(cx - 90, cy), 10)
+        with ui.round_button(isl, p, "media:toggle", QPointF(cx, cy), 30, True):
+            ui.media_icon(p, "play", QPointF(cx, cy), 13, 1 - v)
+            ui.media_icon(p, "pause", QPointF(cx, cy), 13, v)
+        with ui.round_button(isl, p, "media:next", QPointF(cx + 90, cy), 24):
+            ui.media_icon(p, "next", QPointF(cx + 90, cy), 10)
 
-        note(isl, p, QRectF(rect.left() + 6, box.bottom() + 12, rect.width(), 20),
-             "Команды идут активному плееру через мультимедийные клавиши.")
+        hint = "Команды идут активному плееру через мультимедийные клавиши."
+        if m["active"] and dur > 0 and not m["can_seek"]:
+            hint = "Этот плеер не поддерживает перемотку."
+        note(isl, p, QRectF(rect.left() + 6, box.bottom() + 10, rect.width() - 12, 20), hint)
+
+    def drag(self, isl, key: str, pos) -> None:
+        if key != "slider:seek" or self.track.width() <= 0:
+            return
+        self.dragging = True
+        self.seek_frac = ui.clamp((pos.x() - self.track.left()) / self.track.width())
+        isl.kick()
+
+    def drag_end(self, isl, key: str) -> None:
+        if key != "slider:seek":
+            return
+        self.dragging = False
+        target = self.seek_frac * isl.media["dur"]
+        isl.media["pos"] = target                  # сразу показываем новую позицию
+        isl.media["stamp"] = time.time()
+
+        def done(_res, err) -> None:
+            if err is not None:
+                isl.alert(f"Не удалось перемотать:\n{err}")
+            isl.refresh_media(delay_ms=500)
+
+        run_bg(lambda: winrt_api.seek_media(target), done)
+        isl.kick()
 
     def click(self, isl, key: str) -> None:
         action = key.split(":", 1)[1]
@@ -946,22 +1182,37 @@ class Weather(Section):
         self.data: dict | None = None
         self.error: str | None = None
         self.loading = False
+        self.loaded_at = 0.0
 
     @staticmethod
     def city(isl) -> str:
         city = isl.state.get("weather_city")
         return city.strip() if isinstance(city, str) and city.strip() else "Москва"
 
-    def enter(self, isl) -> None:
+    def attach(self, isl) -> None:
+        QTimer.singleShot(1500, lambda: self.ensure(isl))
+
+    def ensure(self, isl) -> None:
+        """Подгружает погоду, если город выбран, а данных нет или они старше 30 минут."""
         city = isl.state.get("weather_city")
-        if isinstance(city, str) and city.strip() and self.data is None and not self.loading:
+        if not (isinstance(city, str) and city.strip()) or self.loading:
+            return
+        age = time.time() - self.loaded_at
+        if self.data is None and self.error and age < 120:
+            return                       # после ошибки не долбим сеть чаще раза в 2 минуты
+        if self.data is None or age > WEATHER_TTL:
             self._load(isl, city.strip())
 
+    def enter(self, isl) -> None:
+        self.ensure(isl)
+
     def _load(self, isl, city: str) -> None:
-        isl.state["weather_city"] = city
-        isl.save_state()
+        if isl.state.get("weather_city") != city:
+            isl.state["weather_city"] = city
+            isl.save_state()
         self.error = None
         self.loading = True
+        self.loaded_at = time.time()
 
         def done(res, err) -> None:
             self.loading = False
@@ -1021,32 +1272,8 @@ class Weather(Section):
         self._load(isl, city.strip())
 
 
-# ------------------------------------------------------------------ Снимок
-
-class Screenshot(Section):
-    key, title = "screenshot", "Снимок"
-
-    def paint(self, isl, p, rect: QRectF) -> None:
-        box = QRectF(rect.left(), rect.top(), rect.width(), 190)
-        ui.card(p, box, theme.SURFACE, 26)
-        ui.label(isl, p, "Снимок экрана",
-                 QRectF(box.left() + 28, box.top() + 22, 400, 30), 17, bold=True)
-        ui.label(isl, p, "Откроется встроенный инструмент Windows для выбора области.",
-                 QRectF(box.left() + 28, box.top() + 58, box.width() - 56, 22),
-                 11, theme.MUTED)
-        ui.button(isl, p, "shot:go", QRectF(box.left() + 28, box.top() + 104, 240, 52),
-                  "Сделать снимок", True)
-
-    def click(self, isl, key: str) -> None:
-        if key == "shot:go":
-            try:
-                winapi.start_screen_capture()
-            except OSError as error:
-                isl.alert(f"Не удалось запустить:\n{error}")
-
-
 SECTIONS: list[Section] = [
     Home(), Sound(), Media(), System(), Settings(),
-    Links(), Clipboard(), Calendar(), Weather(), Screenshot(),
+    Links(), Clipboard(), Calendar(), Weather(),
 ]
 BY_KEY = {s.key: s for s in SECTIONS}

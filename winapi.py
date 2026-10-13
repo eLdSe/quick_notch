@@ -248,10 +248,6 @@ def open_windows_settings(page: str) -> None:
     os.startfile(f"ms-settings:{page}")
 
 
-def start_screen_capture() -> None:
-    os.startfile("ms-screenclip:")
-
-
 # ---------- автозапуск ----------
 
 STARTUP_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -417,3 +413,135 @@ def set_volume(level: float) -> None:
 
 def set_mute(muted: bool) -> None:
     _with_endpoint(lambda ep: ep.SetMute(1 if muted else 0, None))
+
+
+# ---------- устройства вывода ----------
+
+_KNOWN_APPS = {
+    "msedge": "Edge", "chrome": "Chrome", "firefox": "Firefox", "opera": "Opera",
+    "opera_gx": "Opera GX", "brave": "Brave", "spotify": "Spotify", "vlc": "VLC",
+    "yandexmusic": "Яндекс Музыка", "telegram": "Telegram", "discord": "Discord",
+    "browser": "Яндекс Браузер", "wmplayer": "Медиаплеер",
+}
+
+
+def pretty_app_name(raw: str) -> str:
+    s = (raw or "").strip()
+    if s.lower().endswith(".exe"):
+        s = s[:-4]
+    if not s:
+        return ""
+    return _KNOWN_APPS.get(s.lower(), s[:1].upper() + s[1:])
+
+
+def _device_enumerator():
+    try:
+        from comtypes import CLSCTX_ALL, CoCreateInstance
+        from pycaw.pycaw import AudioUtilities
+    except ImportError as error:
+        raise RuntimeError(VOLUME_HINT) from error
+    getter = getattr(AudioUtilities, "GetDeviceEnumerator", None)
+    if getter is not None:
+        return getter(), AudioUtilities
+    from pycaw.api.mmdeviceapi import IMMDeviceEnumerator
+    from pycaw.constants import CLSID_MMDeviceEnumerator
+    return (CoCreateInstance(CLSID_MMDeviceEnumerator, IMMDeviceEnumerator,
+                             CLSCTX_ALL), AudioUtilities)
+
+
+def list_output_devices() -> tuple[list[dict], str | None]:
+    """([{'id', 'name'}, ...], id устройства по умолчанию). Только активные."""
+    enumerator, utils = _device_enumerator()
+    collection = enumerator.EnumAudioEndpoints(0, 1)      # eRender, ACTIVE
+    devices = []
+    for i in range(collection.GetCount()):
+        dev = collection.Item(i)
+        try:
+            info = utils.CreateDevice(dev)
+            devices.append({"id": info.id, "name": info.FriendlyName or info.id})
+        except Exception:  # noqa: BLE001
+            device_id = dev.GetId()
+            devices.append({"id": device_id, "name": device_id})
+    try:
+        default_id = enumerator.GetDefaultAudioEndpoint(0, 0).GetId()
+    except Exception:  # noqa: BLE001
+        default_id = None
+    return devices, default_id
+
+
+_policy = None
+
+
+def _policy_config():
+    """Недокументированный интерфейс IPolicyConfig: так делают все утилиты смены звука."""
+    global _policy
+    if _policy is None:
+        from comtypes import (CLSCTX_ALL, COMMETHOD, GUID, HRESULT, CoCreateInstance,
+                              IUnknown)
+        from ctypes.wintypes import DWORD, LPCWSTR
+
+        skipped = [COMMETHOD([], HRESULT, name) for name in (
+            "GetMixFormat", "GetDeviceFormat", "ResetDeviceFormat",
+            "SetDeviceFormat", "GetProcessingPeriod", "SetProcessingPeriod",
+            "GetShareMode", "SetShareMode", "GetPropertyValue", "SetPropertyValue")]
+
+        class IPolicyConfig(IUnknown):
+            _iid_ = GUID("{F8679F50-850A-41CF-9C72-430F290290C8}")
+            _methods_ = tuple(skipped) + (
+                COMMETHOD([], HRESULT, "SetDefaultEndpoint",
+                          (["in"], LPCWSTR, "deviceId"), (["in"], DWORD, "role")),
+                COMMETHOD([], HRESULT, "SetEndpointVisibility",
+                          (["in"], LPCWSTR, "deviceId"), (["in"], ctypes.c_int, "visible")),
+            )
+
+        _policy = CoCreateInstance(
+            GUID("{870AF99C-171D-4F9E-AF0D-E63DF40C2BC9}"), IPolicyConfig, CLSCTX_ALL)
+    return _policy
+
+
+def set_default_device(device_id: str) -> None:
+    global _endpoint
+    policy = _policy_config()
+    for role in (0, 1, 2):          # консоль, мультимедиа, связь
+        policy.SetDefaultEndpoint(device_id, role)
+    _endpoint = None                # громкость теперь читаем с нового устройства
+
+
+# ---------- громкость приложений ----------
+
+def list_app_volumes() -> list[dict]:
+    """[{'name', 'level', 'vols': [SimpleAudioVolume, ...]}], процессы с одним именем склеены."""
+    try:
+        from pycaw.pycaw import AudioUtilities
+    except ImportError as error:
+        raise RuntimeError(VOLUME_HINT) from error
+
+    groups: dict[str, dict] = {}
+    for session in AudioUtilities.GetAllSessions():
+        vol = getattr(session, "SimpleAudioVolume", None)
+        if vol is None or not getattr(session, "ProcessId", 0):
+            continue                                   # системные звуки пропускаем
+        if getattr(session, "State", 1) == 2:          # сессия истекла
+            continue
+        proc = getattr(session, "Process", None)
+        try:
+            name = proc.name() if proc else ""
+        except Exception:  # noqa: BLE001
+            name = ""
+        name = name or getattr(session, "DisplayName", "") or ""
+        if not name:
+            continue
+        group = groups.setdefault(
+            name.lower(), {"name": pretty_app_name(name), "level": 0.0, "vols": []})
+        group["vols"].append(vol)
+        try:
+            group["level"] = max(group["level"], float(vol.GetMasterVolume()))
+        except Exception:  # noqa: BLE001
+            pass
+    return sorted(groups.values(), key=lambda g: g["name"].lower())
+
+
+def set_app_volume(vols: list, level: float) -> None:
+    level = max(0.0, min(1.0, level))
+    for vol in vols:
+        vol.SetMasterVolume(level, None)

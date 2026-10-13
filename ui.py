@@ -3,8 +3,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import (QColor, QFont, QFontMetricsF, QPainter, QPen,
-                           QPolygonF, QTextLayout, QTextOption)
+from PySide6.QtGui import (QColor, QFont, QFontMetricsF, QPainter, QPainterPath,
+                           QPen, QPolygonF, QTextLayout, QTextOption)
 
 import theme
 
@@ -23,6 +23,13 @@ def clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
 def trim(text: str, limit: int) -> str:
     text = text.replace("\n", " ").strip()
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def fmt_time(seconds: float) -> str:
+    s = max(0, int(seconds))
+    h, rest = divmod(s, 3600)
+    m, sec = divmod(rest, 60)
+    return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
 
 
 def mix(a: QColor, b: QColor, t: float) -> QColor:
@@ -120,6 +127,21 @@ def segmented(isl, p: QPainter, rect: QRectF, items, v: float, prefix: str) -> N
         color = mix(theme.MUTED, theme.TEXT, max(near, isl.hv(k)))
         label(isl, p, text, r, 12, color, True, Qt.AlignCenter)
         isl.add_hit(k, r)
+
+
+def cover(isl, p: QPainter, rect: QRectF, r: float = 16) -> None:
+    """Обложка трека со скруглёнными углами или заглушка, если обложки нет."""
+    pixmap = isl.cover_pixmap(round(rect.width()))
+    if pixmap is None:
+        card(p, rect, theme.SURFACE_2, r)
+        media_icon(p, "play", rect.center(), rect.width() * 0.16, 0.35)
+        return
+    path = QPainterPath()
+    path.addRoundedRect(rect, r, r)
+    p.save()
+    p.setClipPath(path, Qt.IntersectClip)
+    p.drawPixmap(rect.topLeft(), pixmap)
+    p.restore()
 
 
 @contextmanager

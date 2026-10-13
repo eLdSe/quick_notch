@@ -16,7 +16,8 @@ The interface features smooth animations, rounded corners, and a compact layout:
 - Lets you quickly launch the browser, File Explorer, Notepad, and Calculator.
 - Controls system volume and Windows media keys.
 - Toggles Wi‑Fi and Bluetooth using the Windows Radios API (when supported by the device and permitted by Windows).
-- Opens settings for display, Night Light, notifications, and sound.
+- Keeps Windows controls such as Wi-Fi, Bluetooth, and brightness on the Overview.
+- Keeps the Settings section focused on Quick Notch's own behavior and appearance.
 - Displays CPU, memory, and system disk usage.
 - Supports custom links to websites, folders, and applications.
 - Keeps a local clipboard history while the relevant section is open.

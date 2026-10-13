@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 import time
 from datetime import datetime
 
@@ -16,12 +15,8 @@ from bg import run_bg
 from store import (LINKS_PATH, fetch_weather, read_links, weather_description,
                    write_links)
 
-TILES = (
-    ("browser", "Браузер"),
-    ("explorer", "Проводник"),
-    ("notepad", "Блокнот"),
-    ("calculator", "Калькулятор"),
-)
+TIMER_LABEL = "Таймер 25 мин"
+TIMER_SECONDS = 25 * 60
 
 LIST_H = 252          # высота списка буфера: ровно 5 строк
 ROW_H = 44
@@ -102,29 +97,134 @@ def note(isl, p, rect: QRectF, text: str, color=theme.MUTED, size: float = 10) -
 class Home(Section):
     key, title = "home", "Обзор"
 
+    # ---------- жизненный цикл ----------
+
     def enter(self, isl) -> None:
         BY_KEY["weather"].ensure(isl)
+        BY_KEY["settings"].enter(isl)        # Wi-Fi, Bluetooth, яркость, тема
+        BY_KEY["sound"].refresh_volume(isl)
 
     def tick(self, isl) -> None:
+        sett, sound = BY_KEY["settings"], BY_KEY["sound"]
         BY_KEY["weather"].ensure(isl)
+        sett.tick(isl)
+        if not sound.dragging:               # не мешаем, пока тянут ползунок
+            sound.refresh_volume(isl)
+        dark = winapi.get_dark_theme()       # тему могли сменить снаружи
+        if dark != sett.dark:
+            sett.dark = dark
+            isl.nsp("sys:dark").target = 1.0 if dark else 0.0
+            isl.kick()
+
+    # ---------- таймер ----------
+
+    @staticmethod
+    def _timer_due(isl) -> float | None:
+        for item in isl.reminders:
+            if item["label"] == TIMER_LABEL:
+                return item["due"]
+        return None
+
+    def _toggle_timer(self, isl) -> None:
+        if self._timer_due(isl) is not None:     # второй клик отменяет таймер
+            isl.state["reminders"] = [
+                r for r in isl.reminders if r["label"] != TIMER_LABEL]
+        else:
+            isl.reminders.append(
+                {"label": TIMER_LABEL, "due": time.time() + TIMER_SECONDS})
+            isl.reminders.sort(key=lambda r: r["due"])
+        isl.save_state()
+
+    # ---------- отрисовка ----------
 
     def paint(self, isl, p, rect: QRectF) -> None:
+        sett, sound = BY_KEY["settings"], BY_KEY["sound"]
         gap = 12
-        tw = (rect.width() - 3 * gap) / 4
-        for i, (name, text) in enumerate(TILES):
-            r = QRectF(rect.left() + i * (tw + gap), rect.top(), tw, 96)
-            with ui.panel(isl, p, f"launch:{name}", r):
-                ui.label(isl, p, text,
-                         QRectF(r.left() + 20, r.top() + 18, tw - 32, 28), 14, bold=True)
-                ui.label(isl, p, "Открыть",
-                         QRectF(r.left() + 20, r.top() + 56, tw - 32, 20),
-                         10, theme.MUTED)
+        x0, y0 = rect.left(), rect.top()
 
-        top = rect.top() + 112
-        sw = (rect.width() - 2 * gap) / 3
-        self._reminder_card(isl, p, QRectF(rect.left(), top, sw, 150))
-        self._media_card(isl, p, QRectF(rect.left() + sw + gap, top, sw, 150))
-        self._weather_card(isl, p, QRectF(rect.left() + 2 * (sw + gap), top, sw, 150))
+        def radio(kind: str):
+            state = sett.states[kind]
+            if state is None:
+                return False, ("…" if sett.busy else "Нет"), False
+            return state, ("Вкл" if state else "Выкл"), True
+
+        awake = isl.state["keep_awake"]
+        due = self._timer_due(isl)
+        timer_status = ("25 мин" if due is None
+                        else f"ещё {int((due - time.time()) // 60) + 1} мин")
+        tiles = (
+            ("WiFi", "Wi-Fi", *radio("WiFi")),
+            ("Bluetooth", "Bluetooth", *radio("Bluetooth")),
+            ("dark", "Тёмная тема", sett.dark, "Вкл" if sett.dark else "Выкл", True),
+            ("awake", "Не засыпать", awake, "Вкл" if awake else "Выкл", True),
+            ("mute", "Без звука", sound.muted, "Вкл" if sound.muted else "Выкл", True),
+            ("timer", "Таймер", due is not None, timer_status, True),
+        )
+        tw = (rect.width() - 5 * gap) / 6
+        for i, (key, text, on, status, enabled) in enumerate(tiles):
+            self._tile(isl, p, f"tog:{key}", text, status, on, enabled,
+                       QRectF(x0 + i * (tw + gap), y0, tw, 64))
+
+        # два ползунка
+        sw = (rect.width() - gap) / 2
+        level = ui.clamp(isl.nsp("volume").x)
+        self._slider_card(
+            isl, p, QRectF(x0, y0 + 76, sw, 56), "Громкость", "slider:volume",
+            sound.tracks, level,
+            "Без звука" if sound.muted else f"{round(level * 100)}%",
+            ui.trim(sound.error, 34) if sound.error else None)
+        bright = ui.clamp(isl.nsp("brightness").x)
+        br_error = (ui.trim(sett.br_error, 34)
+                    if sett.br_error and not sett.br_known else None)
+        self._slider_card(
+            isl, p, QRectF(x0 + sw + gap, y0 + 76, sw, 56), "Яркость",
+            "slider:brightness", sett.tracks, bright, f"{round(bright * 100)}%",
+            br_error)
+
+        # три карточки
+        top = y0 + 144
+        cw = (rect.width() - 2 * gap) / 3
+        self._reminder_card(isl, p, QRectF(x0, top, cw, 150))
+        self._media_card(isl, p, QRectF(x0 + cw + gap, top, cw, 150))
+        self._weather_card(isl, p, QRectF(x0 + 2 * (cw + gap), top, cw, 150))
+
+    def _tile(self, isl, p, key: str, text: str, status: str, on: bool,
+              enabled: bool, r: QRectF) -> None:
+        want = 1.0 if on else 0.0
+        sp = isl.nsp(f"home:{key}", want)        # при создании сразу в нужном состоянии
+        if sp.target != want:
+            sp.target = want
+            isl._start_frames()
+        v = ui.clamp(sp.x)
+        hot = isl.hv(key)
+        with ui.pressable(isl, p, key, r):
+            off = ui.mix(theme.SURFACE, theme.SURFACE_2, hot)
+            onc = ui.mix(theme.ACCENT, theme.ACCENT_HOT, hot)
+            ui.card(p, r, ui.mix(off, onc, v), 22)
+            ui.label(isl, p, text,
+                     QRectF(r.left() + 16, r.top() + 10, r.width() - 28, 22), 12,
+                     theme.TEXT if enabled else theme.MUTED, True)
+            ui.label(isl, p, status,
+                     QRectF(r.left() + 16, r.top() + 34, r.width() - 28, 18), 10,
+                     ui.mix(theme.MUTED, theme.TEXT, 0.85 * v))
+        isl.add_hit(key, r)
+
+    def _slider_card(self, isl, p, r: QRectF, title: str, key: str,
+                     tracks: dict, level: float, value: str,
+                     error: str | None) -> None:
+        ui.card(p, r, theme.SURFACE, 22)
+        ui.label(isl, p, title, QRectF(r.left() + 20, r.top() + 8, 160, 20),
+                 11, theme.MUTED, True)
+        right = QRectF(r.right() - 20 - 200, r.top() + 8, 200, 20)
+        if error:
+            ui.label(isl, p, error, right, 10, theme.RED,
+                     align=Qt.AlignRight | Qt.AlignVCenter)
+        else:
+            ui.label(isl, p, value, right, 11, theme.ACCENT_HOT, True,
+                     Qt.AlignRight | Qt.AlignVCenter)
+        track = QRectF(r.left() + 28, r.top() + 38, r.width() - 56, 6)
+        tracks[key] = track          # ползунок на главной управляется кодом раздела
+        ui.slider(isl, p, key, track, level, error is None)
 
     def _reminder_card(self, isl, p, r: QRectF) -> None:
         with ui.panel(isl, p, "go:calendar", r, 24):
@@ -214,14 +314,36 @@ class Home(Section):
                          QRectF(r.left() + 20, r.top() + 82, r.width() - 40, 20),
                          11, theme.MUTED)
 
+    # ---------- события ----------
+
+    def drag(self, isl, key: str, pos) -> None:
+        if key == "slider:volume":
+            BY_KEY["sound"].drag(isl, key, pos)
+        elif key == "slider:brightness":
+            BY_KEY["settings"].drag(isl, key, pos)
+
+    def drag_end(self, isl, key: str) -> None:
+        if key == "slider:volume":
+            BY_KEY["sound"].drag_end(isl, key)
+        elif key == "slider:brightness":
+            BY_KEY["settings"].drag_end(isl, key)
+
     def click(self, isl, key: str) -> None:
         if key.startswith("go:"):
             isl.select(key.split(":", 1)[1])
-        elif key.startswith("launch:"):
-            try:
-                winapi.launch(key.split(":", 1)[1])
-            except OSError as error:
-                isl.alert(f"Не удалось запустить:\n{error}")
+        elif key.startswith("tog:"):
+            name = key.split(":", 1)[1]
+            sett, sound = BY_KEY["settings"], BY_KEY["sound"]
+            if name in ("WiFi", "Bluetooth"):
+                sett.toggle(isl, name)
+            elif name == "dark":
+                sett.toggle_dark(isl)
+            elif name == "awake":
+                isl.set_keep_awake(not isl.state["keep_awake"])
+            elif name == "mute":
+                sound.click(isl, "vol:mute")
+            elif name == "timer":
+                self._toggle_timer(isl)
 
 
 # ------------------------------------------------------------------ Звук
@@ -247,7 +369,7 @@ class Sound(Section):
         if not self.dragging:       # не мешаем, пока человек тянет ползунок
             self.refresh(isl)
 
-    def refresh(self, isl) -> None:
+    def refresh_volume(self, isl) -> None:
         try:
             level, self.muted = winapi.get_volume()
         except Exception as error:  # noqa: BLE001 — показываем причину в интерфейсе
@@ -255,6 +377,12 @@ class Sound(Section):
             return
         self.error = None
         isl.nsp("volume").target = level      # пружина плавно доедет до значения
+        isl.kick()
+
+    def refresh(self, isl) -> None:
+        self.refresh_volume(isl)
+        if self.error:
+            return
         try:
             self.devices, self.default_id = winapi.list_output_devices()
             self.dev_error = None
@@ -545,27 +673,20 @@ class System(Section):
 
 class Settings(Section):
     key, title = "settings", "Настройки"
-    TABS = (("system", "Система"), ("island", "Остров"))
 
     def __init__(self) -> None:
-        self.tab = "system"
         self.tracks: dict[str, QRectF] = {}
         self.dragging = False
-        # Wi-Fi и Bluetooth
         self.states: dict[str, bool | None] = {"WiFi": None, "Bluetooth": None}
         self.busy = False
         self.error: str | None = None
         self.next_refresh = 0.0
-        # яркость
         self.br_known = False
         self.br_busy = False
         self.br_pending: int | None = None
         self.br_error: str | None = None
         self.br_next = 0.0
-        # тема Windows
         self.dark = False
-
-    # ---------- жизненный цикл ----------
 
     def attach(self, isl) -> None:
         self.dark = winapi.get_dark_theme()
@@ -583,8 +704,6 @@ class Settings(Section):
             self.refresh(isl)
         if time.perf_counter() >= self.br_next:
             self.refresh_brightness(isl)
-
-    # ---------- Wi-Fi и Bluetooth ----------
 
     def refresh(self, isl, toggle: tuple[str, bool] | None = None) -> None:
         if self.busy:
@@ -605,7 +724,7 @@ class Settings(Section):
         if err is not None:
             self.error = str(err)
             if toggle:
-                self.states[toggle[0]] = not toggle[1]   # откат ползунка
+                self.states[toggle[0]] = not toggle[1]
                 isl.alert(f"Не удалось переключить {toggle[0]}:\n{err}")
         else:
             self.error = None
@@ -621,12 +740,10 @@ class Settings(Section):
         if state is None:
             self.refresh(isl)
             return
-        self.states[kind] = not state                 # интерфейс меняется сразу
+        self.states[kind] = not state
         isl.nsp(f"radio:{kind}").target = 0.0 if state else 1.0
         isl.kick()
-        self.refresh(isl, (kind, not state))          # Windows догоняет в фоне
-
-    # ---------- яркость ----------
+        self.refresh(isl, (kind, not state))
 
     def refresh_brightness(self, isl) -> None:
         if self.br_busy or self.dragging:
@@ -651,7 +768,6 @@ class Settings(Section):
         run_bg(winapi.get_brightness, done)
 
     def _push_brightness(self, isl) -> None:
-        """Отправляет в Windows последнее значение; пока идёт запрос, новые копятся."""
         if self.br_busy or self.br_pending is None:
             return
         value, self.br_pending = self.br_pending, None
@@ -671,8 +787,6 @@ class Settings(Section):
 
         run_bg(lambda: winapi.set_brightness(value), done)
 
-    # ---------- тема Windows ----------
-
     def toggle_dark(self, isl) -> None:
         want = not self.dark
         try:
@@ -685,86 +799,8 @@ class Settings(Section):
         run_bg(winapi.broadcast_theme_change, lambda _r, _e: None)
         isl.kick()
 
-    # ---------- отрисовка ----------
-
     def paint(self, isl, p, rect: QRectF) -> None:
-        v = isl.nsp("settings_tab").x
-        ui.segmented(isl, p, QRectF(rect.left(), rect.top(), 260, 36),
-                     self.TABS, v, "stab")
-        body = QRectF(rect.left(), rect.top() + 48, rect.width(), rect.height() - 48)
-
-        t = ui.clamp(v)       # плавно перетекаем между вкладками
-        for name, op in (("system", 1 - t), ("island", t)):
-            if op < 0.02:
-                continue
-            live = isl.content_live
-            if op < 0.9:
-                isl.content_live = False
-            p.save()
-            p.setOpacity(p.opacity() * op)
-            (self._paint_system if name == "system" else self._paint_island)(isl, p, body)
-            p.restore()
-            isl.content_live = live
-
-    def _toggle_row(self, isl, p, key: str, text: str, r: QRectF, v: float,
-                    status: str, enabled: bool = True, on: bool = False) -> None:
-        with ui.panel(isl, p, key, r, r.height() / 2):
-            ui.label(isl, p, text,
-                     QRectF(r.left() + 18, r.top(), r.width() - 110, r.height()), 11)
-            ui.label(isl, p, status, QRectF(r.right() - 112, r.top(), 60, r.height()), 9,
-                     theme.ACCENT if on else theme.MUTED,
-                     align=Qt.AlignRight | Qt.AlignVCenter)
-            ui.switch(p, QRectF(r.right() - 50, r.center().y() - 10, 36, 20), v, enabled)
-
-    def _radio_row(self, isl, p, kind: str, text: str, r: QRectF) -> None:
-        state = self.states[kind]
-        enabled = state is not None
-        status = ("Вкл" if state else "Выкл") if enabled else (
-            "…" if self.busy else "Нет")
-        self._toggle_row(isl, p, f"radio:{kind}", text, r,
-                         isl.nsp(f"radio:{kind}").x, status, enabled, state is True)
-
-    def _paint_system(self, isl, p, body: QRectF) -> None:
-        tw = (body.width() - 24) / 3
-
-        def cell(col: int, row: int, span: int = 1) -> QRectF:
-            return QRectF(body.left() + col * (tw + 12), body.top() + row * 62,
-                          tw * span + 12 * (span - 1), 52)
-
-        self._radio_row(isl, p, "WiFi", "Wi-Fi", cell(0, 0))
-        self._radio_row(isl, p, "Bluetooth", "Bluetooth", cell(1, 0))
-        awake = isl.state["keep_awake"]
-        self._toggle_row(isl, p, "sys:awake", "Не засыпать", cell(2, 0),
-                         isl.nsp("sys:awake").x, "Вкл" if awake else "Выкл", True, awake)
-        self._toggle_row(isl, p, "sys:dark", "Тёмная тема", cell(0, 1),
-                         isl.nsp("sys:dark").x, "Вкл" if self.dark else "Выкл",
-                         True, self.dark)
-        r = cell(1, 1, 2)
-        with ui.panel(isl, p, "sys:winsettings", r, 26):
-            ui.label(isl, p, "Открыть параметры Windows",
-                     QRectF(r.left() + 20, r.top(), r.width() - 40, r.height()), 11)
-
-        # яркость
-        box = QRectF(body.left(), body.top() + 124, body.width(), 96)
-        ui.card(p, box, theme.SURFACE, 24)
-        ui.label(isl, p, "Яркость экрана",
-                 QRectF(box.left() + 28, box.top() + 14, 300, 28), 13, bold=True)
-        if self.br_error and not self.br_known:
-            note(isl, p, QRectF(box.left() + 28, box.top() + 46, box.width() - 56, 44),
-                 self.br_error, theme.RED, 11)
-        else:
-            level = ui.clamp(isl.nsp("brightness").x)
-            ui.label(isl, p, f"{round(level * 100)}%",
-                     QRectF(box.right() - 28 - 120, box.top() + 14, 120, 28), 13,
-                     theme.ACCENT_HOT, True, Qt.AlignRight | Qt.AlignVCenter)
-            track = QRectF(box.left() + 36, box.top() + 62, box.width() - 72, 8)
-            self.tracks["slider:brightness"] = track
-            ui.slider(isl, p, "slider:brightness", track, level)
-
-        text = self.error or self.br_error if self.br_known else self.error
-        note(isl, p, QRectF(body.left() + 6, body.top() + 232, body.width() - 12, 24),
-             text or "Wi-Fi и Bluetooth переключаются прямо здесь.",
-             theme.RED if text else theme.MUTED)
+        self._paint_island(isl, p, rect)
 
     def _slider_card(self, isl, p, r: QRectF, title: str, toggle_key: str,
                      slider_key: str, enabled: bool, value_text: str,
@@ -857,22 +893,7 @@ class Settings(Section):
             isl.save_state()
 
     def click(self, isl, key: str) -> None:
-        if key.startswith("stab:"):
-            self.tab = key.split(":", 1)[1]
-            isl.nsp("settings_tab").target = 0.0 if self.tab == "system" else 1.0
-            isl.kick()
-        elif key.startswith("radio:"):
-            self.toggle(isl, key.split(":", 1)[1])
-        elif key == "sys:awake":
-            isl.set_keep_awake(not isl.state["keep_awake"])
-        elif key == "sys:dark":
-            self.toggle_dark(isl)
-        elif key == "sys:winsettings":
-            try:
-                winapi.open_windows_settings("")
-            except OSError as error:
-                isl.alert(f"Не удалось открыть параметры:\n{error}")
-        elif key.startswith("accent:"):
+        if key.startswith("accent:"):
             isl.set_accent(key.split(":", 1)[1])
         elif key.startswith("opt:"):
             isl.toggle_opt(key.split(":", 1)[1])

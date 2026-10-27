@@ -81,6 +81,11 @@ public sealed class AeroPetWindow : Window
         _island.DockAero();
     }
 
+    public void RefreshMusicState()
+    {
+        _canvas.InvalidateVisual();
+    }
+
     protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
@@ -1129,12 +1134,15 @@ public sealed class AeroPetCanvas : FrameworkElement
 
         double cx = w / 2;
         double baseCy = h / 2 + 28;
+        bool isMusic = _island.Media.Playing;
+        double musicAwake = (!IsSleeping && sleepW < 0.85) ? (1.0 - sleepW) : 0.0;
+        double musicBob = (isMusic && ActiveQuirk != "dj") ? Math.Abs(Math.Sin(_animPhase * 3.0)) * 3.0 * musicAwake : 0.0;
         double djBob = (ActiveQuirk == "dj") ? Math.Max(0.0, Math.Sin(_quirkPhase * 16.0)) * 3.5 : 0.0;
         double scratchPurr = ScratchJoyTimer > 0 ? Math.Sin(_animPhase * 35.0) * 1.5 : 0.0;
         double awakeFloat = Math.Sin(_animPhase) * 3.5 + scratchPurr;
         double sleepFloat = Math.Sin((IsSleeping ? _sleepAnimTimer : _animPhase * 0.5) * 1.5) * 2.0;
         double floatY = Ui.Lerp(awakeFloat, sleepFloat, sleepW) + _spHop.X + sleepW * 2.5;
-        double cy = baseCy + floatY + djBob;
+        double cy = baseCy + floatY + djBob - musicBob;
 
         // 1. Всплывающее облачко речи (Speech Bubble) над головой Аэро
         if (_bubbleTime > 0 && !string.IsNullOrEmpty(_bubbleText))
@@ -1167,7 +1175,7 @@ public sealed class AeroPetCanvas : FrameworkElement
             }
         }
 
-        // Подготовка поворота для сальто (360° Barrel Roll)
+        // Подготовка поворота для сальто (360° Barrel Roll) или покачивания в такт музыке
         bool pushedRot = false;
         if (ActiveQuirk == "flip")
         {
@@ -1186,10 +1194,22 @@ public sealed class AeroPetCanvas : FrameworkElement
                 pushedRot = true;
             }
         }
+        else if (isMusic && musicAwake > 0.05)
+        {
+            double swayAngle = Math.Sin(_animPhase * 1.5) * 3.2 * musicAwake;
+            if (Math.Abs(swayAngle) > 0.05)
+            {
+                _rotTransform.Angle = swayAngle;
+                _rotTransform.CenterX = cx;
+                _rotTransform.CenterY = cy;
+                dc.PushTransform(_rotTransform);
+                pushedRot = true;
+            }
+        }
 
-        // 2. Джетпак-пламя / антигравитационное свечение снизу
-        double awakePulse = 7.0 + Math.Sin(_animPhase * 2.8) * 3.5;
-        double sleepPulse = 5.0 + Math.Sin(_sleepAnimTimer * 1.5) * 1.8;
+        // 2. Джетпак-пламя / антигравитационное свечение снизу под чиби-тельцем
+        double awakePulse = 6.5 + Math.Sin(_animPhase * 2.8) * 3.0;
+        double sleepPulse = 4.5 + Math.Sin(_sleepAnimTimer * 1.5) * 1.5;
         double flamePulse = Ui.Lerp(awakePulse, sleepPulse, sleepW);
         Color awakeFlame = Color.FromArgb(190, 56, 189, 248);
         Color sleepFlame = Color.FromArgb(140, 100, 180, 255);
@@ -1201,9 +1221,22 @@ public sealed class AeroPetCanvas : FrameworkElement
             flameColor = Color.FromArgb(240, 250, 204, 21); // ярко-золотой турбо-всплеск
         }
 
-        p.Circle(new Point(cx, cy + 30), flamePulse * 1.6, Color.FromArgb((byte)Ui.Lerp(45, 25, sleepW), 56, 189, 248));
-        p.Circle(new Point(cx, cy + 28), flamePulse, flameColor);
-        p.Circle(new Point(cx, cy + 26), flamePulse * 0.6, Colors.White);
+        p.Circle(new Point(cx, cy + 44), flamePulse * 1.5, Color.FromArgb((byte)Ui.Lerp(45, 25, sleepW), 56, 189, 248));
+        p.Circle(new Point(cx, cy + 42), flamePulse, flameColor);
+        p.Circle(new Point(cx, cy + 40), flamePulse * 0.55, Colors.White);
+
+        // 2.5. Умилительное пухлое чиби-тельце с реактором-сердечком в груди
+        Color bodyBg = Theme.IsLight ? Color.FromRgb(242, 245, 252) : Color.FromRgb(26, 30, 42);
+        Color bodyBorder = Theme.Mix(Theme.BorderSubtle, Theme.Accent, 0.45);
+        var bodyRect = new Rect(cx - 19, cy + 21, 38, 20);
+        p.Card(bodyRect, bodyBg, 10, bodyBorder);
+        // Мягкий блик на животике
+        p.Card(new Rect(bodyRect.Left + 6, bodyRect.Top + 2, bodyRect.Width - 12, 4), Color.FromArgb(40, 255, 255, 255), 2);
+        // Светящееся сердечко-ядро на груди
+        Color coreColor = (_spHappy.X > 0.25 || ScratchJoyTimer > 0 || _emotion == "love")
+            ? Color.FromRgb(244, 114, 182)
+            : Theme.Mix(Theme.Accent, Theme.AccentHot, (Math.Sin(_animPhase * 2.5) + 1.0) * 0.5);
+        p.Label("♥", new Rect(cx - 7, bodyRect.Top + 2, 14, 15), 10.5, coreColor, true, HAlign.Center);
 
         // 3. Антеннка
         p.Line(new Point(cx, cy - 26), new Point(cx, cy - 38), Theme.BorderSubtle, 2.2);
@@ -1268,10 +1301,42 @@ public sealed class AeroPetCanvas : FrameworkElement
 
         // 4. Наушники / ушки по бокам
         Color earColor = Theme.Mix(Theme.Surface3, Theme.Accent, 0.5);
-        p.Card(new Rect(cx - 42, cy - 12, 8, 24), earColor, 4);
-        p.Card(new Rect(cx + 34, cy - 12, 8, 24), earColor, 4);
-        p.Line(new Point(cx - 38, cy), new Point(cx - 34, cy), Theme.Accent, 2.0);
-        p.Line(new Point(cx + 34, cy), new Point(cx + 38, cy), Theme.Accent, 2.0);
+        if (isMusic || ActiveQuirk == "dj")
+        {
+            // Дужка студийных наушников поверх головы
+            Color bandColor = Theme.Mix(Theme.Surface3, Theme.Accent, 0.75);
+            p.Polyline(bandColor, 4.2,
+                new Point(cx - 39, cy - 10),
+                new Point(cx - 35, cy - 26),
+                new Point(cx - 18, cy - 32),
+                new Point(cx, cy - 33.5),
+                new Point(cx + 18, cy - 32),
+                new Point(cx + 35, cy - 26),
+                new Point(cx + 39, cy - 10));
+            p.Polyline(Theme.AccentHot, 1.6,
+                new Point(cx - 34, cy - 25),
+                new Point(cx - 18, cy - 31),
+                new Point(cx, cy - 32.5),
+                new Point(cx + 18, cy - 31),
+                new Point(cx + 34, cy - 25));
+
+            // Массивные светящиеся чашки наушников
+            double ledPulse = musicAwake > 0.05 ? (Math.Sin(_animPhase * 6.0) + 1.0) * 0.5 : 0.35;
+            Color cupBg = Color.FromRgb(22, 25, 36);
+            Color cupRim = Theme.Mix(Theme.Accent, Theme.AccentHot, ledPulse);
+            p.Card(new Rect(cx - 45, cy - 14, 11, 28), cupBg, 5.5, cupRim);
+            p.Card(new Rect(cx + 34, cy - 14, 11, 28), cupBg, 5.5, cupRim);
+            // Неоновые полоски на амбушюрах
+            p.Card(new Rect(cx - 41.5, cy - 8, 3.0, 16), cupRim, 1.5);
+            p.Card(new Rect(cx + 38.5, cy - 8, 3.0, 16), cupRim, 1.5);
+        }
+        else
+        {
+            p.Card(new Rect(cx - 42, cy - 12, 8, 24), earColor, 4);
+            p.Card(new Rect(cx + 34, cy - 12, 8, 24), earColor, 4);
+            p.Line(new Point(cx - 38, cy), new Point(cx - 34, cy), Theme.Accent, 2.0);
+            p.Line(new Point(cx + 34, cy), new Point(cx + 38, cy), Theme.Accent, 2.0);
+        }
 
         // DJ Эквалайзер и летающие нотки над наушниками
         if (ActiveQuirk == "dj")
@@ -1292,6 +1357,21 @@ public sealed class AeroPetCanvas : FrameworkElement
                 double nY = cy - 20.0 - nP * 46.0;
                 Color nCol = Color.FromArgb((byte)(nAlpha * 220), 236, 72, 153);
                 p.Label((k % 2 == 0) ? "♪" : "♫", new Rect(nX - 10, nY - 10, 20, 20), 16, nCol, true, HAlign.Center);
+            }
+        }
+        else if (isMusic && musicAwake > 0.05)
+        {
+            // Парящие музыкальные нотки ♪ ♫, когда играет системная музыка
+            for (int k = 0; k < 3; k++)
+            {
+                double nP = (_animPhase * 0.22 + k * 0.33) % 1.0;
+                double nAlpha = Math.Sin(nP * Math.PI) * musicAwake;
+                double side = (k % 2 == 0) ? -46.0 : 46.0;
+                double nX = cx + side + Math.Sin(nP * 5.5 + k) * 9.0;
+                double nY = cy - 16.0 - nP * 38.0;
+                Color baseCol = (k == 0) ? Theme.AccentHot : ((k == 1) ? Color.FromRgb(236, 72, 153) : Color.FromRgb(56, 189, 248));
+                Color nCol = Color.FromArgb((byte)(nAlpha * 215), baseCol.R, baseCol.G, baseCol.B);
+                p.Label((k % 2 == 0) ? "♪" : "♫", new Rect(nX - 10, nY - 10, 20, 20), 14.5, nCol, true, HAlign.Center);
             }
         }
 
@@ -1598,13 +1678,20 @@ public sealed class AeroPetCanvas : FrameworkElement
         {
             p.Polyline(eyeColor, 3.2, new Point(lx - 7.0, ly + 2), new Point(lx, ly - 5.0), new Point(lx + 7.0, ly + 2));
             p.Polyline(eyeColor, 3.2, new Point(rx - 7.0, ry + 2), new Point(rx, ry - 5.0), new Point(rx + 7.0, ry + 2));
-            p.Circle(new Point(lx, ly + 8.0), 3.0, Color.FromArgb(180, 255, 120, 160));
-            p.Circle(new Point(rx, ry + 8.0), 3.0, Color.FromArgb(180, 255, 120, 160));
+            p.Circle(new Point(lx - 2.0, ly + 8.0), 3.6, Color.FromArgb(195, 255, 120, 165));
+            p.Circle(new Point(rx + 2.0, ry + 8.0), 3.6, Color.FromArgb(195, 255, 120, 165));
+            // Милая кошачья улыбочка ω
+            p.Polyline(eyeColor, 2.0,
+                new Point(cx - 4.5, ly + 4.5),
+                new Point(cx - 2.2, ly + 6.8),
+                new Point(cx, ly + 4.8),
+                new Point(cx + 2.2, ly + 6.8),
+                new Point(cx + 4.5, ly + 4.5));
         }
         else
         {
-            // Обычный выразительный кибер-взгляд с постепенным смыканием век (засыпание)
-            double eyeH = Math.Max(2.2, 12.0 * (1.0 - sleepW * 0.82));
+            // Крупные умилительные чиби-глазки с двойными аниме-бликами и нежным румянцем
+            double eyeH = Math.Max(2.4, 13.5 * (1.0 - sleepW * 0.82));
             double eyeYOff = sleepW * 2.8;
 
             // Тяжёлое сонное микро-моргание
@@ -1619,92 +1706,105 @@ public sealed class AeroPetCanvas : FrameworkElement
 
             if (currentBlink > 0.25)
             {
-                p.Line(new Point(lx - 7.0, ly + eyeYOff), new Point(lx + 7.0, ly + eyeYOff), eyeColor, 3.0);
-                p.Line(new Point(rx - 7.0, ry + eyeYOff), new Point(rx + 7.0, ry + eyeYOff), eyeColor, 3.0);
+                p.Polyline(eyeColor, 3.0, new Point(lx - 6.5, ly + eyeYOff - 1.0), new Point(lx, ly + eyeYOff + 2.0), new Point(lx + 6.5, ly + eyeYOff - 1.0));
+                p.Polyline(eyeColor, 3.0, new Point(rx - 6.5, ry + eyeYOff - 1.0), new Point(rx, ry + eyeYOff + 2.0), new Point(rx + 6.5, ry + eyeYOff - 1.0));
             }
             else
             {
-                p.Card(new Rect(lx - 4.5, ly - eyeH / 2.0 + eyeYOff, 9.0, eyeH), eyeColor, Math.Min(4.5, eyeH / 2.0));
-                p.Card(new Rect(rx - 4.5, ry - eyeH / 2.0 + eyeYOff, 9.0, eyeH), eyeColor, Math.Min(4.5, eyeH / 2.0));
+                p.Card(new Rect(lx - 5.5, ly - eyeH / 2.0 + eyeYOff, 11.0, eyeH), eyeColor, Math.Min(5.5, eyeH / 2.0));
+                p.Card(new Rect(rx - 5.5, ry - eyeH / 2.0 + eyeYOff, 11.0, eyeH), eyeColor, Math.Min(5.5, eyeH / 2.0));
 
-                // Блики (исчезают по мере смыкания век)
+                // Двойные аниме-блики в глазках (большой сверху-слева + маленький снизу-справа)
                 if (eyeH > 5.2)
                 {
-                    double glintAlpha = (eyeH - 5.2) / 6.8;
+                    double glintAlpha = Math.Clamp((eyeH - 5.2) / 6.8, 0.0, 1.0);
                     Color glintColor = Color.FromArgb((byte)(glintAlpha * 255), 255, 255, 255);
-                    p.Circle(new Point(lx - 1.5, ly - 3.0 + eyeYOff), 2.0, glintColor);
-                    p.Circle(new Point(rx - 1.5, ry - 3.0 + eyeYOff), 2.0, glintColor);
+                    Color subGlint = Color.FromArgb((byte)(glintAlpha * 200), 255, 255, 255);
+                    p.Circle(new Point(lx - 1.8, ly - 3.2 + eyeYOff), 2.3, glintColor);
+                    p.Circle(new Point(rx - 1.8, ry - 3.2 + eyeYOff), 2.3, glintColor);
+                    p.Circle(new Point(lx + 2.0, ly + 2.4 + eyeYOff), 1.1, subGlint);
+                    p.Circle(new Point(rx + 2.0, ry + 2.4 + eyeYOff), 1.1, subGlint);
                 }
             }
 
-            // Постепенный нежный румянец при засыпании
-            if (sleepW > 0.2)
+            // Постоянный нежный румянец на щёчках
+            byte blushA = (byte)Ui.Lerp(115, 165, Math.Max(sleepW, isMusic ? 0.8 : 0.0));
+            p.Circle(new Point(lx - 2.5, ly + 8.5), 3.3, Color.FromArgb(blushA, 255, 130, 175));
+            p.Circle(new Point(rx + 2.5, ry + 8.5), 3.3, Color.FromArgb(blushA, 255, 130, 175));
+
+            // Маленькая дружелюбная улыбочка посередине визора
+            if (sleepW < 0.5 && ActiveQuirk != "bubble")
             {
-                byte blushA = (byte)(Math.Min(1.0, (sleepW - 0.2) / 0.8) * 120);
-                p.Circle(new Point(lx, ly + 9.0), 3.0, Color.FromArgb(blushA, 255, 140, 180));
-                p.Circle(new Point(rx, ry + 9.0), 3.0, Color.FromArgb(blushA, 255, 140, 180));
+                p.Polyline(eyeColor, 1.8,
+                    new Point(cx - 3.0, ly + 5.0 + ey * 0.4),
+                    new Point(cx, ly + 6.8 + ey * 0.4),
+                    new Point(cx + 3.0, ly + 5.0 + ey * 0.4));
             }
         }
 
-        // 8. Милые ручки-крылышки по бокам
+        // 8. Парящие пухлые лапки-варежки с розовыми подушечками (без палок!)
+        Color pawBg = headBg;
+        Color pawBorder = Theme.Mix(headBorder, Theme.AccentHot, 0.35);
+        Color padCol = Color.FromArgb(215, 244, 114, 182);
+
+        static void DrawCutePaw(Painter p, double px, double py, double w, double h, Color bg, Color border, Color pad, bool showPad = true)
+        {
+            var r = new Rect(px - w / 2.0, py - h / 2.0, w, h);
+            p.Card(r, bg, Math.Min(w, h) / 2.0, border);
+            // Глянцевый блик сверху лапки
+            p.Circle(new Point(px - w * 0.16, py - h * 0.2), Math.Min(w, h) * 0.14, Color.FromArgb(140, 255, 255, 255));
+            if (showPad)
+            {
+                p.Circle(new Point(px, py + h * 0.1), Math.Min(w, h) * 0.2, pad);
+            }
+        }
+
         if (ActiveQuirk == "wipe")
         {
-            // Левая ручка обычная
-            p.Polyline(earColor, 3.5, new Point(headRect.Left - 2, headRect.Bottom - 8),
-                       new Point(headRect.Left - 10, headRect.Bottom - 4));
+            // Левая пухлая лапка умилительно прижата у щёчки
+            DrawCutePaw(p, cx - 32, cy + 16, 13, 15, pawBg, pawBorder, padCol);
 
-            // Правая ручка поднята и протирает визор салфеткой
+            // Правая пухлая лапка протирает визор жёлтой салфеткой
             double wipeSweep = Math.Sin(_quirkPhase * 8.5) * 16.0;
             double clothX = cx + wipeSweep;
             double clothY = cy - 2.0 + Math.Cos(_quirkPhase * 8.5) * 3.0;
 
-            // Рука тянется к салфетке
-            p.Polyline(earColor, 3.5, new Point(headRect.Right - 4, headRect.Bottom - 8),
-                       new Point(clothX, clothY + 6.0));
-
-            // Жёлтая салфетка из микрофибры
+            // Жёлтая салфетка из микрофибры + пухлая лапка поверх неё
             p.Card(new Rect(clothX - 9, clothY - 6, 18, 12), Color.FromRgb(254, 215, 102), 3.5, Color.FromRgb(245, 158, 11));
             p.Line(new Point(clothX - 5, clothY - 1), new Point(clothX + 5, clothY - 1), Color.FromRgb(245, 158, 11), 1.2);
-            p.Line(new Point(clothX - 6, clothY + 2), new Point(clothX + 4, clothY + 2), Color.FromRgb(245, 158, 11), 1.2);
+            DrawCutePaw(p, clothX + 3, clothY + 3, 13, 13, pawBg, pawBorder, padCol);
         }
         else if (ActiveQuirk == "flip")
         {
-            // Расправленные крылышки в полёте
-            p.Polyline(earColor, 3.5, new Point(headRect.Left - 2, headRect.Bottom - 8),
-                       new Point(headRect.Left - 16, headRect.Bottom - 6));
-            p.Polyline(earColor, 3.5, new Point(headRect.Right + 2, headRect.Bottom - 8),
-                       new Point(headRect.Right + 16, headRect.Bottom - 6));
+            // Радостно раскинутые в полёте пухлые лапки
+            DrawCutePaw(p, cx - 44, cy + 10, 15, 13, pawBg, pawBorder, padCol);
+            DrawCutePaw(p, cx + 44, cy + 10, 15, 13, pawBg, pawBorder, padCol);
         }
         else if (ActiveQuirk == "dj")
         {
-            // Ручки диджея качают бит на вертушках
-            double djArmL = Math.Sin(_quirkPhase * 18.0) * 4.0;
-            double djArmR = Math.Cos(_quirkPhase * 18.0) * 4.0;
-            p.Polyline(earColor, 3.5, new Point(headRect.Left - 2, headRect.Bottom - 8),
-                       new Point(headRect.Left - 12, headRect.Bottom + 4 + djArmL));
-            p.Polyline(earColor, 3.5, new Point(headRect.Right + 2, headRect.Bottom - 8),
-                       new Point(headRect.Right + 12, headRect.Bottom + 4 + djArmR));
+            // Пухлые лапки диджея качают бит
+            double djArmL = Math.Sin(_quirkPhase * 18.0) * 5.0;
+            double djArmR = Math.Cos(_quirkPhase * 18.0) * 5.0;
+            DrawCutePaw(p, cx - 34, cy + 22 + djArmL, 14, 14, pawBg, pawBorder, padCol);
+            DrawCutePaw(p, cx + 34, cy + 22 + djArmR, 14, 14, pawBg, pawBorder, padCol);
         }
         else if (ActiveQuirk == "coffee")
         {
-            // Левая ручка расслаблена
-            p.Polyline(earColor, 3.5, new Point(headRect.Left - 2, headRect.Bottom - 8),
-                       new Point(headRect.Left - 10, headRect.Bottom - 2));
+            // Левая лапка радостно приподнята
+            DrawCutePaw(p, cx - 33, cy + 22, 13, 15, pawBg, pawBorder, padCol);
 
-            // Правая ручка держит мини-кружку и подносит ко рту
+            // Правая лапка держит мини-кружку с байт-кофе
             double sipLift = (_quirkPhase > 0.8 && _quirkPhase < 2.8) ? 1.0 : (_quirkPhase <= 0.8 ? _quirkPhase / 0.8 : (4.0 - _quirkPhase) / 1.2);
             sipLift = Math.Clamp(sipLift, 0.0, 1.0);
             double mugX = cx + 18.0 - sipLift * 8.0;
             double mugY = cy + 12.0 - sipLift * 15.0;
 
-            p.Polyline(earColor, 3.5, new Point(headRect.Right - 4, headRect.Bottom - 8),
-                       new Point(mugX - 4, mugY + 8));
-
-            // Мини-кружка с байт-кофе
             var mugRect = new Rect(mugX - 6, mugY, 13, 14);
             p.Card(mugRect, Color.FromRgb(20, 24, 34), 3.0, Theme.Accent);
             p.Polyline(Theme.Accent, 1.8, new Point(mugRect.Right, mugRect.Top + 3), new Point(mugRect.Right + 4, mugRect.Top + 7), new Point(mugRect.Right, mugRect.Bottom - 3));
             p.Label("⚡", new Rect(mugRect.Left - 2, mugRect.Top + 1, mugRect.Width + 4, mugRect.Height - 2), 9, Theme.Yellow, true, HAlign.Center);
+
+            DrawCutePaw(p, mugX - 6, mugY + 8, 12, 12, pawBg, pawBorder, padCol, false);
 
             // Дымок/пар над кружкой
             for (int st = 0; st < 2; st++)
@@ -1720,27 +1820,26 @@ public sealed class AeroPetCanvas : FrameworkElement
         {
             if (_quirkPhase < 1.8)
             {
-                // Лапки закрывают визор (прячется)
-                p.Polyline(earColor, 3.5, new Point(headRect.Left - 2, headRect.Bottom - 8), new Point(cx - 10, cy - 2));
-                p.Polyline(earColor, 3.5, new Point(headRect.Right + 2, headRect.Bottom - 8), new Point(cx + 10, cy - 2));
-                p.Card(new Rect(cx - 16, cy - 8, 12, 14), earColor, 4.0, Theme.Accent);
-                p.Card(new Rect(cx + 4, cy - 8, 12, 14), earColor, 4.0, Theme.Accent);
+                // Пухлые лапки закрывают глазки на визоре (прячется)
+                DrawCutePaw(p, cx - 11, cy - 1, 15, 16, pawBg, pawBorder, padCol);
+                DrawCutePaw(p, cx + 11, cy - 1, 15, 16, pawBg, pawBorder, padCol);
             }
             else
             {
                 // Распахнутые в восторге лапки (Ку-ку!)
-                p.Polyline(earColor, 3.5, new Point(headRect.Left - 2, headRect.Bottom - 8), new Point(headRect.Left - 16, headRect.Bottom - 16));
-                p.Polyline(earColor, 3.5, new Point(headRect.Right + 2, headRect.Bottom - 8), new Point(headRect.Right + 16, headRect.Bottom - 16));
+                DrawCutePaw(p, cx - 42, cy - 2, 14, 15, pawBg, pawBorder, padCol);
+                DrawCutePaw(p, cx + 42, cy - 2, 14, 15, pawBg, pawBorder, padCol);
             }
         }
         else
         {
-            double armSway = IsSleeping ? 0.0 : Math.Sin(_animPhase * 1.5) * 5.0;
-            double armDown = sleepW * 3.5;
-            p.Polyline(earColor, 3.5, new Point(headRect.Left - 2, headRect.Bottom - 8),
-                       new Point(headRect.Left - 10, headRect.Bottom - 4 + armSway + armDown));
-            p.Polyline(earColor, 3.5, new Point(headRect.Right + 2, headRect.Bottom - 8),
-                       new Point(headRect.Right + 10, headRect.Bottom - 4 - armSway + armDown));
+            // Естественное парение пухлых лапок рядом с чиби-тельцем
+            double pawBob = IsSleeping ? 0.0 : (isMusic ? Math.Sin(_animPhase * 6.0) * 3.5 : Math.Sin(_animPhase * 1.5 - 0.6) * 2.8);
+            double sleepTuckX = sleepW * 5.0; // во сне уютно поджимает лапки ближе к животику
+            double sleepTuckY = sleepW * 2.5;
+            bool showPads = happy > 0.2 || ScratchJoyTimer > 0 || isMusic;
+            DrawCutePaw(p, cx - 31 + sleepTuckX, cy + 27 + pawBob + sleepTuckY, 12.5, 15.0, pawBg, pawBorder, padCol, showPads);
+            DrawCutePaw(p, cx + 31 - sleepTuckX, cy + 27 - pawBob + sleepTuckY, 12.5, 15.0, pawBg, pawBorder, padCol, showPads);
         }
 
         if (pushedRot)

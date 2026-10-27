@@ -174,6 +174,7 @@ public sealed class IslandView : FrameworkElement
         }
         PetWindow.RestorePosition();
         PetWindow.Show();
+        UpdateEq();
         Kick();
     }
 
@@ -185,6 +186,7 @@ public sealed class IslandView : FrameworkElement
         {
             PetWindow.Hide();
         }
+        UpdateEq();
         PetRobot();
         Kick();
     }
@@ -323,7 +325,9 @@ public sealed class IslandView : FrameworkElement
         _clockTimer.Start();
         _eqTimer.Tick += (_, _) =>
         {
-            if (Target != 0.0 || SpHide.Target != 0.0 || SpLive.Target < 0.5 || !Media.Playing)
+            bool collapsedEq = Target == 0.0 && SpLive.Target >= 0.5;
+            bool expandedBotMusic = Target > 0.05 && S.RobotCompanion && !S.RobotRoaming;
+            if (!Media.Playing || SpHide.Target != 0.0 || (!collapsedEq && !expandedBotMusic))
             {
                 _eqTimer.Stop();
                 return;
@@ -875,12 +879,15 @@ public sealed class IslandView : FrameworkElement
         bool showLive = hasTrack && (Media.Playing || (_pauseTimestamp > 0 && (Clock.Now - _pauseTimestamp < PauseTimeoutSeconds)));
         SpLive.Target = showLive ? 1.0 : 0.0;
         UpdateEq();
+        PetWindow?.RefreshMusicState();
         Kick();
     }
 
     private void UpdateEq()
     {
-        bool want = Media.Playing && SpLive.Target == 1.0 && Target == 0.0 && SpHide.Target == 0.0;
+        bool collapsedEq = Target == 0.0 && SpLive.Target == 1.0;
+        bool expandedBotMusic = Target > 0.05 && S.RobotCompanion && !S.RobotRoaming;
+        bool want = Media.Playing && SpHide.Target == 0.0 && (collapsedEq || expandedBotMusic);
         if (want && !_eqTimer.IsEnabled) _eqTimer.Start();
         else if (!want && _eqTimer.IsEnabled) _eqTimer.Stop();
     }
@@ -1921,7 +1928,10 @@ public sealed class IslandView : FrameworkElement
 
         double cx = pill.Left + 20;
         double cy = pill.Top + pill.Height / 2;
-        double floatY = Math.Sin(_botAnimPhase) * 1.2 + SpBotHop.X;
+        bool isMusic = Media.Playing;
+        double musicTime = isMusic ? Clock.Now : 0.0;
+        double musicBob = isMusic ? Math.Abs(Math.Sin(musicTime * 6.5)) * 1.4 : 0.0;
+        double floatY = Math.Sin(_botAnimPhase) * 1.2 + SpBotHop.X - musicBob;
         double rcx = cx;
         double rcy = cy + floatY;
 
@@ -1937,7 +1947,7 @@ public sealed class IslandView : FrameworkElement
 
         // 1. Антеннка
         p.Line(new Point(rcx, rcy - 8), new Point(rcx, rcy - 12), Theme.BorderSubtle, 1.2);
-        Color tipColor = (happy > 0.3 || _botEmotionTimer > 0) ? Theme.AccentHot : Theme.Accent;
+        Color tipColor = (happy > 0.3 || _botEmotionTimer > 0 || isMusic) ? Theme.AccentHot : Theme.Accent;
         p.Circle(new Point(rcx, rcy - 12.5), 1.5, tipColor);
 
         // Парящее сердечко при эмоции Love
@@ -1950,11 +1960,47 @@ public sealed class IslandView : FrameworkElement
                 p.Label("♥", new Rect(rcx - 7, rcy - 23 - heartUp, 14, 14), 11, Theme.Red, true, HAlign.Center);
             }
         }
+        else if (isMusic)
+        {
+            // Парящие музыкальные нотки ♪ ♫ над капсулой
+            for (int k = 0; k < 2; k++)
+            {
+                double nP = (musicTime * 0.75 + k * 0.5) % 1.0;
+                double nAlpha = Math.Sin(nP * Math.PI);
+                double nX = rcx + (k == 0 ? -15.0 : 15.0) + Math.Sin(nP * 5.0) * 3.0;
+                double nY = rcy - 6.0 - nP * 14.0;
+                Color nCol = k == 0 ? Theme.AccentHot : Color.FromRgb(236, 72, 153);
+                using (p.WithOpacity(nAlpha * 0.9))
+                {
+                    p.Label(k == 0 ? "♪" : "♫", new Rect(nX - 6, nY - 6, 12, 12), 9.5, nCol, true, HAlign.Center);
+                }
+            }
+        }
 
-        // 2. Ушки по бокам
-        Color earColor = Theme.Mix(Theme.Surface3, Theme.Accent, 0.4);
-        p.Card(new Rect(rcx - 13.5, rcy - 3.5, 2.5, 7), earColor, 1.2);
-        p.Card(new Rect(rcx + 11.0, rcy - 3.5, 2.5, 7), earColor, 1.2);
+        // 2. Ушки по бокам / Светящиеся наушники при воспроизведении музыки
+        if (isMusic)
+        {
+            // Дужка наушников над головой
+            p.Polyline(Theme.AccentHot, 1.5,
+                new Point(rcx - 12.0, rcy - 3.5),
+                new Point(rcx - 10.5, rcy - 9.2),
+                new Point(rcx, rcy - 10.2),
+                new Point(rcx + 10.5, rcy - 9.2),
+                new Point(rcx + 12.0, rcy - 3.5));
+
+            // Объёмные студийные чашки наушников со светодиодной пульсацией
+            double pulse = (Math.Sin(musicTime * 10.0) + 1.0) * 0.5;
+            Color cupBg = Theme.Mix(Theme.Surface3, Theme.Accent, 0.75);
+            Color cupRim = Theme.Mix(Theme.Accent, Theme.AccentHot, pulse);
+            p.Card(new Rect(rcx - 14.8, rcy - 4.5, 3.8, 9.0), cupBg, 1.8, cupRim);
+            p.Card(new Rect(rcx + 11.0, rcy - 4.5, 3.8, 9.0), cupBg, 1.8, cupRim);
+        }
+        else
+        {
+            Color earColor = Theme.Mix(Theme.Surface3, Theme.Accent, 0.4);
+            p.Card(new Rect(rcx - 13.5, rcy - 3.5, 2.5, 7), earColor, 1.2);
+            p.Card(new Rect(rcx + 11.0, rcy - 3.5, 2.5, 7), earColor, 1.2);
+        }
 
         // 3. Корпус головы (белая керамика / тёмный титан)
         var headRect = new Rect(rcx - 11.5, rcy - 8, 23, 16);
@@ -2047,12 +2093,23 @@ public sealed class IslandView : FrameworkElement
         }
         else
         {
-            // Обычный взгляд, следящий за курсором
-            p.Card(new Rect(lx - 1.6, ly - 2.2, 3.2, 4.4), eyeColor, 1.6);
-            p.Card(new Rect(rx - 1.6, ry - 2.2, 3.2, 4.4), eyeColor, 1.6);
-            p.Circle(new Point(lx - 0.5, ly - 1.2), 0.7, Colors.White);
-            p.Circle(new Point(rx - 0.5, ry - 1.2), 0.7, Colors.White);
+            // Крупные выразительные чиби-глазки с двойными бликами и нежным румянцем
+            p.Card(new Rect(lx - 1.9, ly - 2.4, 3.8, 4.8), eyeColor, 1.9);
+            p.Card(new Rect(rx - 1.9, ry - 2.4, 3.8, 4.8), eyeColor, 1.9);
+            p.Circle(new Point(lx - 0.6, ly - 1.2), 0.85, Colors.White);
+            p.Circle(new Point(rx - 0.6, ry - 1.2), 0.85, Colors.White);
+            p.Circle(new Point(lx + 0.7, ly + 0.8), 0.45, Color.FromArgb(200, 255, 255, 255));
+            p.Circle(new Point(rx + 0.7, ry + 0.8), 0.45, Color.FromArgb(200, 255, 255, 255));
+            // Нежный румянец и маленькая улыбочка
+            p.Circle(new Point(lx - 0.8, ly + 2.8), 1.1, Color.FromArgb(145, 255, 130, 175));
+            p.Circle(new Point(rx + 0.8, ry + 2.8), 1.1, Color.FromArgb(145, 255, 130, 175));
+            p.Polyline(eyeColor, 0.9, new Point(rcx - 1.2, ly + 1.8), new Point(rcx, ly + 2.5), new Point(rcx + 1.2, ly + 1.8));
         }
+
+        // Маленькие парящие пухлые лапки-капельки снизу по бокам
+        double miniPawBob = Math.Sin(_botAnimPhase * 1.5 - 0.5) * 0.8;
+        p.Card(new Rect(rcx - 12.5, rcy + 5.5 + miniPawBob, 4.2, 4.8), headBg, 2.1, headBorder);
+        p.Card(new Rect(rcx + 8.3, rcy + 5.5 - miniPawBob, 4.2, 4.8), headBg, 2.1, headBorder);
 
         // 6. Текстовый бейдж настроения справа от робота
         string mood = _botEmotion switch
@@ -2062,14 +2119,14 @@ public sealed class IslandView : FrameworkElement
             "stars" => "WOW",
             "cool" => "COOL",
             "surprised" => "O_O",
-            _ => (happy > 0.3 ? "♥" : (Sections.Ai.IsGenerating ? "AI" : Loc.T("АЭРО", "AERO", "AERO")))
+            _ => (happy > 0.3 ? "♥" : (Sections.Ai.IsGenerating ? "AI" : (isMusic ? "♪ VIBE" : Loc.T("АЭРО", "AERO", "AERO"))))
         };
         Color moodColor = _botEmotion switch
         {
             "love" => Theme.Red,
             "stars" or "wink" => Theme.Yellow,
             "cool" or "surprised" => Theme.AccentHot,
-            _ => (happy > 0.3 ? Theme.Red : (Sections.Ai.IsGenerating ? Theme.AccentHot : Theme.Muted))
+            _ => (happy > 0.3 ? Theme.Red : ((Sections.Ai.IsGenerating || isMusic) ? Theme.AccentHot : Theme.Muted))
         };
         p.Label(mood, new Rect(pill.Left + 31, pill.Top + 6, pill.Width - 34, 16), 8.5, moodColor, true, HAlign.Center);
     }

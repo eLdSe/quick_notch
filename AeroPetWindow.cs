@@ -83,6 +83,11 @@ public sealed class AeroPetWindow : Window
 
     public void RefreshMusicState()
     {
+        if (_island.Media.Playing)
+        {
+            if (_canvas.IsSleeping) _canvas.WakeUp();
+            else _canvas.NotifyMouseMoved();
+        }
         _canvas.InvalidateVisual();
     }
 
@@ -740,11 +745,20 @@ public sealed class AeroPetCanvas : FrameworkElement
         if (_window.Visibility != Visibility.Visible) return;
         if (!_island.S.RobotRoaming) return;
 
-        // Пока пишешь вопрос, ждёшь или читаешь ответ — Аэро не засыпает
-        if (IsAsking || IsThinking || _aiAnswerHold > 0)
+        // Пока пишешь вопрос, ждёшь, читаешь ответ или играет музыка — Аэро не засыпает
+        if (IsAsking || IsThinking || _aiAnswerHold > 0 || _island.Media.Playing)
         {
-            _mouseIdleSeconds = 0.0;
-            _hasYawnedThisIdle = false;
+            if (IsSleeping)
+            {
+                WakeUp();
+            }
+            else if (_mouseIdleSeconds > 0 || _spSleepWeight.Target > 0)
+            {
+                _mouseIdleSeconds = 0.0;
+                _hasYawnedThisIdle = false;
+                _spSleepWeight.Target = 0.0;
+                if (!_framing) StartAnimating();
+            }
             if (WinApi.GetCursorPos(out var cp)) _lastCursorPos = new Point(cp.X, cp.Y);
             return;
         }

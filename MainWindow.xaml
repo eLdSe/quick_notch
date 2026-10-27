@@ -1,0 +1,23 @@
+<Window x:Class="QuickNotchCs.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:QuickNotchCs"
+        Title="QuickNotch"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Focusable="False"
+        ResizeMode="NoResize"
+        Width="920"
+        Height="570"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        RenderOptions.ClearTypeHint="Enabled"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        WindowStartupLocation="Manual">
+    <Grid>
+        <local:IslandView x:Name="Island"/>
+    </Grid>
+</Window>

@@ -13,10 +13,12 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+*.log
 
 # Publish & distribution outputs
 publish/
 publish_*/
+installer/
 *.zip
 *.7z
 *.rar

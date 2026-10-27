@@ -10,6 +10,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>QuickNotch</AssemblyName>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 

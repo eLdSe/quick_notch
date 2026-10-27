@@ -227,8 +227,6 @@ public sealed class IslandView : FrameworkElement
     private readonly HashSet<string> _knownDrives = new(StringComparer.OrdinalIgnoreCase);
     private bool _batteryInitialized;
     private (int? Pct, bool Charging) _lastToastBattery = (null, false);
-    private bool _mediaInitialized;
-    private string _lastToastTrackKey = "";
 
     // таймеры
     private bool _framing;
@@ -778,29 +776,6 @@ public sealed class IslandView : FrameworkElement
             bool visualChanged = Media.Active != res.Active || Media.Playing != res.Playing || Media.Title != res.Title
                                  || Media.Artist != res.Artist || Media.App != res.App || Media.Dur != res.Dur
                                  || Media.CanSeek != res.CanSeek;
-
-            string trackKey = $"{res.Artist}|{res.Title}";
-            bool trackChanged = !string.IsNullOrEmpty(res.Title) && trackKey != _lastToastTrackKey;
-
-            if (_mediaInitialized && trackChanged && res.Playing && Target < 0.05)
-            {
-                _lastToastTrackKey = trackKey;
-                ShowNotification(new NotificationItem
-                {
-                    App = string.IsNullOrEmpty(res.App) ? Loc.T("СЕЙЧАС ИГРАЕТ", "NOW PLAYING", "ŞU AN ÇALINIYOR") : res.App.ToUpperInvariant(),
-                    Title = res.Title,
-                    Body = res.Artist,
-                    IconSymbol = "🎵",
-                    UseCoverArt = true,
-                    AccentColor = Theme.Accent,
-                    OnClick = () => { Select("media"); Expand(); }
-                }, durationSec: 3.5);
-            }
-            else if (trackChanged)
-            {
-                _lastToastTrackKey = trackKey;
-            }
-            _mediaInitialized = true;
 
             Media = res;
             if (visualChanged || coverChanged) ApplyMedia();

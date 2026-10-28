@@ -16,7 +16,11 @@ public static class Bg
             Exception? error = null;
             try { result = fn(); }
             catch (Exception e) { error = e; }
-            dispatcher.BeginInvoke(() => done(result, error));
+            dispatcher.BeginInvoke(() =>
+            {
+                try { done(result, error); }
+                catch (Exception ex) { App.LogCrash(ex, "Bg.Run.done"); }
+            });
         });
     }
 
@@ -30,7 +34,11 @@ public static class Bg
             Exception? error = null;
             try { result = await fn(); }
             catch (Exception e) { error = e; }
-            await dispatcher.InvokeAsync(() => done(result, error));
+            await dispatcher.InvokeAsync(() =>
+            {
+                try { done(result, error); }
+                catch (Exception ex) { App.LogCrash(ex, "Bg.RunAsync.done"); }
+            });
         });
     }
 }

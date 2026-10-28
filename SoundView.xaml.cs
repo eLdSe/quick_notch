@@ -230,7 +230,7 @@ public partial class SoundView : UserControl
 
     private void OnMasterVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_updatingMaster) return;
+        if (_updatingMaster || MasterVolumePercentText == null || MasterVolumeSlider == null || _island == null) return;
         float level = (float)(MasterVolumeSlider.Value / 100.0);
         AudioService.SetVolume(level);
         MasterVolumePercentText.Text = $"{(int)Math.Round(MasterVolumeSlider.Value)}%";

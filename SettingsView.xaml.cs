@@ -177,7 +177,7 @@ public partial class SettingsView : UserControl
 
     private void OnDelaySliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_loading || _island == null) return;
+        if (_loading || _island == null || DelaySlider == null || DelayValueText == null) return;
         double val = Math.Round(DelaySlider.Value, 1);
         _island.S.LeaveDelay = val;
         _island.SaveState();
@@ -186,7 +186,7 @@ public partial class SettingsView : UserControl
 
     private void OnDimSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_loading || _island == null) return;
+        if (_loading || _island == null || DimSlider == null || DimValueText == null) return;
         double val = Math.Round(DimSlider.Value, 2);
         _island.S.DimLevel = val;
         _island.SaveState();

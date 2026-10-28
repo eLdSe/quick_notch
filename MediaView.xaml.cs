@@ -129,7 +129,7 @@ public partial class MediaView : UserControl
 
     private void OnQuickVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_updatingVolume) return;
+        if (_updatingVolume || _island == null || QuickVolumeText == null || QuickVolumeSlider == null) return;
         float level = (float)(QuickVolumeSlider.Value / 100.0);
         AudioService.SetVolume(level);
         QuickVolumeText.Text = $"{(int)Math.Round(QuickVolumeSlider.Value)}%";
@@ -152,10 +152,8 @@ public partial class MediaView : UserControl
 
     private void OnSeekValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_isDraggingSeek)
-        {
-            TimeElapsedText.Text = Ui.FmtTime(SeekSlider.Value);
-        }
+        if (!_isDraggingSeek || TimeElapsedText == null || SeekSlider == null) return;
+        TimeElapsedText.Text = Ui.FmtTime(SeekSlider.Value);
     }
 
     private void OnPlayPauseClick(object sender, RoutedEventArgs e)

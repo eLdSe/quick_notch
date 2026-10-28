@@ -179,7 +179,7 @@ public partial class HomeView : UserControl
 
     private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_updatingSliders || _island == null) return;
+        if (_updatingSliders || _island == null || VolumeSlider == null || VolumePercentText == null) return;
         float level = (float)(VolumeSlider.Value / 100.0);
         AudioService.SetVolume(level);
         VolumePercentText.Text = $"{(int)Math.Round(VolumeSlider.Value)}%";
@@ -187,7 +187,7 @@ public partial class HomeView : UserControl
 
     private void OnBrightnessSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_updatingSliders || _island == null) return;
+        if (_updatingSliders || _island == null || BrightnessSlider == null || BrightnessPercentText == null) return;
         int level = (int)Math.Round(BrightnessSlider.Value);
         _island.Nsp("brightness").Target = level / 100.0;
         Bg.Run(() => { DeviceService.SetBrightness(level); return true; }, (_, _) => { });

@@ -237,3 +237,4 @@ public partial class SoundView : UserControl
         RefreshMasterVolume();
     }
 }
+

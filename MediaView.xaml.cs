@@ -198,3 +198,4 @@ public partial class MediaView : UserControl
         TimeElapsedText.Text = Ui.FmtTime(target);
     }
 }
+

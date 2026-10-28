@@ -1,0 +1,174 @@
+<UserControl x:Class="QuickNotchCs.SystemView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="416" d:DesignWidth="808"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType"
+             FontFamily="Segoe UI Variable Display, Segoe UI">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
+        <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
+        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
+        <SolidColorBrush x:Key="DiskBrush" Color="#38BDF8" />
+        <SolidColorBrush x:Key="NetworkBrush" Color="#10B981" />
+
+        <!-- Стиль тонкого прогресс-бара Apple -->
+        <Style x:Key="AppleProgressBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="6" />
+            <Setter Property="Background" Value="#2C2C2E" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="3" ClipToBounds="True">
+                            <Grid x:Name="PART_Track">
+                                <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" 
+                                        CornerRadius="3" HorizontalAlignment="Left" />
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Сетка Bento из 2 колонок -->
+    <Grid Margin="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="430" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ==================== ЛЕВАЯ КОЛОНКА: РЕСУРСЫ СИСТЕМЫ ==================== -->
+        <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
+                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
+                CornerRadius="22" Padding="22,18">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Заголовок -->
+                <TextBlock Grid.Row="0" Text="РЕСУРСЫ СИСТЕМЫ" FontSize="10" FontWeight="Bold" 
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10" />
+
+                <!-- 1. ЦП -->
+                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="⚡  ЦП (Процессор)" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="CpuValueText" Text="12%" FontSize="12" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <ProgressBar Grid.Row="1" x:Name="CpuProgressBar" Value="12" Minimum="0" Maximum="100" 
+                                 Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource AccentBrush}" />
+                </Grid>
+
+                <!-- 2. Память -->
+                <Grid Grid.Row="2" VerticalAlignment="Center" Margin="0,4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="🧠  Память (RAM)" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="MemoryValueText" Text="8.2 / 32 ГБ (25%)" FontSize="12" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <ProgressBar Grid.Row="1" x:Name="MemoryProgressBar" Value="25" Minimum="0" Maximum="100" 
+                                 Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource AccentHotBrush}" />
+                </Grid>
+
+                <!-- 3. Диск C: -->
+                <Grid Grid.Row="3" VerticalAlignment="Center" Margin="0,4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="💾  Диск C:" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="DiskValueText" Text="420 / 950 ГБ (44%)" FontSize="12" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <ProgressBar Grid.Row="1" x:Name="DiskProgressBar" Value="44" Minimum="0" Maximum="100" 
+                                 Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource DiskBrush}" />
+                </Grid>
+
+                <!-- 4. Сеть -->
+                <Grid Grid.Row="4" VerticalAlignment="Center" Margin="0,4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock x:Name="NetworkNameText" Text="🌐  Сеть" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="NetworkSpeedText" Text="↑ 0 КБ/с  ↓ 0 КБ/с" FontSize="12" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <ProgressBar Grid.Row="1" x:Name="NetworkProgressBar" Value="10" Minimum="0" Maximum="100" 
+                                 Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource NetworkBrush}" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- ==================== ПРАВАЯ КОЛОНКА ==================== -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="84" />
+                <RowDefinition Height="14" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 1. Время работы (Uptime) -->
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" 
+                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
+                    CornerRadius="20" Padding="20,14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="⏱️  ВРЕМЯ РАБОТЫ (UPTIME)" FontSize="9.5" FontWeight="Bold" 
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock Grid.Row="1" x:Name="UptimeText" Text="1 дн 4 ч 30 мин" FontSize="17" 
+                               FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" 
+                               VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- 2. Топ процессов по памяти -->
+            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" 
+                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
+                    CornerRadius="20" Padding="20,16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="📊  ТОП ПРОЦЕССОВ (RAM)" FontSize="9.5" FontWeight="Bold" 
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,12" />
+
+                    <!-- Список процессов -->
+                    <StackPanel Grid.Row="1" x:Name="ProcessesPanel" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

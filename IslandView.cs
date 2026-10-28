@@ -166,6 +166,7 @@ public sealed class IslandView : FrameworkElement
     public HomeView? HomeHost { get; set; }
     public SoundView? SoundHost { get; set; }
     public MediaView? MediaHost { get; set; }
+    public SystemView? SystemHost { get; set; }
 
     public void LaunchAeroToDesktop()
     {
@@ -454,6 +455,7 @@ public sealed class IslandView : FrameworkElement
         HomeHost?.RefreshAll();
         SoundHost?.RefreshAll();
         MediaHost?.RefreshAll();
+        SystemHost?.RefreshAll();
         StartFrames();
         InvalidateVisual();
     }
@@ -810,6 +812,7 @@ public sealed class IslandView : FrameworkElement
         {
             _snapBusy = false;
             Snapshot = err == null ? res : null;
+            SystemHost?.RefreshAll();
         });
     }
 
@@ -1131,6 +1134,20 @@ public sealed class IslandView : FrameworkElement
             else if (!isMediaVisible && MediaHost.Visibility == Visibility.Visible)
             {
                 MediaHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        bool isSystemVisible = Target == 1.0 && SpW.Settled && SpH.Settled && SpTab.Settled && CurrentTool == "system";
+        if (SystemHost != null)
+        {
+            if (isSystemVisible && SystemHost.Visibility != Visibility.Visible)
+            {
+                SystemHost.Visibility = Visibility.Visible;
+                SystemHost.RefreshAll();
+            }
+            else if (!isSystemVisible && SystemHost.Visibility == Visibility.Visible)
+            {
+                SystemHost.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2403,6 +2420,12 @@ public sealed class IslandView : FrameworkElement
                     ContentLive = live;
                     return;
                 }
+                if (CurrentTool == "system" && SystemHost != null && SystemHost.Visibility == Visibility.Visible)
+                {
+                    // Экран System полностью отображается через нативный XAML SystemView (0% CPU)
+                    ContentLive = live;
+                    return;
+                }
                 ContentLive = live;
                 bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
                 bool pressChanged = _lastRenderedPressKey != _pressKey;
@@ -2694,6 +2717,7 @@ public sealed class IslandView : FrameworkElement
         if (HomeHost != null && HomeHost.IsMouseOver) return;
         if (SoundHost != null && SoundHost.IsMouseOver) return;
         if (MediaHost != null && MediaHost.IsMouseOver) return;
+        if (SystemHost != null && SystemHost.IsMouseOver) return;
         try
         {
             var p = e.GetPosition(this);
@@ -2776,6 +2800,7 @@ public sealed class IslandView : FrameworkElement
         if (HomeHost != null && HomeHost.IsMouseOver) return;
         if (SoundHost != null && SoundHost.IsMouseOver) return;
         if (MediaHost != null && MediaHost.IsMouseOver) return;
+        if (SystemHost != null && SystemHost.IsMouseOver) return;
         if (IsMouseOver) return;
         if (WinApi.GetCursorPos(out var cp))
         {

@@ -47,6 +47,8 @@ public partial class MainWindow : Window
             SoundHost.Attach(Island);
             Island.MediaHost = MediaHost;
             MediaHost.Attach(Island);
+            Island.SystemHost = SystemHost;
+            SystemHost.Attach(Island);
             Island.Initialize();
             SummonHookService.Initialize(Island);
             if (Island.S.RobotCompanion && Island.S.RobotRoaming)

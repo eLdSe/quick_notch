@@ -37,6 +37,12 @@ public partial class CalendarView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+        _island?.StopLeaveTimer();
+    }
+
     public void RefreshAll()
     {
         if (_island == null) return;
@@ -287,3 +293,4 @@ public partial class CalendarView : UserControl
         }
     }
 }
+

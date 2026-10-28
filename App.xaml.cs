@@ -48,7 +48,7 @@ public partial class App : Application
         base.OnStartup(e);
     }
 
-    private static void LogCrash(Exception? ex, string source)
+    public static void LogCrash(Exception? ex, string source)
     {
         try
         {

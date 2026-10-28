@@ -39,6 +39,12 @@ public partial class ClipboardView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+        _island?.StopLeaveTimer();
+    }
+
     private static (string Tag, Color BgCol, Color FgCol) DetectClipType(string text)
     {
         string trimmed = text.Trim();

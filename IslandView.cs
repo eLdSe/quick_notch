@@ -1376,7 +1376,7 @@ public sealed class IslandView : FrameworkElement
             Collapse();
             return;
         }
-        _summoned = _covered;                            // без закрытого окна флаг не нужен
+        _summoned = true;                                // явно вызываем остров на передний план
         ApplyHidden();
         Expand();
     }
@@ -2859,15 +2859,21 @@ public sealed class IslandView : FrameworkElement
         if (CalendarHost != null && CalendarHost.IsMouseOver) return;
         try
         {
-            var p = e.GetPosition(this);
-            if (_currentIslandRect.Contains(p)) return; // Курсор внутри области острова (например, над XAML-контентом)
+            if (WinApi.GetCursorPos(out var cp))
+            {
+                var p = PointFromScreen(new Point(cp.X, cp.Y));
+                if (_currentIslandRect.Contains(p)) return; // Курсор всё ещё реально внутри острова
+            }
+            var localP = e.GetPosition(this);
+            if (_currentIslandRect.Contains(localP)) return; // Курсор внутри области острова (например, над XAML-контентом)
         }
         catch { }
 
         SetHover(null);
         if (Target == 1 && S.LeaveCollapse)
         {
-            _leaveTimer.Interval = TimeSpan.FromSeconds(S.LeaveDelay);
+            double delay = Math.Max(1.5, S.LeaveDelay);
+            _leaveTimer.Interval = TimeSpan.FromSeconds(delay);
             _leaveTimer.Start();
         }
     }

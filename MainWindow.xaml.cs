@@ -41,6 +41,8 @@ public partial class MainWindow : Window
             _wakeMsg = WinApi.RegisterWindowMessage(WinApi.WakeMessageName);
 
             Island.Host = this;
+            Island.Initialize();
+
             Island.HomeHost = HomeHost;
             HomeHost.Attach(Island);
             Island.SoundHost = SoundHost;
@@ -61,14 +63,18 @@ public partial class MainWindow : Window
             WeatherHost.Attach(Island);
             Island.CalendarHost = CalendarHost;
             CalendarHost.Attach(Island);
-            Island.Initialize();
+
             SummonHookService.Initialize(Island);
             if (Island.S.RobotCompanion && Island.S.RobotRoaming)
             {
                 Island.LaunchAeroToDesktop();
             }
+            ShowWindow();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            App.LogCrash(ex, "MainWindow.OnSourceInitialized");
+        }
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -94,6 +100,7 @@ public partial class MainWindow : Window
         }
         else if (_wakeMsg != 0 && (uint)msg == _wakeMsg)
         {
+            ShowWindow();
             Island.OnHotkey();
             handled = true;
         }

@@ -33,6 +33,12 @@ public partial class HomeView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    protected override void OnPreviewMouseDown(System.Windows.Input.MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+        _island?.StopLeaveTimer();
+    }
+
     public void RefreshAll()
     {
         if (_island == null) return;

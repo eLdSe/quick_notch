@@ -33,6 +33,12 @@ public partial class WeatherView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+        _island?.StopLeaveTimer();
+    }
+
     public static string GetWeatherEmoji(int code) => code switch
     {
         0 => "☀️",

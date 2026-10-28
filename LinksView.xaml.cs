@@ -48,6 +48,12 @@ public partial class LinksView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+        _island?.StopLeaveTimer();
+    }
+
     private static (string Icon, string Badge, string Type, Color BgCol, Color FgCol) DetectLinkInfo(string target)
     {
         string t = target.ToLowerInvariant();

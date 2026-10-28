@@ -35,6 +35,12 @@ public partial class SettingsView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseDown(e);
+        _island?.StopLeaveTimer();
+    }
+
     public void RefreshAll()
     {
         if (_island == null) return;

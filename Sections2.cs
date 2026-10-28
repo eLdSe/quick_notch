@@ -535,6 +535,19 @@ public static class HotkeyInfo
 public sealed class LinksSection : Section
 {
     private List<QuickLink> _links;
+    public List<QuickLink> Links => _links;
+
+    public void AddLink(QuickLink link)
+    {
+        _links.Add(link);
+        StoreService.SaveLinks(_links);
+    }
+
+    public void RemoveLink(QuickLink link)
+    {
+        _links.Remove(link);
+        StoreService.SaveLinks(_links);
+    }
     private string? _error;
     private string _filter = "all"; // "all", "web", "folder", "app"
     private bool _editMode = false;

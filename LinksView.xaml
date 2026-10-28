@@ -1,0 +1,140 @@
+<UserControl x:Class="QuickNotchCs.LinksView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="416" d:DesignWidth="808"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType"
+             FontFamily="Segoe UI Variable Display, Segoe UI">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
+        <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
+        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
+
+        <!-- Стиль фильтра ссылок -->
+        <Style x:Key="LinkFilterRadioStyle" TargetType="RadioButton">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="#8E8E93" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="b" Background="#262629" BorderBrush="#28282B" BorderThickness="1" CornerRadius="10" Padding="8,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#0A84FF" />
+                                <Setter TargetName="b" Property="BorderBrush" Value="#0A84FF" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsChecked" Value="False" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="b" Property="Background" Value="#323236" />
+                                <Setter Property="Foreground" Value="White" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль кнопки действия -->
+        <Style x:Key="HeaderActionButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#262629" />
+            <Setter Property="BorderBrush" Value="#28282B" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#323236" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Основная плашка LaunchDeck -->
+    <Border Background="{StaticResource SurfaceBrush}" 
+            BorderBrush="{StaticResource BorderSubtleBrush}" 
+            BorderThickness="1" 
+            CornerRadius="22" 
+            Padding="20,16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 1. Верхняя панель: Заголовок + Фильтры + Кнопки добавления -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🚀 Быстрый запуск" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,14,0" VerticalAlignment="Center" />
+                    <RadioButton x:Name="FilterAllRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Все" IsChecked="True" Checked="OnFilterChanged" />
+                    <RadioButton x:Name="FilterWebRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="🌐 Сайты" Margin="4,0,0,0" Checked="OnFilterChanged" />
+                    <RadioButton x:Name="FilterFolderRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="📁 Папки" Margin="4,0,0,0" Checked="OnFilterChanged" />
+                    <RadioButton x:Name="FilterAppRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="⚡ Программы" Margin="4,0,0,0" Checked="OnFilterChanged" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource HeaderActionButton}" Margin="0,0,6,0" Click="OnAddUrlClick">
+                        <TextBlock Text="➕ Ссылка (URL)" />
+                    </Button>
+                    <Button Style="{StaticResource HeaderActionButton}" Margin="0,0,6,0" Click="OnAddFileClick">
+                        <TextBlock Text="📁 Файл / Программа" />
+                    </Button>
+                    <Button x:Name="EditModeButton" Style="{StaticResource HeaderActionButton}" Click="OnToggleEditClick">
+                        <TextBlock x:Name="EditModeButtonText" Text="✏️ Изменить" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- 2. Сетка карточек ссылок -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <WrapPanel x:Name="LinksGridPanel" Margin="0,0,0,8" />
+            </ScrollViewer>
+
+            <!-- 3. Нижняя плашка: Популярные шаблоны в 1 клик -->
+            <Border Grid.Row="2" Background="{StaticResource Surface2Brush}" 
+                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
+                    CornerRadius="14" Padding="14,8" Margin="0,8,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Добавить в 1 клик:" FontSize="10" FontWeight="Bold" 
+                               Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <WrapPanel Grid.Column="1" x:Name="PresetsPanel" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

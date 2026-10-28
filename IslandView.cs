@@ -171,6 +171,7 @@ public sealed class IslandView : FrameworkElement
     public ClipboardView? ClipboardHost { get; set; }
     public AiView? AiHost { get; set; }
     public LinksView? LinksHost { get; set; }
+    public WeatherView? WeatherHost { get; set; }
 
     public void LaunchAeroToDesktop()
     {
@@ -464,6 +465,7 @@ public sealed class IslandView : FrameworkElement
         ClipboardHost?.RefreshAll();
         AiHost?.RefreshAll();
         LinksHost?.RefreshAll();
+        WeatherHost?.RefreshAll();
         StartFrames();
         InvalidateVisual();
     }
@@ -1213,6 +1215,20 @@ public sealed class IslandView : FrameworkElement
             else if (!isLinksVisible && LinksHost.Visibility == Visibility.Visible)
             {
                 LinksHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        bool isWeatherVisible = Target == 1.0 && SpW.Settled && SpH.Settled && SpTab.Settled && CurrentTool == "weather";
+        if (WeatherHost != null)
+        {
+            if (isWeatherVisible && WeatherHost.Visibility != Visibility.Visible)
+            {
+                WeatherHost.Visibility = Visibility.Visible;
+                WeatherHost.RefreshAll();
+            }
+            else if (!isWeatherVisible && WeatherHost.Visibility == Visibility.Visible)
+            {
+                WeatherHost.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2515,6 +2531,12 @@ public sealed class IslandView : FrameworkElement
                     ContentLive = live;
                     return;
                 }
+                if (CurrentTool == "weather" && WeatherHost != null && WeatherHost.Visibility == Visibility.Visible)
+                {
+                    // Экран Weather полностью отображается через нативный XAML WeatherView (0% CPU)
+                    ContentLive = live;
+                    return;
+                }
                 ContentLive = live;
                 bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
                 bool pressChanged = _lastRenderedPressKey != _pressKey;
@@ -2811,6 +2833,7 @@ public sealed class IslandView : FrameworkElement
         if (ClipboardHost != null && ClipboardHost.IsMouseOver) return;
         if (AiHost != null && AiHost.IsMouseOver) return;
         if (LinksHost != null && LinksHost.IsMouseOver) return;
+        if (WeatherHost != null && WeatherHost.IsMouseOver) return;
         try
         {
             var p = e.GetPosition(this);
@@ -2898,6 +2921,7 @@ public sealed class IslandView : FrameworkElement
         if (ClipboardHost != null && ClipboardHost.IsMouseOver) return;
         if (AiHost != null && AiHost.IsMouseOver) return;
         if (LinksHost != null && LinksHost.IsMouseOver) return;
+        if (WeatherHost != null && WeatherHost.IsMouseOver) return;
         if (IsMouseOver) return;
         if (WinApi.GetCursorPos(out var cp))
         {

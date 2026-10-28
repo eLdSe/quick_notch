@@ -59,6 +59,8 @@ public partial class MainWindow : Window
             LinksHost.Attach(Island);
             Island.WeatherHost = WeatherHost;
             WeatherHost.Attach(Island);
+            Island.CalendarHost = CalendarHost;
+            CalendarHost.Attach(Island);
             Island.Initialize();
             SummonHookService.Initialize(Island);
             if (Island.S.RobotCompanion && Island.S.RobotRoaming)

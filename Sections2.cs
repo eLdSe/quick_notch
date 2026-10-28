@@ -1936,8 +1936,33 @@ public sealed class WeatherSection : Section
 public sealed class CalendarSection : Section
 {
     private DateTime _viewMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    public DateTime ViewMonth { get => _viewMonth; set => _viewMonth = value; }
     private DateTime _selectedDay = DateTime.Today;
+    public DateTime SelectedDay { get => _selectedDay; set => _selectedDay = value; }
     private List<CalendarNote> _notes = new();
+    public List<CalendarNote> Notes => _notes;
+
+    public void AddNote(string date, string text)
+    {
+        _notes.Add(new CalendarNote { Date = date, Text = text.Trim(), Done = false });
+        StoreService.SaveCalendarNotes(_notes);
+    }
+
+    public void ToggleNote(string id)
+    {
+        var n = _notes.FirstOrDefault(x => x.Id == id);
+        if (n != null)
+        {
+            n.Done = !n.Done;
+            StoreService.SaveCalendarNotes(_notes);
+        }
+    }
+
+    public void DeleteNote(string id)
+    {
+        _notes.RemoveAll(x => x.Id == id);
+        StoreService.SaveCalendarNotes(_notes);
+    }
 
     public CalendarSection()
     {

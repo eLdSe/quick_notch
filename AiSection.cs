@@ -14,10 +14,16 @@ public sealed class AiSection : Section
     public string InputText = "";
     private bool _isFocused = true;
     private readonly List<ChatMessage> _messages = new();
+    public List<ChatMessage> Messages => _messages;
     private readonly List<string> _codeSnippets = new();
     private readonly List<AeroChatSession> _sessions = new();
+    public List<AeroChatSession> Sessions => _sessions;
     private string? _currentSessionId;
     private bool _showHistory;
+
+    public void SendPrompt(IslandView isl, string prompt) => ExecutePrompt(isl, prompt);
+    public void NewChat(IslandView isl) { _messages.Clear(); _currentSessionId = Guid.NewGuid().ToString("N"); isl.Kick(); }
+    public void LoadSession(IslandView isl, AeroChatSession session) { _currentSessionId = session.Id; _messages.Clear(); _messages.AddRange(session.Messages); isl.Kick(); }
     private readonly Spring _historySpring = new(0.0);
     private string? _error;
     private bool _loading;

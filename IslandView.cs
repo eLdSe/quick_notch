@@ -169,6 +169,7 @@ public sealed class IslandView : FrameworkElement
     public SystemView? SystemHost { get; set; }
     public SettingsView? SettingsHost { get; set; }
     public ClipboardView? ClipboardHost { get; set; }
+    public AiView? AiHost { get; set; }
 
     public void LaunchAeroToDesktop()
     {
@@ -460,6 +461,7 @@ public sealed class IslandView : FrameworkElement
         SystemHost?.RefreshAll();
         SettingsHost?.RefreshAll();
         ClipboardHost?.RefreshAll();
+        AiHost?.RefreshAll();
         StartFrames();
         InvalidateVisual();
     }
@@ -1181,6 +1183,20 @@ public sealed class IslandView : FrameworkElement
             else if (!isClipboardVisible && ClipboardHost.Visibility == Visibility.Visible)
             {
                 ClipboardHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        bool isAiVisible = Target == 1.0 && SpW.Settled && SpH.Settled && SpTab.Settled && CurrentTool == "ai";
+        if (AiHost != null)
+        {
+            if (isAiVisible && AiHost.Visibility != Visibility.Visible)
+            {
+                AiHost.Visibility = Visibility.Visible;
+                AiHost.RefreshAll();
+            }
+            else if (!isAiVisible && AiHost.Visibility == Visibility.Visible)
+            {
+                AiHost.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2471,6 +2487,12 @@ public sealed class IslandView : FrameworkElement
                     ContentLive = live;
                     return;
                 }
+                if (CurrentTool == "ai" && AiHost != null && AiHost.Visibility == Visibility.Visible)
+                {
+                    // Экран AI полностью отображается через нативный XAML AiView (0% CPU)
+                    ContentLive = live;
+                    return;
+                }
                 ContentLive = live;
                 bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
                 bool pressChanged = _lastRenderedPressKey != _pressKey;
@@ -2765,6 +2787,7 @@ public sealed class IslandView : FrameworkElement
         if (SystemHost != null && SystemHost.IsMouseOver) return;
         if (SettingsHost != null && SettingsHost.IsMouseOver) return;
         if (ClipboardHost != null && ClipboardHost.IsMouseOver) return;
+        if (AiHost != null && AiHost.IsMouseOver) return;
         try
         {
             var p = e.GetPosition(this);
@@ -2850,6 +2873,7 @@ public sealed class IslandView : FrameworkElement
         if (SystemHost != null && SystemHost.IsMouseOver) return;
         if (SettingsHost != null && SettingsHost.IsMouseOver) return;
         if (ClipboardHost != null && ClipboardHost.IsMouseOver) return;
+        if (AiHost != null && AiHost.IsMouseOver) return;
         if (IsMouseOver) return;
         if (WinApi.GetCursorPos(out var cp))
         {

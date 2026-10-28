@@ -53,6 +53,8 @@ public partial class MainWindow : Window
             SettingsHost.Attach(Island);
             Island.ClipboardHost = ClipboardHost;
             ClipboardHost.Attach(Island);
+            Island.AiHost = AiHost;
+            AiHost.Attach(Island);
             Island.Initialize();
             SummonHookService.Initialize(Island);
             if (Island.S.RobotCompanion && Island.S.RobotRoaming)

@@ -163,6 +163,7 @@ public sealed class IslandView : FrameworkElement
     }
 
     public AeroPetWindow? PetWindow { get; set; }
+    public HomeView? HomeHost { get; set; }
 
     public void LaunchAeroToDesktop()
     {
@@ -448,6 +449,7 @@ public sealed class IslandView : FrameworkElement
     public void Kick()
     {
         _sectionDirty = true;
+        HomeHost?.RefreshAll();
         StartFrames();
         InvalidateVisual();
     }
@@ -1083,6 +1085,20 @@ public sealed class IslandView : FrameworkElement
                     }
                 }
                 if (dead != null) foreach (var k in dead) _ps.Remove(k);
+            }
+        }
+
+        bool isHomeVisible = Target == 1.0 && SpW.Settled && SpH.Settled && SpTab.Settled && CurrentTool == "home";
+        if (HomeHost != null)
+        {
+            if (isHomeVisible && HomeHost.Visibility != Visibility.Visible)
+            {
+                HomeHost.Visibility = Visibility.Visible;
+                HomeHost.RefreshAll();
+            }
+            else if (!isHomeVisible && HomeHost.Visibility == Visibility.Visible)
+            {
+                HomeHost.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2337,6 +2353,12 @@ public sealed class IslandView : FrameworkElement
             }
             else
             {
+                if (CurrentTool == "home" && HomeHost != null && HomeHost.Visibility == Visibility.Visible)
+                {
+                    // Экран Home полностью отображается через нативный XAML HomeView (0% CPU)
+                    ContentLive = live;
+                    return;
+                }
                 ContentLive = live;
                 bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
                 bool pressChanged = _lastRenderedPressKey != _pressKey;
@@ -2618,11 +2640,21 @@ public sealed class IslandView : FrameworkElement
         }
     }
 
+    public void StopLeaveTimer() => _leaveTimer.Stop();
+
     protected override void OnMouseEnter(MouseEventArgs e) => _leaveTimer.Stop();
 
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         if (_dragKey != null) return;
+        if (HomeHost != null && HomeHost.IsMouseOver) return;
+        try
+        {
+            var p = e.GetPosition(this);
+            if (_currentIslandRect.Contains(p)) return; // Курсор внутри области острова (например, над XAML-контентом)
+        }
+        catch { }
+
         SetHover(null);
         if (Target == 1 && S.LeaveCollapse)
         {
@@ -2695,6 +2727,17 @@ public sealed class IslandView : FrameworkElement
 
     private void AutoCollapse()
     {
+        if (HomeHost != null && HomeHost.IsMouseOver) return;
+        if (IsMouseOver) return;
+        if (WinApi.GetCursorPos(out var cp))
+        {
+            try
+            {
+                var localPt = PointFromScreen(new Point(cp.X, cp.Y));
+                if (_currentIslandRect.Contains(localPt)) return;
+            }
+            catch { }
+        }
         if (Busy == 0 && Target == 1 && _hoverKey == null) Collapse();
     }
 }

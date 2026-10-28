@@ -41,6 +41,8 @@ public partial class MainWindow : Window
             _wakeMsg = WinApi.RegisterWindowMessage(WinApi.WakeMessageName);
 
             Island.Host = this;
+            Island.HomeHost = HomeHost;
+            HomeHost.Attach(Island);
             Island.Initialize();
             SummonHookService.Initialize(Island);
             if (Island.S.RobotCompanion && Island.S.RobotRoaming)

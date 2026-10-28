@@ -165,6 +165,7 @@ public sealed class IslandView : FrameworkElement
     public AeroPetWindow? PetWindow { get; set; }
     public HomeView? HomeHost { get; set; }
     public SoundView? SoundHost { get; set; }
+    public MediaView? MediaHost { get; set; }
 
     public void LaunchAeroToDesktop()
     {
@@ -452,6 +453,7 @@ public sealed class IslandView : FrameworkElement
         _sectionDirty = true;
         HomeHost?.RefreshAll();
         SoundHost?.RefreshAll();
+        MediaHost?.RefreshAll();
         StartFrames();
         InvalidateVisual();
     }
@@ -1115,6 +1117,20 @@ public sealed class IslandView : FrameworkElement
             else if (!isSoundVisible && SoundHost.Visibility == Visibility.Visible)
             {
                 SoundHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        bool isMediaVisible = Target == 1.0 && SpW.Settled && SpH.Settled && SpTab.Settled && CurrentTool == "media";
+        if (MediaHost != null)
+        {
+            if (isMediaVisible && MediaHost.Visibility != Visibility.Visible)
+            {
+                MediaHost.Visibility = Visibility.Visible;
+                MediaHost.RefreshAll();
+            }
+            else if (!isMediaVisible && MediaHost.Visibility == Visibility.Visible)
+            {
+                MediaHost.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2381,6 +2397,12 @@ public sealed class IslandView : FrameworkElement
                     ContentLive = live;
                     return;
                 }
+                if (CurrentTool == "media" && MediaHost != null && MediaHost.Visibility == Visibility.Visible)
+                {
+                    // Экран Media полностью отображается через нативный XAML MediaView (0% CPU)
+                    ContentLive = live;
+                    return;
+                }
                 ContentLive = live;
                 bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
                 bool pressChanged = _lastRenderedPressKey != _pressKey;
@@ -2671,6 +2693,7 @@ public sealed class IslandView : FrameworkElement
         if (_dragKey != null) return;
         if (HomeHost != null && HomeHost.IsMouseOver) return;
         if (SoundHost != null && SoundHost.IsMouseOver) return;
+        if (MediaHost != null && MediaHost.IsMouseOver) return;
         try
         {
             var p = e.GetPosition(this);
@@ -2752,6 +2775,7 @@ public sealed class IslandView : FrameworkElement
     {
         if (HomeHost != null && HomeHost.IsMouseOver) return;
         if (SoundHost != null && SoundHost.IsMouseOver) return;
+        if (MediaHost != null && MediaHost.IsMouseOver) return;
         if (IsMouseOver) return;
         if (WinApi.GetCursorPos(out var cp))
         {

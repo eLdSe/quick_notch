@@ -36,8 +36,8 @@ public sealed class AppSettings
     [JsonPropertyName("dim_enabled")] public bool DimEnabled { get; set; } = true;
     [JsonPropertyName("dim_level")] public double DimLevel { get; set; } = 0.65;
     [JsonPropertyName("leave_collapse")] public bool LeaveCollapse { get; set; } = true;
-    [JsonPropertyName("leave_delay")] public double LeaveDelay { get; set; } = 1.8;
-    [JsonPropertyName("hide_when_covered")] public bool HideWhenCovered { get; set; } = true;
+    [JsonPropertyName("leave_delay")] public double LeaveDelay { get; set; } = 2.0;
+    [JsonPropertyName("hide_when_covered")] public bool HideWhenCovered { get; set; } = false;
     [JsonPropertyName("keep_awake")] public bool KeepAwake { get; set; } = false;
     [JsonPropertyName("weather_city")] public string? WeatherCity { get; set; }
     [JsonPropertyName("clip_pinned")] public List<string> ClipPinned { get; set; } = new();
@@ -73,7 +73,8 @@ public sealed class AppSettings
     public void Sanitize()
     {
         DimLevel = Math.Clamp(double.IsFinite(DimLevel) ? DimLevel : 0.65, 0.2, 0.9);
-        LeaveDelay = Math.Clamp(double.IsFinite(LeaveDelay) ? LeaveDelay : 1.8, 0.5, 8.0);
+        LeaveDelay = Math.Clamp(double.IsFinite(LeaveDelay) ? LeaveDelay : 2.0, 1.2, 8.0);
+        HideWhenCovered = false; // Остров всегда виден на рабочем столе
         GlassOpacity = 0.95;
         if (!Theme.IsAccentKey(Accent)) Accent = "violet";
         if (Language != "en" && Language != "ru" && Language != "tr") Language = "ru";

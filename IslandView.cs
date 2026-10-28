@@ -403,6 +403,7 @@ public sealed class IslandView : FrameworkElement
         _coverTimer.Tick += (_, _) => CheckCover();
         _coverTimer.Start();
 
+        SpHide.X = SpHide.Target = 0.0;
         SnapPill();
         foreach (var section in Sections.All) section.Attach(this);
         ApplyBounds();
@@ -676,6 +677,7 @@ public sealed class IslandView : FrameworkElement
         _dock = null;
         _lastDateLang = null;
         Sections.Weather.Invalidate(this);
+        SpHide.X = SpHide.Target = 0.0;
         SnapPill();
         SaveState();
         Kick();
@@ -1336,7 +1338,13 @@ public sealed class IslandView : FrameworkElement
         if (Target != 0) return; // Развёрнутый остров не прячем и окна лишний раз не сканируем
         if (!S.HideWhenCovered)
         {
-            if (_covered) { _covered = false; ApplyHidden(); }
+            if (_covered || SpHide.Target != 0.0)
+            {
+                _covered = false;
+                SpHide.Target = 0.0;
+                if (!Host.IsVisible) Host.ShowWindow();
+                StartFrames();
+            }
             return;
         }
 

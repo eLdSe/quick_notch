@@ -164,6 +164,7 @@ public sealed class IslandView : FrameworkElement
 
     public AeroPetWindow? PetWindow { get; set; }
     public HomeView? HomeHost { get; set; }
+    public SoundView? SoundHost { get; set; }
 
     public void LaunchAeroToDesktop()
     {
@@ -450,6 +451,7 @@ public sealed class IslandView : FrameworkElement
     {
         _sectionDirty = true;
         HomeHost?.RefreshAll();
+        SoundHost?.RefreshAll();
         StartFrames();
         InvalidateVisual();
     }
@@ -1099,6 +1101,20 @@ public sealed class IslandView : FrameworkElement
             else if (!isHomeVisible && HomeHost.Visibility == Visibility.Visible)
             {
                 HomeHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        bool isSoundVisible = Target == 1.0 && SpW.Settled && SpH.Settled && SpTab.Settled && CurrentTool == "sound";
+        if (SoundHost != null)
+        {
+            if (isSoundVisible && SoundHost.Visibility != Visibility.Visible)
+            {
+                SoundHost.Visibility = Visibility.Visible;
+                SoundHost.RefreshAll();
+            }
+            else if (!isSoundVisible && SoundHost.Visibility == Visibility.Visible)
+            {
+                SoundHost.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2359,6 +2375,12 @@ public sealed class IslandView : FrameworkElement
                     ContentLive = live;
                     return;
                 }
+                if (CurrentTool == "sound" && SoundHost != null && SoundHost.Visibility == Visibility.Visible)
+                {
+                    // Экран Sound полностью отображается через нативный XAML SoundView (0% CPU)
+                    ContentLive = live;
+                    return;
+                }
                 ContentLive = live;
                 bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
                 bool pressChanged = _lastRenderedPressKey != _pressKey;
@@ -2648,6 +2670,7 @@ public sealed class IslandView : FrameworkElement
     {
         if (_dragKey != null) return;
         if (HomeHost != null && HomeHost.IsMouseOver) return;
+        if (SoundHost != null && SoundHost.IsMouseOver) return;
         try
         {
             var p = e.GetPosition(this);
@@ -2728,6 +2751,7 @@ public sealed class IslandView : FrameworkElement
     private void AutoCollapse()
     {
         if (HomeHost != null && HomeHost.IsMouseOver) return;
+        if (SoundHost != null && SoundHost.IsMouseOver) return;
         if (IsMouseOver) return;
         if (WinApi.GetCursorPos(out var cp))
         {

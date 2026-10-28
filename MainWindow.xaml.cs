@@ -43,6 +43,8 @@ public partial class MainWindow : Window
             Island.Host = this;
             Island.HomeHost = HomeHost;
             HomeHost.Attach(Island);
+            Island.SoundHost = SoundHost;
+            SoundHost.Attach(Island);
             Island.Initialize();
             SummonHookService.Initialize(Island);
             if (Island.S.RobotCompanion && Island.S.RobotRoaming)

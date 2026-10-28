@@ -1010,6 +1010,31 @@ public sealed class ClipboardSection : Section
     private const string PrivateFormat = "ExcludeClipboardContentFromMonitorProcessing";
 
     private readonly List<ClipItem> _items = new();
+    public List<ClipItem> Items => _items;
+    public int SelectedIndex { get => _selectedIndex; set => _selectedIndex = value; }
+    public string Filter { get => _filter; set => _filter = value; }
+
+    public void CopyItem(IslandView isl, ClipItem item) => Copy(isl, item);
+    public void TogglePinItem(IslandView isl, ClipItem item)
+    {
+        item.Pinned = !item.Pinned;
+        var sorted = _items.OrderBy(i => i.Pinned ? 0 : 1).ToList();
+        _items.Clear();
+        _items.AddRange(sorted);
+        Save(isl);
+        isl.Kick();
+    }
+    public void DeleteItem(IslandView isl, ClipItem item)
+    {
+        _items.Remove(item);
+        if (item.Pinned) Save(isl);
+        isl.Kick();
+    }
+    public void ClearAll(IslandView isl)
+    {
+        _items.RemoveAll(i => !i.Pinned);
+        isl.Kick();
+    }
     private string? _own;
     private string? _flashText;
     private double _flashUntil;

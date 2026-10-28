@@ -49,5 +49,11 @@
                             HorizontalAlignment="Center" 
                             VerticalAlignment="Center"
                             Visibility="Collapsed" />
+        <local:ClipboardView x:Name="ClipboardHost" 
+                             Width="808" Height="416"
+                             Margin="0,78,0,76" 
+                             HorizontalAlignment="Center" 
+                             VerticalAlignment="Center"
+                             Visibility="Collapsed" />
     </Grid>
 </Window>

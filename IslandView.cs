@@ -168,6 +168,7 @@ public sealed class IslandView : FrameworkElement
     public MediaView? MediaHost { get; set; }
     public SystemView? SystemHost { get; set; }
     public SettingsView? SettingsHost { get; set; }
+    public ClipboardView? ClipboardHost { get; set; }
 
     public void LaunchAeroToDesktop()
     {
@@ -458,6 +459,7 @@ public sealed class IslandView : FrameworkElement
         MediaHost?.RefreshAll();
         SystemHost?.RefreshAll();
         SettingsHost?.RefreshAll();
+        ClipboardHost?.RefreshAll();
         StartFrames();
         InvalidateVisual();
     }
@@ -476,6 +478,7 @@ public sealed class IslandView : FrameworkElement
     public void OnClipboardChanged()
     {
         if (Sections.ByKey("clipboard") is ClipboardSection cs) cs.OnClipboardChanged(this);
+        ClipboardHost?.RefreshAll();
     }
 
     public void OnPowerChanged()
@@ -1164,6 +1167,20 @@ public sealed class IslandView : FrameworkElement
             else if (!isSettingsVisible && SettingsHost.Visibility == Visibility.Visible)
             {
                 SettingsHost.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        bool isClipboardVisible = Target == 1.0 && SpW.Settled && SpH.Settled && SpTab.Settled && CurrentTool == "clipboard";
+        if (ClipboardHost != null)
+        {
+            if (isClipboardVisible && ClipboardHost.Visibility != Visibility.Visible)
+            {
+                ClipboardHost.Visibility = Visibility.Visible;
+                ClipboardHost.RefreshAll();
+            }
+            else if (!isClipboardVisible && ClipboardHost.Visibility == Visibility.Visible)
+            {
+                ClipboardHost.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -2448,6 +2465,12 @@ public sealed class IslandView : FrameworkElement
                     ContentLive = live;
                     return;
                 }
+                if (CurrentTool == "clipboard" && ClipboardHost != null && ClipboardHost.Visibility == Visibility.Visible)
+                {
+                    // Экран Clipboard полностью отображается через нативный XAML ClipboardView (0% CPU)
+                    ContentLive = live;
+                    return;
+                }
                 ContentLive = live;
                 bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
                 bool pressChanged = _lastRenderedPressKey != _pressKey;
@@ -2741,6 +2764,7 @@ public sealed class IslandView : FrameworkElement
         if (MediaHost != null && MediaHost.IsMouseOver) return;
         if (SystemHost != null && SystemHost.IsMouseOver) return;
         if (SettingsHost != null && SettingsHost.IsMouseOver) return;
+        if (ClipboardHost != null && ClipboardHost.IsMouseOver) return;
         try
         {
             var p = e.GetPosition(this);
@@ -2825,6 +2849,7 @@ public sealed class IslandView : FrameworkElement
         if (MediaHost != null && MediaHost.IsMouseOver) return;
         if (SystemHost != null && SystemHost.IsMouseOver) return;
         if (SettingsHost != null && SettingsHost.IsMouseOver) return;
+        if (ClipboardHost != null && ClipboardHost.IsMouseOver) return;
         if (IsMouseOver) return;
         if (WinApi.GetCursorPos(out var cp))
         {

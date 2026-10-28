@@ -121,33 +121,31 @@ public sealed class Painter
 
     private readonly Dictionary<Color, SolidColorBrush> _brushes = new();
     private readonly Dictionary<(Color, double), Pen> _pens = new();
-    private Dictionary<(string, double, bool, int, HAlign, bool), FormattedText> _texts = new();
-    private Dictionary<(string, double, bool, int, HAlign, bool), FormattedText> _oldTexts = new();
-    private Dictionary<(string, double, int), FormattedText> _monoTexts = new();
-    private Dictionary<(string, double, int), FormattedText> _oldMonoTexts = new();
+    private Dictionary<(string, double, bool, int, HAlign, bool), (FormattedText Text, Color Color)> _texts = new();
+    private Dictionary<(string, double, bool, int, HAlign, bool), (FormattedText Text, Color Color)> _oldTexts = new();
+    private Dictionary<(string, double, int), (FormattedText Text, Color Color)> _monoTexts = new();
+    private Dictionary<(string, double, int), (FormattedText Text, Color Color)> _oldMonoTexts = new();
 
     public Painter(IslandView isl) => Isl = isl;
 
     public Brush B(Color c)
     {
-        if (!_brushes.TryGetValue(c, out var b))
-        {
-            b = new SolidColorBrush(c);
-            b.Freeze();
-            _brushes[c] = b;
-        }
+        if (_brushes.TryGetValue(c, out var b)) return b;
+        if (_brushes.Count >= 512) _brushes.Clear();
+        b = new SolidColorBrush(c);
+        b.Freeze();
+        _brushes[c] = b;
         return b;
     }
 
     public Pen P(Color c, double w)
     {
         w = Math.Round(w, 2);
-        if (!_pens.TryGetValue((c, w), out var pen))
-        {
-            pen = new Pen(B(c), w) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
-            pen.Freeze();
-            _pens[(c, w)] = pen;
-        }
+        if (_pens.TryGetValue((c, w), out var pen)) return pen;
+        if (_pens.Count >= 512) _pens.Clear();
+        pen = new Pen(B(c), w) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+        pen.Freeze();
+        _pens[(c, w)] = pen;
         return pen;
     }
 
@@ -252,20 +250,27 @@ public sealed class Painter
         var key = (text, size, bold, w, h, wrap);
         if (_texts.TryGetValue(key, out var cached))
         {
-            cached.SetForegroundBrush(B(color));
-            return cached;
+            if (cached.Color != color)
+            {
+                cached.Text.SetForegroundBrush(B(color));
+                _texts[key] = (cached.Text, color);
+            }
+            return cached.Text;
         }
         if (_oldTexts.TryGetValue(key, out cached))
         {
-            _texts[key] = cached;
-            cached.SetForegroundBrush(B(color));
-            return cached;
+            if (cached.Color != color)
+            {
+                cached.Text.SetForegroundBrush(B(color));
+            }
+            _texts[key] = (cached.Text, color);
+            return cached.Text;
         }
 
         if (_texts.Count >= 768)
         {
             _oldTexts = _texts;
-            _texts = new Dictionary<(string, double, bool, int, HAlign, bool), FormattedText>(256);
+            _texts = new Dictionary<(string, double, bool, int, HAlign, bool), (FormattedText Text, Color Color)>(256);
         }
 
         var ft = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
@@ -279,7 +284,7 @@ public sealed class Painter
             ft.MaxLineCount = 1;
             ft.Trimming = TextTrimming.CharacterEllipsis;
         }
-        _texts[key] = ft;
+        _texts[key] = (ft, color);
         return ft;
     }
 
@@ -314,20 +319,27 @@ public sealed class Painter
         var key = (text, size, w);
         if (_monoTexts.TryGetValue(key, out var cached))
         {
-            cached.SetForegroundBrush(B(color));
-            return cached;
+            if (cached.Color != color)
+            {
+                cached.Text.SetForegroundBrush(B(color));
+                _monoTexts[key] = (cached.Text, color);
+            }
+            return cached.Text;
         }
         if (_oldMonoTexts.TryGetValue(key, out cached))
         {
-            _monoTexts[key] = cached;
-            cached.SetForegroundBrush(B(color));
-            return cached;
+            if (cached.Color != color)
+            {
+                cached.Text.SetForegroundBrush(B(color));
+            }
+            _monoTexts[key] = (cached.Text, color);
+            return cached.Text;
         }
 
         if (_monoTexts.Count >= 384)
         {
             _oldMonoTexts = _monoTexts;
-            _monoTexts = new Dictionary<(string, double, int), FormattedText>(128);
+            _monoTexts = new Dictionary<(string, double, int), (FormattedText Text, Color Color)>(128);
         }
 
         var ft = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
@@ -336,7 +348,7 @@ public sealed class Painter
             MaxTextWidth = w,
             Trimming = TextTrimming.None
         };
-        _monoTexts[key] = ft;
+        _monoTexts[key] = (ft, color);
         return ft;
     }
 

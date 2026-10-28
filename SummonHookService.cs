@@ -45,7 +45,6 @@ public static class SummonHookService
     private static LowLevelMouseProc? _proc;
     private static IslandView? _island;
     private static long _lastSummonTicks;
-    private static long _lastBotMoveTicks;
 
     public static void Initialize(IslandView island)
     {
@@ -69,33 +68,11 @@ public static class SummonHookService
 
     private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && _island != null)
+        if (nCode >= 0 && wParam == (IntPtr)WM_LBUTTONDOWN && _island != null)
         {
-            int msg = wParam.ToInt32();
-
-            // Если остров открыт и включен робот, плавно передаем курсор
-            if (msg == WM_MOUSEMOVE && _island.Target == 1.0 && _island.S.RobotCompanion)
+            // Для полоски Notch реагируем только на левый клик мыши, когда остров свёрнут и скрыт за окнами
+            if (_island.Target == 0.0 && _island.IsCoveredHidden)
             {
-                long now = Environment.TickCount64;
-                if (now - _lastBotMoveTicks > 28) // ~35 FPS throttle: шелковисто и 0% нагрузки
-                {
-                    _lastBotMoveTicks = now;
-                    try
-                    {
-                        var hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-                        _island.OnGlobalMouseMove(hookStruct.pt.x, hookStruct.pt.y);
-                    }
-                    catch { }
-                }
-            }
-
-            // Для полоски Notch реагируем только на левый клик мыши
-            if (msg == WM_LBUTTONDOWN)
-            {
-                // Если остров развернут или не спрятан за окнами, триггер не нужен
-                if (_island.Target == 1.0 || !_island.IsCoveredHidden)
-                    return CallNextHookEx(_hookId, nCode, wParam, lParam);
-
                 try
                 {
                     var hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);

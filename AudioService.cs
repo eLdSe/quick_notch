@@ -148,9 +148,9 @@ public static class AudioService
         var groups = new Dictionary<string, AppVolume>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < sessions.Count; i++)
         {
-            var s = sessions[i];
             try
             {
+                using var s = sessions[i];
                 if (s.IsSystemSoundsSession || s.State == AudioSessionState.AudioSessionStateExpired) continue;
                 int pid = (int)s.GetProcessID;
                 if (pid == 0) continue;
@@ -187,7 +187,7 @@ public static class AudioService
         {
             try
             {
-                var s = sessions[i];
+                using var s = sessions[i];
                 if (wanted.Contains((int)s.GetProcessID)) s.SimpleAudioVolume.Volume = level;
             }
             catch { }

@@ -15,9 +15,13 @@ public static class DeviceService
     public static int GetBrightness()
     {
         using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightness");
-        foreach (ManagementBaseObject o in searcher.Get())
+        using var coll = searcher.Get();
+        foreach (ManagementBaseObject o in coll)
         {
-            return Convert.ToInt32(o["CurrentBrightness"]);
+            using (o)
+            {
+                return Convert.ToInt32(o["CurrentBrightness"]);
+            }
         }
         throw new InvalidOperationException(BrightnessUnsupported);
     }
@@ -26,11 +30,15 @@ public static class DeviceService
     {
         level = Math.Clamp(level, 0, 100);
         using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightnessMethods");
+        using var coll = searcher.Get();
         bool any = false;
-        foreach (ManagementObject o in searcher.Get())
+        foreach (ManagementObject o in coll)
         {
-            o.InvokeMethod("WmiSetBrightness", new object[] { (uint)1, (byte)level });
-            any = true;
+            using (o)
+            {
+                o.InvokeMethod("WmiSetBrightness", new object[] { (uint)1, (byte)level });
+                any = true;
+            }
         }
         if (!any) throw new InvalidOperationException(BrightnessUnsupported);
     }

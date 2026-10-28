@@ -78,6 +78,7 @@ public sealed class AeroPetWindow : Window
     public void DockBack()
     {
         _canvas.StopAnimating();
+        _canvas.StopIdleTimer();
         _island.DockAero();
     }
 
@@ -99,11 +100,13 @@ public sealed class AeroPetWindow : Window
             if (Visibility == Visibility.Visible)
             {
                 _canvas.ResetIdleState();
+                _canvas.StartIdleTimer();
                 _canvas.StartAnimating();
             }
             else
             {
                 _canvas.StopAnimating();
+                _canvas.StopIdleTimer();
             }
         }
     }
@@ -553,7 +556,6 @@ public sealed class AeroPetCanvas : FrameworkElement
             Interval = TimeSpan.FromSeconds(0.5)
         };
         _idleCheckTimer.Tick += OnIdleCheckTick;
-        _idleCheckTimer.Start();
     }
 
     public void ResetScratchAnchor(Point p)
@@ -802,6 +804,16 @@ public sealed class AeroPetCanvas : FrameworkElement
         _framing = true;
         _lastTs = Stopwatch.GetTimestamp();
         CompositionTarget.Rendering += OnRendering;
+    }
+
+    public void StartIdleTimer()
+    {
+        if (!_idleCheckTimer.IsEnabled) _idleCheckTimer.Start();
+    }
+
+    public void StopIdleTimer()
+    {
+        if (_idleCheckTimer.IsEnabled) _idleCheckTimer.Stop();
     }
 
     public void StopAnimating()

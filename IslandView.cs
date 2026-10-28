@@ -233,9 +233,66 @@ public sealed class IslandView : FrameworkElement
     private long _lastFrameTs;
     private DateTime _lastTick = DateTime.UtcNow;
     private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private readonly DispatcherTimer _eqTimer = new() { Interval = TimeSpan.FromMilliseconds(33) }; // 30 FPS шелковисто-плавная анимация
+    private readonly DispatcherTimer _eqTimer = new() { Interval = TimeSpan.FromMilliseconds(42) }; // 24 FPS органично и сберегает CPU
     private readonly DispatcherTimer _leaveTimer = new();
     private readonly DispatcherTimer _coverTimer = new() { Interval = TimeSpan.FromMilliseconds(CoverPollMs) };
+
+    private static readonly double[] RestingEqHeights = { 5.0, 9.0, 13.5, 7.0 };
+
+    private PathGeometry? _cachedLeftEar;
+    private PathGeometry? _cachedLeftArc;
+    private PathGeometry? _cachedRightEar;
+    private PathGeometry? _cachedRightArc;
+    private (double Left, double Right, double EarR) _lastEarParams = (-1, -1, -1);
+
+    private DrawingGroup? _cachedExpandedBg;
+    private (double CanvasW, double TopY, double W, double H, bool Glass, bool Light) _cachedBgParams;
+
+    private DrawingGroup? _cachedSectionGroup;
+    private bool _sectionDirty = true;
+    private string? _lastRenderedSectionTool;
+    private string? _lastRenderedHoverKey;
+    private string? _lastRenderedPressKey;
+    private readonly List<(string Key, Rect Rect)> _cachedSectionHits = new();
+
+    public void InvalidateSection() => _sectionDirty = true;
+
+    private void UpdateMacBookEarGeometries(double left, double right, double earR)
+    {
+        if (_lastEarParams == (left, right, earR) && _cachedLeftEar != null) return;
+        _lastEarParams = (left, right, earR);
+
+        var leftEar = new PathGeometry();
+        var leftFig = new PathFigure { StartPoint = new Point(left - earR, 0), IsClosed = true, IsFilled = true };
+        leftFig.Segments.Add(new LineSegment(new Point(left, 0), false));
+        leftFig.Segments.Add(new LineSegment(new Point(left, earR), false));
+        leftFig.Segments.Add(new ArcSegment(new Point(left - earR, 0), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
+        leftEar.Figures.Add(leftFig);
+        leftEar.Freeze();
+        _cachedLeftEar = leftEar;
+
+        var leftArc = new PathGeometry();
+        var leftArcFig = new PathFigure { StartPoint = new Point(left, earR), IsClosed = false, IsFilled = false };
+        leftArcFig.Segments.Add(new ArcSegment(new Point(left - earR, 0), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
+        leftArc.Figures.Add(leftArcFig);
+        leftArc.Freeze();
+        _cachedLeftArc = leftArc;
+
+        var rightEar = new PathGeometry();
+        var rightFig = new PathFigure { StartPoint = new Point(right, 0), IsClosed = true, IsFilled = true };
+        rightFig.Segments.Add(new LineSegment(new Point(right + earR, 0), false));
+        rightFig.Segments.Add(new ArcSegment(new Point(right, earR), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
+        rightEar.Figures.Add(rightFig);
+        rightEar.Freeze();
+        _cachedRightEar = rightEar;
+
+        var rightArc = new PathGeometry();
+        var rightArcFig = new PathFigure { StartPoint = new Point(right + earR, 0), IsClosed = false, IsFilled = false };
+        rightArcFig.Segments.Add(new ArcSegment(new Point(right, earR), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
+        rightArc.Figures.Add(rightArcFig);
+        rightArc.Freeze();
+        _cachedRightArc = rightArc;
+    }
 
     private string _cachedTimeStr = "";
     private int _lastMinute = -1;
@@ -390,6 +447,7 @@ public sealed class IslandView : FrameworkElement
 
     public void Kick()
     {
+        _sectionDirty = true;
         StartFrames();
         InvalidateVisual();
     }
@@ -910,7 +968,7 @@ public sealed class IslandView : FrameworkElement
         CompositionTarget.Rendering += OnRendering;
     }
 
-    private const double MinFrameInterval = 1.0 / 120.0; // Максимум 120 FPS: шелковисто и отсекает холостые 240+ Гц прогоны
+    private double MinFrameInterval => Target > 0.05 ? (1.0 / 60.0) : (1.0 / 120.0); // 60 FPS для большого окна (экономит 50% CPU), 120 FPS для мгновенных анимаций
 
     private void OnRendering(object? sender, EventArgs e)
     {
@@ -946,7 +1004,7 @@ public sealed class IslandView : FrameworkElement
         SpPillX.Step(dt, 400, 30);
         SpPillW.Step(dt, 400, 30);
         SpNotify.Step(dt, 360, SpNotify.Target > 0 ? 21.0 : 28.0); // Эластичный Apple Dynamic Island Pop при уведомлениях
-        if (Target > 0.05 && S.RobotCompanion)
+        if (Target > 0.05 && S.RobotCompanion && !S.RobotRoaming)
         {
             UpdateRobotEyePhysics(dt);
         }
@@ -978,7 +1036,7 @@ public sealed class IslandView : FrameworkElement
         bool settled = hsSettled && psSettled && namedSettled
                        && SpW.Settled && SpH.Settled && SpHover.Settled && SpDim.Settled && SpLive.Settled
                        && SpTab.Settled && SpPillX.Settled && SpPillW.Settled && SpHide.Settled && SpNotify.Settled;
-        if (Target > 0.05 && S.RobotCompanion)
+        if (Target > 0.05 && S.RobotCompanion && !S.RobotRoaming)
         {
             settled = settled && SpBotEyeX.Settled && SpBotEyeY.Settled && SpBotHappy.Settled
                               && SpBotHop.Settled && _botBlinkState <= 0.01 && _botEmotionTimer <= 0 && _botBubbleTime <= 0;
@@ -1199,6 +1257,7 @@ public sealed class IslandView : FrameworkElement
         _tabDir = keys.IndexOf(key) > keys.IndexOf(CurrentTool) ? 1 : -1;
         _prevTab = CurrentTool;
         CurrentTool = key;
+        _sectionDirty = true;
         SpTab.X = SpTab.V = 0.0;
         SpTab.Target = 1.0;
         (SpPillX.Target, SpPillW.Target) = PillTarget(key);
@@ -1367,106 +1426,125 @@ public sealed class IslandView : FrameworkElement
 
         bool isNotchFlush = S.IslandStyle == "notch" && ph < 0.12 && Math.Abs(rect.Top) <= 0.5;
 
-        // Мягкая рассеянная тень стекла
-        if (Theme.GlassEnabled && hide < 0.85)
+        // Если остров полностью развёрнут (ph > 0.98), кэшируем тяжелый стеклянный фон и тени в DrawingGroup
+        if (ph > 0.98 && hide < 0.01 && Theme.GlassEnabled)
         {
-            double shadowA = (1.0 - hide) * (ph > 0.1 ? 1.0 : (1.0 - hide));
-            byte s1 = Theme.IsLight ? (byte)(42 * shadowA) : (byte)(20 * shadowA);
-            byte s2 = Theme.IsLight ? (byte)(26 * shadowA) : (byte)(12 * shadowA);
-            double sTop = isNotchFlush ? rect.Top + 6 : rect.Top + 4;
-            dc.DrawRoundedRectangle(p.B(Color.FromArgb(s1, 0, 0, 0)), null,
-                new Rect(rect.Left - 2, sTop, rect.Width + 4, rect.Height + 2), radius + 2, radius + 2);
-            dc.DrawRoundedRectangle(p.B(Color.FromArgb(s2, 0, 0, 0)), null,
-                new Rect(rect.Left - 6, sTop + 4, rect.Width + 12, rect.Height + 4), radius + 4, radius + 4);
-        }
-
-        if (isNotchFlush)
-        {
-            _islandGeom.Rect = new Rect(rect.Left, rect.Top - 18, rect.Width, rect.Height + 18);
-            _islandGeom.RadiusX = Math.Max(radius, 14);
-            _islandGeom.RadiusY = Math.Max(radius, 14);
-        }
-        else
-        {
-            _islandGeom.Rect = rect;
-            _islandGeom.RadiusX = radius;
-            _islandGeom.RadiusY = radius;
-        }
-
-        Brush bgBrush = Theme.GlassEnabled
-            ? Theme.GetGlassGradientBrush(Theme.GlassOpacity)
-            : p.B(Theme.Bg);
-        double sn = Ui.Clamp(SpNotify.X);
-        Pen borderPen;
-        if (sn > 0.05 && ActiveNotification?.AccentColor != null)
-        {
-            var acc = ActiveNotification.AccentColor.Value;
-            borderPen = p.P(Theme.Mix(Theme.BorderSubtle, acc, 0.5 * sn), 1.2);
-        }
-        else
-        {
-            borderPen = Theme.GlassEnabled
-                ? (islandHover > 0.05
-                    ? p.P(Theme.Mix(Theme.BorderSubtle, Theme.Mix(Theme.Border, Theme.Accent, 0.45), islandHover), 1)
-                    : Theme.GetGlassBorderPen(1.0))
-                : p.P(Theme.Mix(Theme.BorderSubtle, Theme.Accent, 0.35 * islandHover), 1);
-        }
-
-        dc.DrawGeometry(bgBrush, borderPen, _islandGeom);
-
-        // Анатомические плавные «ушки» MacBook по бокам чёлки у верхнего края
-        if (isNotchFlush)
-        {
-            double earR = Math.Min(rect.Height * 0.45, 5.5);
-            if (earR >= 1.5)
+            var currentParams = (canvasW, topY, w, h, Theme.GlassEnabled, Theme.IsLight);
+            if (_cachedExpandedBg == null || _cachedBgParams != currentParams)
             {
-                var earPen = Theme.GlassEnabled ? Theme.GetGlassBorderPen(1.0) : p.P(Theme.BorderSubtle, 1);
+                _cachedBgParams = currentParams;
+                var bgGroup = new DrawingGroup();
+                using (var gdc = bgGroup.Open())
+                {
+                    // Мягкая рассеянная тень стекла
+                    byte s1 = Theme.IsLight ? (byte)42 : (byte)20;
+                    byte s2 = Theme.IsLight ? (byte)26 : (byte)12;
+                    double sTop = rect.Top + 4;
+                    gdc.DrawRoundedRectangle(p.B(Color.FromArgb(s1, 0, 0, 0)), null,
+                        new Rect(rect.Left - 2, sTop, rect.Width + 4, rect.Height + 2), radius + 2, radius + 2);
+                    gdc.DrawRoundedRectangle(p.B(Color.FromArgb(s2, 0, 0, 0)), null,
+                        new Rect(rect.Left - 6, sTop + 4, rect.Width + 12, rect.Height + 4), radius + 4, radius + 4);
 
-                // Левое ушко
-                var leftEar = new PathGeometry();
-                var leftFig = new PathFigure { StartPoint = new Point(rect.Left - earR, 0), IsClosed = true, IsFilled = true };
-                leftFig.Segments.Add(new LineSegment(new Point(rect.Left, 0), false));
-                leftFig.Segments.Add(new LineSegment(new Point(rect.Left, earR), false));
-                leftFig.Segments.Add(new ArcSegment(new Point(rect.Left - earR, 0), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
-                leftEar.Figures.Add(leftFig);
-                dc.DrawGeometry(bgBrush, null, leftEar);
+                    // Корпус стекла
+                    var geom = new RectangleGeometry(rect, radius, radius);
+                    geom.Freeze();
+                    gdc.DrawGeometry(Theme.GetGlassGradientBrush(Theme.GlassOpacity), Theme.GetGlassBorderPen(1.0), geom);
 
-                var leftArc = new PathGeometry();
-                var leftArcFig = new PathFigure { StartPoint = new Point(rect.Left, earR), IsClosed = false, IsFilled = false };
-                leftArcFig.Segments.Add(new ArcSegment(new Point(rect.Left - earR, 0), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
-                leftArc.Figures.Add(leftArcFig);
-                dc.DrawGeometry(null, earPen, leftArc);
+                    // Внутренний блик и скос
+                    var inner = new RectangleGeometry(new Rect(rect.Left + 1, rect.Top + 1, rect.Width - 2, rect.Height - 2), radius - 1, radius - 1);
+                    inner.Freeze();
+                    Color rimColor = Theme.IsLight ? Color.FromArgb(70, 255, 255, 255) : Color.FromArgb(34, 255, 255, 255);
+                    gdc.DrawGeometry(null, p.P(rimColor, 0.8), inner);
 
-                // Правое ушко
-                var rightEar = new PathGeometry();
-                var rightFig = new PathFigure { StartPoint = new Point(rect.Right, 0), IsClosed = true, IsFilled = true };
-                rightFig.Segments.Add(new LineSegment(new Point(rect.Right + earR, 0), false));
-                rightFig.Segments.Add(new ArcSegment(new Point(rect.Right, earR), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
-                rightEar.Figures.Add(rightFig);
-                dc.DrawGeometry(bgBrush, null, rightEar);
-
-                var rightArc = new PathGeometry();
-                var rightArcFig = new PathFigure { StartPoint = new Point(rect.Right + earR, 0), IsClosed = false, IsFilled = false };
-                rightArcFig.Segments.Add(new ArcSegment(new Point(rect.Right, earR), new Size(earR, earR), 0, false, SweepDirection.Counterclockwise, true));
-                rightArc.Figures.Add(rightArcFig);
-                dc.DrawGeometry(null, earPen, rightArc);
+                    double sheenH = Math.Min(rect.Height * 0.42, 85);
+                    gdc.PushClip(inner);
+                    gdc.DrawRectangle(Theme.GetGlassSheenBrush(), null, new Rect(rect.Left, rect.Top, rect.Width, sheenH));
+                    gdc.Pop();
+                }
+                bgGroup.Freeze();
+                _cachedExpandedBg = bgGroup;
             }
+            dc.DrawDrawing(_cachedExpandedBg);
         }
-
-        // Внутренний световой скос (inner glass rim) и верхний рассеянный блик стекла
-        if (Theme.GlassEnabled && radius > 6 && rect.Width > 100 && rect.Height > 20)
+        else
         {
-            _innerGeom.Rect = new Rect(rect.Left + 1, rect.Top + 1, rect.Width - 2, rect.Height - 2);
-            _innerGeom.RadiusX = radius - 1;
-            _innerGeom.RadiusY = radius - 1;
-            Color rimColor = Theme.IsLight ? Color.FromArgb(70, 255, 255, 255) : Color.FromArgb(34, 255, 255, 255);
-            dc.DrawGeometry(null, p.P(rimColor, 0.8), _innerGeom);
-
-            double sheenH = Math.Min(rect.Height * 0.42, 85);
-            var sheenBrush = Theme.GetGlassSheenBrush();
-            using (p.WithClip(_innerGeom))
+            // Обычный динамический рендер во время анимации открытия/закрытия
+            if (Theme.GlassEnabled && hide < 0.85)
             {
-                dc.DrawRectangle(sheenBrush, null, new Rect(rect.Left, rect.Top, rect.Width, sheenH));
+                double shadowA = (1.0 - hide) * (ph > 0.1 ? 1.0 : (1.0 - hide));
+                byte s1 = Theme.IsLight ? (byte)(42 * shadowA) : (byte)(20 * shadowA);
+                byte s2 = Theme.IsLight ? (byte)(26 * shadowA) : (byte)(12 * shadowA);
+                double sTop = isNotchFlush ? rect.Top + 6 : rect.Top + 4;
+                dc.DrawRoundedRectangle(p.B(Color.FromArgb(s1, 0, 0, 0)), null,
+                    new Rect(rect.Left - 2, sTop, rect.Width + 4, rect.Height + 2), radius + 2, radius + 2);
+                dc.DrawRoundedRectangle(p.B(Color.FromArgb(s2, 0, 0, 0)), null,
+                    new Rect(rect.Left - 6, sTop + 4, rect.Width + 12, rect.Height + 4), radius + 4, radius + 4);
+            }
+
+            if (isNotchFlush)
+            {
+                _islandGeom.Rect = new Rect(rect.Left, rect.Top - 18, rect.Width, rect.Height + 18);
+                _islandGeom.RadiusX = Math.Max(radius, 14);
+                _islandGeom.RadiusY = Math.Max(radius, 14);
+            }
+            else
+            {
+                _islandGeom.Rect = rect;
+                _islandGeom.RadiusX = radius;
+                _islandGeom.RadiusY = radius;
+            }
+
+            Brush bgBrush = Theme.GlassEnabled
+                ? Theme.GetGlassGradientBrush(Theme.GlassOpacity)
+                : p.B(Theme.Bg);
+            double sn = Ui.Clamp(SpNotify.X);
+            Pen borderPen;
+            if (sn > 0.05 && ActiveNotification?.AccentColor != null)
+            {
+                var acc = ActiveNotification.AccentColor.Value;
+                borderPen = p.P(Theme.Mix(Theme.BorderSubtle, acc, 0.5 * sn), 1.2);
+            }
+            else
+            {
+                borderPen = Theme.GlassEnabled
+                    ? (islandHover > 0.05
+                        ? p.P(Theme.Mix(Theme.BorderSubtle, Theme.Mix(Theme.Border, Theme.Accent, 0.45), islandHover), 1)
+                        : Theme.GetGlassBorderPen(1.0))
+                    : p.P(Theme.Mix(Theme.BorderSubtle, Theme.Accent, 0.35 * islandHover), 1);
+            }
+
+            dc.DrawGeometry(bgBrush, borderPen, _islandGeom);
+
+            // Анатомические плавные «ушки» MacBook по бокам чёлки у верхнего края
+            if (isNotchFlush)
+            {
+                double earR = Math.Min(rect.Height * 0.45, 5.5);
+                if (earR >= 1.5)
+                {
+                    var earPen = Theme.GlassEnabled ? Theme.GetGlassBorderPen(1.0) : p.P(Theme.BorderSubtle, 1);
+                    UpdateMacBookEarGeometries(rect.Left, rect.Right, earR);
+                    if (_cachedLeftEar != null) dc.DrawGeometry(bgBrush, null, _cachedLeftEar);
+                    if (_cachedLeftArc != null) dc.DrawGeometry(null, earPen, _cachedLeftArc);
+                    if (_cachedRightEar != null) dc.DrawGeometry(bgBrush, null, _cachedRightEar);
+                    if (_cachedRightArc != null) dc.DrawGeometry(null, earPen, _cachedRightArc);
+                }
+            }
+
+            // Внутренний световой скос (inner glass rim) и верхний рассеянный блик стекла
+            if (Theme.GlassEnabled && radius > 6 && rect.Width > 100 && rect.Height > 20)
+            {
+                _innerGeom.Rect = new Rect(rect.Left + 1, rect.Top + 1, rect.Width - 2, rect.Height - 2);
+                _innerGeom.RadiusX = radius - 1;
+                _innerGeom.RadiusY = radius - 1;
+                Color rimColor = Theme.IsLight ? Color.FromArgb(70, 255, 255, 255) : Color.FromArgb(34, 255, 255, 255);
+                dc.DrawGeometry(null, p.P(rimColor, 0.8), _innerGeom);
+
+                double sheenH = Math.Min(rect.Height * 0.42, 85);
+                var sheenBrush = Theme.GetGlassSheenBrush();
+                using (p.WithClip(_innerGeom))
+                {
+                    dc.DrawRectangle(sheenBrush, null, new Rect(rect.Left, rect.Top, rect.Width, sheenH));
+                }
             }
         }
 
@@ -1641,7 +1719,6 @@ public sealed class IslandView : FrameworkElement
         double eqX = battLeft - 26;
         double t = Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
         double playSpring = Ui.Clamp(Nsp("play").X);
-        double[] restingH = { 5.0, 9.0, 13.5, 7.0 };
         for (int i = 0; i < 4; i++)
         {
             double w1 = Math.Sin(t * 4.2 + i * 0.95);
@@ -1654,7 +1731,7 @@ public sealed class IslandView : FrameworkElement
             double dynamicVal = Math.Pow(blend, 1.25);
             double liveH = 5.0 + 10.5 * dynamicVal;
 
-            double hgt = restingH[i] + (liveH - restingH[i]) * playSpring;
+            double hgt = RestingEqHeights[i] + (liveH - RestingEqHeights[i]) * playSpring;
             p.Card(new Rect(eqX + i * 5.2, mid - hgt / 2, 2.6, hgt), Theme.Accent, 1.3);
         }
 
@@ -1749,14 +1826,12 @@ public sealed class IslandView : FrameworkElement
 
     public void OnGlobalMouseMove(int screenX, int screenY)
     {
+        if (Target <= 0.05 || !S.RobotCompanion || S.RobotRoaming) return;
         double dx = screenX - _globalMousePos.X;
         double dy = screenY - _globalMousePos.Y;
-        if (dx * dx + dy * dy < 16.0) return; // Меньше 4 пикселей сдвига мыши — игнорируем
+        if (dx * dx + dy * dy < 25.0) return; // Меньше 5 пикселей сдвига — не будим рендер
         _globalMousePos = new Point(screenX, screenY);
-        if (Target > 0.05 && S.RobotCompanion)
-        {
-            StartFrames();
-        }
+        StartFrames();
     }
 
     public void PetRobot()
@@ -2203,26 +2278,9 @@ public sealed class IslandView : FrameworkElement
             AddHit("back:home", bcRect);
         }
 
-        // Кнопки управления окном и батарея справа
-        foreach (var (key, cx) in new[] { ("close", fx + W - 36), ("collapse", fx + W - 72) })
-        {
-            var c = new Point(cx, oy + 28);
-            var circle = new Rect(cx - 14, oy + 14, 28, 28);
-            using (p.Pressable(key, circle))
-            {
-                p.Circle(c, 14, Theme.Mix(Theme.Surface2, Theme.Surface3, Hv(key)));
-                if (key == "close")
-                {
-                    p.Line(new Point(c.X - 4, c.Y - 4), new Point(c.X + 4, c.Y + 4), Theme.Text, 1.8);
-                    p.Line(new Point(c.X - 4, c.Y + 4), new Point(c.X + 4, c.Y - 4), Theme.Text, 1.8);
-                }
-                else
-                {
-                    p.Polyline(Theme.Text, 1.8, new Point(c.X - 4, c.Y + 2), new Point(c.X, c.Y - 2), new Point(c.X + 4, c.Y + 2));
-                }
-            }
-            AddHit(key, circle);
-        }
+        // Кнопки управления окном (close и collapse)
+        PaintWindowButton(p, "close", fx + W - 36, oy + 28);
+        PaintWindowButton(p, "collapse", fx + W - 72, oy + 28);
 
         var chip = new Rect(fx + W - 176, oy + 14, 88, 28);
         p.Card(chip, Theme.Surface, 14, Theme.BorderSubtle);
@@ -2267,6 +2325,7 @@ public sealed class IslandView : FrameworkElement
         {
             if (t < 0.99)
             {
+                _sectionDirty = true;
                 double curScale = 0.98 + 0.02 * t;
                 using (p.WithOpacity(currAlpha))
                 using (p.WithScale(curScale, center))
@@ -2279,7 +2338,56 @@ public sealed class IslandView : FrameworkElement
             else
             {
                 ContentLive = live;
-                Sections.ByKey(CurrentTool).Paint(this, p, area);
+                bool hoverChanged = _lastRenderedHoverKey != _hoverKey;
+                bool pressChanged = _lastRenderedPressKey != _pressKey;
+                bool toolChanged = _lastRenderedSectionTool != CurrentTool;
+                bool dragActive = _dragKey != null;
+
+                if (_sectionDirty || hoverChanged || pressChanged || toolChanged || dragActive || _cachedSectionGroup == null)
+                {
+                    _lastRenderedHoverKey = _hoverKey;
+                    _lastRenderedPressKey = _pressKey;
+                    _lastRenderedSectionTool = CurrentTool;
+                    _sectionDirty = false;
+
+                    int startHitIdx = _hits.Count;
+                    var secGroup = new DrawingGroup();
+                    using (var sdc = secGroup.Open())
+                    {
+                        var oldDc = p.Dc;
+                        p.Dc = sdc;
+                        try
+                        {
+                            Sections.ByKey(CurrentTool).Paint(this, p, area);
+                        }
+                        finally
+                        {
+                            p.Dc = oldDc;
+                        }
+                    }
+                    secGroup.Freeze();
+                    _cachedSectionGroup = secGroup;
+
+                    // Кэшируем хитбоксы кнопок текущего раздела
+                    _cachedSectionHits.Clear();
+                    for (int i = startHitIdx; i < _hits.Count; i++)
+                    {
+                        _cachedSectionHits.Add(_hits[i]);
+                    }
+                }
+                else
+                {
+                    // Восстанавливаем хитбоксы раздела в общий список кликов
+                    if (ContentLive)
+                    {
+                        for (int i = 0; i < _cachedSectionHits.Count; i++)
+                        {
+                            AddHit(_cachedSectionHits[i].Key, _cachedSectionHits[i].Rect);
+                        }
+                    }
+                }
+
+                p.Dc.DrawDrawing(_cachedSectionGroup);
             }
         }
         ContentLive = live;
@@ -2315,6 +2423,26 @@ public sealed class IslandView : FrameworkElement
             p.Label(sec.DockLabel, itemRect, 11, color, true, HAlign.Center);
             AddHit($"tab:{key}", rect);
         }
+    }
+
+    private void PaintWindowButton(Painter p, string key, double cx, double cy)
+    {
+        var c = new Point(cx, cy);
+        var circle = new Rect(cx - 14, cy - 14, 28, 28);
+        using (p.Pressable(key, circle))
+        {
+            p.Circle(c, 14, Theme.Mix(Theme.Surface2, Theme.Surface3, Hv(key)));
+            if (key == "close")
+            {
+                p.Line(new Point(c.X - 4, c.Y - 4), new Point(c.X + 4, c.Y + 4), Theme.Text, 1.8);
+                p.Line(new Point(c.X - 4, c.Y + 4), new Point(c.X + 4, c.Y - 4), Theme.Text, 1.8);
+            }
+            else
+            {
+                p.Polyline(Theme.Text, 1.8, new Point(c.X - 4, c.Y + 2), new Point(c.X, c.Y - 2), new Point(c.X + 4, c.Y + 2));
+            }
+        }
+        AddHit(key, circle);
     }
 
     // ---------- события мыши ----------
@@ -2357,7 +2485,6 @@ public sealed class IslandView : FrameworkElement
 
         UpdateDim();
         StartFrames();
-        InvalidateVisual();
     }
 
     private void SetPress(string? key)
@@ -2375,6 +2502,7 @@ public sealed class IslandView : FrameworkElement
         var pos = e.GetPosition(this);
         if (_dragKey != null)
         {
+            _sectionDirty = true;
             // При перетаскивании ползунков (звук/яркость) — нулевая задержка
             try { _globalMousePos = PointToScreen(pos); } catch { }
             Sections.ByKey(CurrentTool).Drag(this, _dragKey, pos);
@@ -2385,13 +2513,31 @@ public sealed class IslandView : FrameworkElement
         long now = Environment.TickCount64;
         double dx = pos.X - _lastMovePos.X;
         double dy = pos.Y - _lastMovePos.Y;
-        // Троттлинг 1000 Гц мыши: отсекаем микродвижения меньше 2 пикселей чаще чем раз в 8 мс (~125 Гц)
-        if (dx * dx + dy * dy < 4.0 && now - _lastMoveTicks < 8) return;
+        // Троттлинг 1000 Гц мыши: отсекаем микродвижения меньше 3 пикселей чаще чем раз в 14 мс (~70 Гц)
+        if (dx * dx + dy * dy < 9.0 && now - _lastMoveTicks < 14) return;
         _lastMovePos = pos;
         _lastMoveTicks = now;
 
-        try { _globalMousePos = PointToScreen(pos); } catch { }
-        SetHover(HitAt(pos));
+        string? hit = HitAt(pos);
+        if (hit != _hoverKey)
+        {
+            SetHover(hit);
+        }
+        if (Target > 0.05 && S.RobotCompanion && !S.RobotRoaming)
+        {
+            try
+            {
+                var scr = PointToScreen(pos);
+                double ddx = scr.X - _globalMousePos.X;
+                double ddy = scr.Y - _globalMousePos.Y;
+                if (ddx * ddx + ddy * ddy >= 25.0)
+                {
+                    _globalMousePos = scr;
+                    StartFrames();
+                }
+            }
+            catch { }
+        }
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -2433,6 +2579,7 @@ public sealed class IslandView : FrameworkElement
         {
             string key = _dragKey;
             _dragKey = null;
+            _sectionDirty = true;
             ReleaseMouseCapture();
             Sections.ByKey(CurrentTool).DragEnd(this, key);
             SetPress(null);

@@ -15,6 +15,7 @@ public partial class ClipboardView : UserControl
     private string _filter = "all";
     private int _selectedIndex = 0;
     private ClipItem? _selectedItem;
+    private int _displayLimit = 35;
 
     public ClipboardView()
     {
@@ -109,12 +110,22 @@ public partial class ClipboardView : UserControl
 
         EmptyClipsPanel.Visibility = Visibility.Collapsed;
 
-        if (_selectedIndex >= filtered.Count) _selectedIndex = Math.Max(0, filtered.Count - 1);
+        if (_selectedItem != null)
+        {
+            int found = filtered.IndexOf(_selectedItem);
+            if (found >= 0) _selectedIndex = found;
+            else _selectedIndex = 0;
+        }
+        else if (_selectedIndex >= filtered.Count)
+        {
+            _selectedIndex = Math.Max(0, filtered.Count - 1);
+        }
         _selectedItem = filtered[_selectedIndex];
 
         ClipsPanel.Children.Clear();
 
-        for (int i = 0; i < filtered.Count; i++)
+        int renderLimit = Math.Min(filtered.Count, _displayLimit);
+        for (int i = 0; i < renderLimit; i++)
         {
             var item = filtered[i];
             bool isSelected = i == _selectedIndex;
@@ -187,8 +198,10 @@ public partial class ClipboardView : UserControl
             {
                 var pin = new TextBlock
                 {
-                    Text = "📌",
+                    Text = "\uE718",
+                    FontFamily = new FontFamily("Segoe MDL2 Assets"),
                     FontSize = 11,
+                    Foreground = Theme.AccentBrush,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(4, 0, 0, 0)
                 };
@@ -208,6 +221,35 @@ public partial class ClipboardView : UserControl
             };
 
             ClipsPanel.Children.Add(card);
+        }
+
+        if (filtered.Count > renderLimit)
+        {
+            var moreCard = new Border
+            {
+                Background = (Brush)FindResource("Surface2Brush"),
+                BorderBrush = (Brush)FindResource("BorderSubtleBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(12, 7, 12, 7),
+                Margin = new Thickness(0, 4, 0, 8),
+                Cursor = Cursors.Hand,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            var moreText = new TextBlock
+            {
+                Text = $"Показать ещё ({filtered.Count - renderLimit})",
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("AccentBrush")
+            };
+            moreCard.Child = moreText;
+            moreCard.MouseLeftButtonUp += (s, e) =>
+            {
+                _displayLimit += 35;
+                RefreshAll();
+            };
+            ClipsPanel.Children.Add(moreCard);
         }
 
         UpdatePreview(_selectedItem);
@@ -233,7 +275,8 @@ public partial class ClipboardView : UserControl
         PreviewTypeBadgeText.Foreground = new SolidColorBrush(tagFg);
         PreviewMetaText.Text = FormatAgo(item.Time);
 
-        PinButtonText.Text = item.Pinned ? "📌 Открепить" : "📌 Закрепить";
+        PinButtonText.Text = item.Pinned ? "Открепить" : "Закрепить";
+        PinIcon.Text = item.Pinned ? "\uE77A" : "\uE718";
 
         int lineCount = item.Text.Count(c => c == '\n') + 1;
         PreviewStatsText.Text = $"{item.Text.Length} симв.  ·  {lineCount} стр.";
@@ -276,6 +319,7 @@ public partial class ClipboardView : UserControl
         else if (FilterUrlRadio.IsChecked == true) _filter = "url";
         else if (FilterTextRadio.IsChecked == true) _filter = "text";
         _selectedIndex = 0;
+        _displayLimit = 35;
         RefreshAll();
     }
 

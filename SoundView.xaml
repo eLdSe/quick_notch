@@ -16,18 +16,16 @@
         <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
-        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
         <SolidColorBrush x:Key="RedBrush" Color="#FF453A" />
 
         <!-- Стиль карточки устройства вывода -->
         <Style x:Key="DeviceItemButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#262629" />
+            <Setter Property="Background" Value="#14FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#28282B" />
+            <Setter Property="BorderBrush" Value="#18FFFFFF" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Height" Value="40" />
+            <Setter Property="Height" Value="42" />
             <Setter Property="Margin" Value="0,0,0,8" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -40,10 +38,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#323236" />
+                                <Setter TargetName="border" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="#30FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#3A3A3E" />
+                                <Setter TargetName="border" Property="Background" Value="#30FFFFFF" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -51,49 +50,58 @@
             </Setter>
         </Style>
 
-        <!-- Стиль для слайдера Apple Slider -->
+        <!-- Стиль Apple Capsule Slider (тактильная капсула с акцентом) -->
         <Style x:Key="AppleSliderStyle" TargetType="Slider">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="IsMoveToPointEnabled" Value="True" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
-                        <Grid VerticalAlignment="Center" Height="32">
-                            <Border x:Name="TrackBg" Background="#2C2C2E" CornerRadius="16" Height="32" />
-                            <Track x:Name="PART_Track">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="Slider.DecreaseLarge">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate>
-                                                <Border Background="#0A84FF" CornerRadius="16,0,0,16" Height="32" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb>
-                                        <Thumb.Template>
-                                            <ControlTemplate>
-                                                <Ellipse Width="26" Height="26" Fill="White">
-                                                    <Ellipse.Effect>
-                                                        <DropShadowEffect BlurRadius="5" ShadowDepth="1" Opacity="0.3" />
-                                                    </Ellipse.Effect>
-                                                </Ellipse>
-                                            </ControlTemplate>
-                                        </Thumb.Template>
-                                    </Thumb>
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="Slider.IncreaseLarge">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate>
-                                                <Border Background="Transparent" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Grid>
+                        <Border x:Name="CapsuleBorder" CornerRadius="13" Background="#18FFFFFF" 
+                                BorderBrush="#20FFFFFF" BorderThickness="1" ClipToBounds="True">
+                            <Grid>
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="{DynamicResource AccentBrush}" CornerRadius="12,0,0,12" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Width="14" Height="30" Cursor="Hand">
+                                            <Thumb.Template>
+                                                <ControlTemplate>
+                                                    <Border Width="5" Height="22" Background="White" CornerRadius="2.5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                        <Border.Effect>
+                                                            <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.45" Color="Black" RenderingBias="Performance" />
+                                                        </Border.Effect>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="Transparent" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CapsuleBorder" Property="BorderBrush" Value="#38FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -104,13 +112,12 @@
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="10" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- ==================== ЛЕВАЯ КОЛОНКА: ОБЩАЯ ГРОМКОСТЬ И УСТРОЙСТВА ==================== -->
-        <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="20" Padding="18,16">
+        <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -122,38 +129,44 @@
 
                 <!-- Заголовок общей громкости -->
                 <Grid Grid.Row="0">
-                    <TextBlock Text="ОБЩАЯ ГРОМКОСТЬ" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock Text="Общая громкость" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" />
                     <TextBlock x:Name="MasterVolumePercentText" Text="70%" FontSize="12" FontWeight="SemiBold" 
                                Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" />
                 </Grid>
 
                 <!-- Слайдер общей громкости -->
-                <Slider Grid.Row="1" x:Name="MasterVolumeSlider" Minimum="0" Maximum="100" Value="70" 
+                <Slider Grid.Row="1" x:Name="MasterVolumeSlider" Minimum="0" Maximum="100" Value="70" IsMoveToPointEnabled="True" 
                         Style="{StaticResource AppleSliderStyle}" Margin="0,10,0,10" ValueChanged="OnMasterVolumeChanged" />
 
                 <!-- Кнопка выключения звука (Mute) -->
-                <Button Grid.Row="2" x:Name="MuteButton" Width="120" Height="28" HorizontalAlignment="Left" 
-                        Background="#262629" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                        Cursor="Hand" Click="OnMuteClick">
+                <Button Grid.Row="2" x:Name="MuteButton" Height="26" HorizontalAlignment="Left" 
+                        Background="#18FFFFFF" BorderBrush="#20FFFFFF" BorderThickness="1" 
+                        Cursor="Hand" Click="OnMuteClick" Padding="14,0">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="14">
+                                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="16" Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="b" Property="Background" Value="#323236" />
+                                    <Setter TargetName="b" Property="Background" Value="#28FFFFFF" />
+                                    <Setter TargetName="b" Property="BorderBrush" Value="#38FFFFFF" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Button.Template>
-                    <TextBlock x:Name="MuteButtonText" Text="🔊 Звук вкл" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="MuteIcon" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="13" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock x:Name="MuteButtonText" Text="Звук включен" FontSize="11" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
                 </Button>
 
                 <!-- Заголовок устройств вывода -->
-                <TextBlock Grid.Row="3" Text="УСТРОЙСТВА ВЫВОДА ЗВУКА" FontSize="10" FontWeight="Bold" 
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,18,0,10" />
+                <TextBlock Grid.Row="3" Text="Устройства вывода" FontSize="12.5" FontWeight="SemiBold" 
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,10,0,6" />
 
                 <!-- Список устройств вывода -->
                 <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -163,20 +176,19 @@
         </Border>
 
         <!-- ==================== ПРАВАЯ КОЛОНКА: МИКШЕР ПРИЛОЖЕНИЙ ==================== -->
-        <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="20" Padding="18,16">
+        <Border Grid.Column="2" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="МИКШЕР ПРИЛОЖЕНИЙ" FontSize="10" FontWeight="Bold" 
+                <TextBlock Grid.Row="0" Text="Микшер приложений" FontSize="12.5" FontWeight="SemiBold" 
                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10" />
 
                 <!-- Заглушка, если нет активных приложений -->
                 <StackPanel x:Name="NoAppsPanel" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
-                    <TextBlock Text="🎵" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,10" />
+                    <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="32" Foreground="#44FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,10" />
                     <TextBlock Text="Нет активных приложений со звуком" FontSize="13" FontWeight="SemiBold" 
                                Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
                     <TextBlock Text="Запустите музыку или видео в браузере или плеере" FontSize="11" 
@@ -191,4 +203,3 @@
         </Border>
     </Grid>
 </UserControl>
-

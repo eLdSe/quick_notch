@@ -1,109 +1,189 @@
 <UserControl x:Class="QuickNotchCs.MediaView"
+
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+
              mc:Ignorable="d" 
+
              d:DesignHeight="416" d:DesignWidth="808"
+
              TextOptions.TextFormattingMode="Display"
+
              TextOptions.TextRenderingMode="ClearType"
+
              FontFamily="Segoe UI Variable Display, Segoe UI">
 
+
+
     <UserControl.Resources>
+
         <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
+
         <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#2C2C2E" />
+
         <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
+
         <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
+
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
+
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
-        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
+
+
 
         <!-- Стиль круглой кнопки управления -->
+
         <Style x:Key="CircleMediaButton" TargetType="Button">
+
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+
             <Setter Property="Cursor" Value="Hand" />
+
             <Setter Property="Background" Value="#262629" />
+
             <Setter Property="BorderBrush" Value="#323236" />
+
             <Setter Property="BorderThickness" Value="1" />
+
             <Setter Property="Foreground" Value="White" />
+
             <Setter Property="Template">
+
                 <Setter.Value>
+
                     <ControlTemplate TargetType="Button">
+
                         <Border x:Name="border" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}" 
+
                                 Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="99">
+
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+
                         </Border>
+
                         <ControlTemplate.Triggers>
+
                             <Trigger Property="IsMouseOver" Value="True">
+
                                 <Setter TargetName="border" Property="Background" Value="#3A3A3E" />
+
                             </Trigger>
+
                             <Trigger Property="IsPressed" Value="True">
+
                                 <Setter TargetName="border" Property="Background" Value="#48484C" />
+
                             </Trigger>
+
                         </ControlTemplate.Triggers>
+
                     </ControlTemplate>
+
                 </Setter.Value>
+
             </Setter>
+
         </Style>
+
+
 
         <!-- Стиль главной кнопки Play/Pause -->
+
         <Style x:Key="PrimaryPlayButton" TargetType="Button">
+
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Background" Value="#0A84FF" />
+
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+
             <Setter Property="BorderThickness" Value="0" />
+
             <Setter Property="Foreground" Value="White" />
+
             <Setter Property="Template">
+
                 <Setter.Value>
+
                     <ControlTemplate TargetType="Button">
+
                         <Border x:Name="border" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}" 
+
                                 Background="{TemplateBinding Background}" CornerRadius="99">
+
                             <Border.Effect>
-                                <DropShadowEffect BlurRadius="12" Color="#0A84FF" Opacity="0.4" ShadowDepth="2" />
+
+                                <DropShadowEffect BlurRadius="14" Color="#E53935" Opacity="0.45" ShadowDepth="2" RenderingBias="Performance" />
+
                             </Border.Effect>
+
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+
                         </Border>
+
                         <ControlTemplate.Triggers>
+
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#0077ED" />
+
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource AccentHotBrush}" />
+
                             </Trigger>
+
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#0066CC" />
+
+                                <Setter TargetName="border" Property="Opacity" Value="0.85" />
+
                             </Trigger>
+
                         </ControlTemplate.Triggers>
+
                     </ControlTemplate>
+
                 </Setter.Value>
+
             </Setter>
+
         </Style>
 
+
+
         <!-- Стиль для слайдера Seek -->
-        <Style x:Key="AppleSliderStyle" TargetType="Slider">
+
+                <!-- Стиль Apple Timeline Slider (Seek) -->
+        <Style x:Key="AppleTimelineSliderStyle" TargetType="Slider">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="IsMoveToPointEnabled" Value="True" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
-                        <Grid VerticalAlignment="Center" Height="28">
-                            <Border x:Name="TrackBg" Background="#2C2C2E" CornerRadius="14" Height="8" />
+                        <Grid VerticalAlignment="Center" Height="24" Background="Transparent">
+                            <Border Height="6" CornerRadius="3" Background="#22FFFFFF" />
                             <Track x:Name="PART_Track">
                                 <Track.DecreaseRepeatButton>
                                     <RepeatButton Command="Slider.DecreaseLarge">
                                         <RepeatButton.Template>
                                             <ControlTemplate>
-                                                <Border Background="#0A84FF" CornerRadius="14,0,0,14" Height="8" />
+                                                <Border Background="{DynamicResource AccentBrush}" CornerRadius="3,0,0,3" Height="6" />
                                             </ControlTemplate>
                                         </RepeatButton.Template>
                                     </RepeatButton>
                                 </Track.DecreaseRepeatButton>
                                 <Track.Thumb>
-                                    <Thumb>
+                                    <Thumb Cursor="Hand">
                                         <Thumb.Template>
                                             <ControlTemplate>
-                                                <Ellipse Width="18" Height="18" Fill="White">
+                                                <Ellipse Width="16" Height="16" Fill="White">
                                                     <Ellipse.Effect>
-                                                        <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.4" />
+                                                        <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.45" Color="Black" RenderingBias="Performance" />
                                                     </Ellipse.Effect>
                                                 </Ellipse>
                                             </ControlTemplate>
@@ -125,156 +205,358 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Стиль тактильного слайдера громкости в плеере -->
+        <Style x:Key="MediaCapsuleSliderStyle" TargetType="Slider">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="IsMoveToPointEnabled" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Border x:Name="CapsuleBorder" CornerRadius="12" Background="#18FFFFFF" 
+                                BorderBrush="#20FFFFFF" BorderThickness="1" ClipToBounds="True">
+                            <Grid>
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="{DynamicResource AccentBrush}" CornerRadius="11,0,0,11" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Width="14" Height="32" Cursor="Hand">
+                                            <Thumb.Template>
+                                                <ControlTemplate>
+                                                    <Border Width="5" Height="20" Background="White" CornerRadius="2.5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                        <Border.Effect>
+                                                            <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.45" Color="Black" RenderingBias="Performance" />
+                                                        </Border.Effect>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="Transparent" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CapsuleBorder" Property="BorderBrush" Value="#38FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </UserControl.Resources>
 
+
+
     <!-- Основная карточка плеера -->
-    <Border Background="{StaticResource SurfaceBrush}" 
-            BorderBrush="{StaticResource BorderSubtleBrush}" 
-            BorderThickness="1" 
-            CornerRadius="24" 
-            Padding="28,24">
+
+    <Border Style="{StaticResource AppleGlassCardStyle}" 
+            CornerRadius="22" 
+            Padding="18,12">
+
         <Grid>
+
             <Grid.RowDefinitions>
+
                 <RowDefinition Height="*" />
+
                 <RowDefinition Height="Auto" />
+
             </Grid.RowDefinitions>
 
+
+
             <!-- Верхняя зона: Обложка + Информация + Управление -->
+
             <Grid Grid.Row="0">
+
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="220" />
-                    <ColumnDefinition Width="28" />
+
+                    <ColumnDefinition Width="150" />
+
+                    <ColumnDefinition Width="12" />
+
                     <ColumnDefinition Width="*" />
+
                 </Grid.ColumnDefinitions>
 
+
+
                 <!-- Обложка альбома -->
-                <Border Grid.Column="0" Width="220" Height="220" CornerRadius="22" 
+
+                <Border Grid.Column="0" Width="150" Height="150" CornerRadius="14" 
+
                         Background="#262629" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+
                         HorizontalAlignment="Center" VerticalAlignment="Center">
+
                     <Grid>
+
                         <!-- Заглушка, если обложки нет -->
+
                         <TextBlock x:Name="CoverPlaceholder" Text="♫" FontSize="64" Foreground="#48484A" 
+
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+
                         <!-- Сама обложка -->
+
                         <Border x:Name="CoverImageBorder" CornerRadius="21" ClipToBounds="True" />
+
                     </Grid>
+
                 </Border>
 
+
+
                 <!-- Правая колонка: Трек, исполнитель, слайдер, кнопки -->
+
                 <Grid Grid.Column="2" VerticalAlignment="Center">
+
                     <Grid.RowDefinitions>
+
                         <RowDefinition Height="Auto" />
+
                         <RowDefinition Height="Auto" />
+
                         <RowDefinition Height="Auto" />
+
                         <RowDefinition Height="Auto" />
+
                         <RowDefinition Height="Auto" />
+
                     </Grid.RowDefinitions>
 
+
+
                     <!-- Бейдж приложения источника (Spotify / Chrome / и т.д.) -->
+
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+
                         <Border x:Name="AppBadge" Background="{StaticResource Surface2Brush}" 
+
                                 BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
+
                                 CornerRadius="10" Padding="10,3" Visibility="Collapsed">
+
                             <TextBlock x:Name="AppBadgeText" Text="Media" FontSize="10.5" FontWeight="SemiBold" 
+
                                        Foreground="{StaticResource TextSecondaryBrush}" />
+
                         </Border>
+
                     </StackPanel>
+
+
 
                     <!-- Название трека -->
+
                     <TextBlock Grid.Row="1" x:Name="TrackTitleText" Text="Ничего не играет" FontSize="22" 
+
                                FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" 
+
                                TextTrimming="CharacterEllipsis" Margin="0,0,0,4" />
 
+
+
                     <!-- Исполнитель -->
+
                     <TextBlock Grid.Row="2" x:Name="ArtistText" Text="Запустите воспроизведение в любом плеере" 
+
                                FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" 
+
                                TextTrimming="CharacterEllipsis" Margin="0,0,0,18" />
 
+
+
                     <!-- Слайдер перемотки (Seek) -->
+
                     <Grid Grid.Row="3" Margin="0,0,0,16">
+
                         <Grid.RowDefinitions>
+
                             <RowDefinition Height="Auto" />
+
                             <RowDefinition Height="Auto" />
+
                         </Grid.RowDefinitions>
+
                         <Slider Grid.Row="0" x:Name="SeekSlider" Minimum="0" Maximum="100" Value="0" 
-                                Style="{StaticResource AppleSliderStyle}" 
+
+                                Style="{StaticResource AppleTimelineSliderStyle}" 
+
                                 PreviewMouseDown="OnSeekMouseDown" 
+
                                 PreviewMouseUp="OnSeekMouseUp" 
+
                                 ValueChanged="OnSeekValueChanged" />
+
                         <Grid Grid.Row="1" Margin="2,4,2,0">
+
                             <TextBlock x:Name="TimeElapsedText" Text="0:00" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+
                             <TextBlock x:Name="TimeTotalText" Text="0:00" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+
                         </Grid>
+
                     </Grid>
+
+
 
                     <!-- Кнопки управления воспроизведением -->
+
                     <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center">
+
                         <!-- Назад (Previous) -->
+
                         <Button Style="{StaticResource CircleMediaButton}" Width="44" Height="44" Margin="0,0,12,0" 
+
                                 ToolTip="Предыдущий трек" Click="OnPrevClick">
-                            <TextBlock Text="⏮" FontSize="14" VerticalAlignment="Center" Margin="-1,0,0,0" />
+
+                            <TextBlock Text="&#xE892;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" />
+
                         </Button>
+
+
 
                         <!-- Перемотка назад на 10 сек -->
-                        <Button Style="{StaticResource CircleMediaButton}" Width="40" Height="40" Margin="0,0,14,0" 
+
+                        <Button Style="{StaticResource CircleMediaButton}" Width="32" Height="32" Margin="0,0,14,0" 
+
                                 ToolTip="Перемотать на 10 секунд назад" Click="OnRewind10Click">
+
                             <TextBlock Text="-10" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+
                         </Button>
+
+
 
                         <!-- Главная кнопка: Play / Pause -->
+
                         <Button x:Name="PlayPauseButton" Style="{StaticResource PrimaryPlayButton}" Width="56" Height="56" Margin="0,0,14,0" 
+
                                 ToolTip="Воспроизведение / Пауза" Click="OnPlayPauseClick">
-                            <TextBlock x:Name="PlayPauseIcon" Text="▶" FontSize="18" Margin="3,0,0,0" />
+
+                            <TextBlock x:Name="PlayPauseIcon" Text="&#xE102;" FontFamily="Segoe MDL2 Assets" FontSize="18" Margin="2,0,0,0" />
+
                         </Button>
+
+
 
                         <!-- Перемотка вперед на 10 сек -->
-                        <Button Style="{StaticResource CircleMediaButton}" Width="40" Height="40" Margin="0,0,12,0" 
+
+                        <Button Style="{StaticResource CircleMediaButton}" Width="32" Height="32" Margin="0,0,12,0" 
+
                                 ToolTip="Перемотать на 10 секунд вперед" Click="OnForward10Click">
+
                             <TextBlock Text="+10" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+
                         </Button>
+
+
 
                         <!-- Вперед (Next) -->
+
                         <Button Style="{StaticResource CircleMediaButton}" Width="44" Height="44" 
+
                                 ToolTip="Следующий трек" Click="OnNextClick">
-                            <TextBlock Text="⏭" FontSize="14" VerticalAlignment="Center" Margin="1,0,0,0" />
+
+                            <TextBlock Text="&#xE893;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" />
+
                         </Button>
+
                     </StackPanel>
+
                 </Grid>
+
             </Grid>
 
+
+
             <!-- Нижняя плашка: Быстрый доступ к громкости и устройству -->
-            <Border Grid.Row="1" Background="{StaticResource Surface2Brush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                    CornerRadius="14" Padding="14,10" Margin="0,16,0,0">
+
+            <Border Grid.Row="1" Style="{StaticResource AppleGlassWellStyle}" 
+                    Padding="14,10" Margin="0,16,0,0">
+
                 <Grid>
+
                     <Grid.ColumnDefinitions>
+
                         <ColumnDefinition Width="Auto" />
+
                         <ColumnDefinition Width="20" />
+
                         <ColumnDefinition Width="*" />
+
                         <ColumnDefinition Width="20" />
+
                         <ColumnDefinition Width="Auto" />
+
                     </Grid.ColumnDefinitions>
 
+
+
                     <!-- Активное устройство -->
+
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+
                         <TextBlock Text="🔊" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center" />
+
                         <TextBlock x:Name="ActiveDeviceText" Text="Динамики" FontSize="11.5" FontWeight="SemiBold" 
+
                                    Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+
                     </StackPanel>
 
+
+
                     <!-- Быстрый слайдер громкости -->
+
                     <Grid Grid.Column="2" VerticalAlignment="Center">
+
                         <Slider x:Name="QuickVolumeSlider" Minimum="0" Maximum="100" Value="70" 
-                                Style="{StaticResource AppleSliderStyle}" ValueChanged="OnQuickVolumeChanged" />
+
+                                Style="{StaticResource AppleTimelineSliderStyle}" ValueChanged="OnQuickVolumeChanged" />
+
                     </Grid>
 
+
+
                     <!-- Процент громкости -->
+
                     <TextBlock Grid.Column="4" x:Name="QuickVolumeText" Text="70%" FontSize="12" 
+
                                FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" 
+
                                VerticalAlignment="Center" />
+
                 </Grid>
+
             </Border>
+
         </Grid>
+
     </Border>
+
 </UserControl>
+
+
 

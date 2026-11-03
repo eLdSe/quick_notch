@@ -14,6 +14,21 @@ public partial class CalendarView : UserControl
     private DateTime _viewMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateTime _selectedDay = DateTime.Today;
 
+    private static readonly SolidColorBrush WeekendBrush = new(Color.FromRgb(0xFF, 0x85, 0x66));
+    private static readonly SolidColorBrush SuccessGreenBrush = new(Color.FromRgb(0x30, 0xD1, 0x58));
+    private static readonly SolidColorBrush TodayCellBgBrush = new(Color.FromArgb(34, 10, 132, 255));
+    private static readonly SolidColorBrush SelectedCellBgBrush = new(Color.FromArgb(55, 10, 132, 255));
+    private static readonly SolidColorBrush TaskDotBrush = new(Color.FromRgb(0xFF, 0x37, 0x5F));
+
+    static CalendarView()
+    {
+        WeekendBrush.Freeze();
+        SuccessGreenBrush.Freeze();
+        TodayCellBgBrush.Freeze();
+        SelectedCellBgBrush.Freeze();
+        TaskDotBrush.Freeze();
+    }
+
     public CalendarView()
     {
         InitializeComponent();
@@ -66,14 +81,42 @@ public partial class CalendarView : UserControl
             bool isCurrentMonth = date.Month == _viewMonth.Month;
             bool isSelected = date.Date == _selectedDay.Date;
             bool isToday = date.Date == DateTime.Today;
+            bool isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
             string dateKey = date.ToString("yyyy-MM-dd");
             bool hasNotes = allNotes.Any(n => n.Date == dateKey);
 
+            Brush cellBg;
+            Brush cellBorder;
+            double borderThickness = 0;
+
+            if (isSelected)
+            {
+                cellBg = SelectedCellBgBrush;
+                cellBorder = (Brush)FindResource("AccentBrush");
+                borderThickness = 1.5;
+            }
+            else if (isToday)
+            {
+                cellBg = TodayCellBgBrush;
+                cellBorder = (Brush)FindResource("AccentBrush");
+                borderThickness = 1;
+            }
+            else if (isCurrentMonth)
+            {
+                cellBg = (Brush)FindResource("Surface2Brush");
+                cellBorder = Brushes.Transparent;
+            }
+            else
+            {
+                cellBg = Brushes.Transparent;
+                cellBorder = Brushes.Transparent;
+            }
+
             var cell = new Border
             {
-                Background = isSelected ? new SolidColorBrush(Color.FromArgb(50, 10, 132, 255)) : (isCurrentMonth ? (Brush)FindResource("Surface2Brush") : Brushes.Transparent),
-                BorderBrush = isSelected ? (Brush)FindResource("AccentBrush") : Brushes.Transparent,
-                BorderThickness = new Thickness(isSelected ? 1.5 : 0),
+                Background = cellBg,
+                BorderBrush = cellBorder,
+                BorderThickness = new Thickness(borderThickness),
                 CornerRadius = new CornerRadius(10),
                 Margin = new Thickness(1),
                 Cursor = Cursors.Hand,
@@ -86,12 +129,30 @@ public partial class CalendarView : UserControl
                 VerticalAlignment = VerticalAlignment.Center
             };
 
+            Brush numColor;
+            if (isToday)
+            {
+                numColor = (Brush)FindResource("AccentBrush");
+            }
+            else if (isSelected)
+            {
+                numColor = (Brush)FindResource("TextPrimaryBrush");
+            }
+            else if (isWeekend && isCurrentMonth)
+            {
+                numColor = WeekendBrush;
+            }
+            else
+            {
+                numColor = (Brush)FindResource("TextPrimaryBrush");
+            }
+
             var numBlock = new TextBlock
             {
                 Text = date.Day.ToString(),
                 FontSize = 12,
                 FontWeight = (isSelected || isToday) ? FontWeights.Bold : FontWeights.Normal,
-                Foreground = isToday ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("TextPrimaryBrush"),
+                Foreground = numColor,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             sp.Children.Add(numBlock);
@@ -101,9 +162,9 @@ public partial class CalendarView : UserControl
             {
                 var dot = new Ellipse
                 {
-                    Width = 4,
-                    Height = 4,
-                    Fill = (Brush)FindResource("AccentHotBrush"),
+                    Width = 4.5,
+                    Height = 4.5,
+                    Fill = TaskDotBrush,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Margin = new Thickness(0, 2, 0, 0)
                 };
@@ -164,8 +225,8 @@ public partial class CalendarView : UserControl
                 // Чекбокс отметки выполнения
                 var checkBtn = new Button
                 {
-                    Background = note.Done ? (Brush)FindResource("AccentBrush") : Brushes.Transparent,
-                    BorderBrush = note.Done ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("TextSecondaryBrush"),
+                    Background = note.Done ? SuccessGreenBrush : Brushes.Transparent,
+                    BorderBrush = note.Done ? SuccessGreenBrush : (Brush)FindResource("TextSecondaryBrush"),
                     BorderThickness = new Thickness(1.5),
                     Width = 18,
                     Height = 18,
@@ -292,5 +353,5 @@ public partial class CalendarView : UserControl
             RefreshAll();
         }
     }
-}
 
+    }

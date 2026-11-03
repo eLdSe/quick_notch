@@ -36,8 +36,8 @@ public sealed class AppSettings
     [JsonPropertyName("dim_enabled")] public bool DimEnabled { get; set; } = true;
     [JsonPropertyName("dim_level")] public double DimLevel { get; set; } = 0.65;
     [JsonPropertyName("leave_collapse")] public bool LeaveCollapse { get; set; } = true;
-    [JsonPropertyName("leave_delay")] public double LeaveDelay { get; set; } = 2.0;
-    [JsonPropertyName("hide_when_covered")] public bool HideWhenCovered { get; set; } = false;
+    [JsonPropertyName("leave_delay")] public double LeaveDelay { get; set; } = 1.0;
+    [JsonPropertyName("hide_when_covered")] public bool HideWhenCovered { get; set; } = true;
     [JsonPropertyName("keep_awake")] public bool KeepAwake { get; set; } = false;
     [JsonPropertyName("weather_city")] public string? WeatherCity { get; set; }
     [JsonPropertyName("clip_pinned")] public List<string> ClipPinned { get; set; } = new();
@@ -47,7 +47,10 @@ public sealed class AppSettings
     [JsonPropertyName("notify_enabled")] public bool NotifyEnabled { get; set; } = true;
     [JsonPropertyName("summon_mode")] public string SummonMode { get; set; } = "notch";
     [JsonPropertyName("theme_mode")] public string ThemeMode { get; set; } = "dark";
-    [JsonPropertyName("island_style")] public string IslandStyle { get; set; } = "island";
+    [JsonPropertyName("island_style")] public string IslandStyle { get; set; } = "notch";
+    [JsonPropertyName("bg_image")] public string BgImage { get; set; } = "";
+    [JsonPropertyName("bg_dim")] public double BgDim { get; set; } = 0.55;
+    [JsonPropertyName("bg_blur")] public double BgBlur { get; set; } = 0;
     [JsonPropertyName("robot_companion")] public bool RobotCompanion { get; set; } = true;
     [JsonPropertyName("robot_roaming")] public bool RobotRoaming { get; set; } = false;
     [JsonPropertyName("robot_roam_x")] public double RobotRoamX { get; set; } = -1;
@@ -73,14 +76,17 @@ public sealed class AppSettings
     public void Sanitize()
     {
         DimLevel = Math.Clamp(double.IsFinite(DimLevel) ? DimLevel : 0.65, 0.2, 0.9);
-        LeaveDelay = Math.Clamp(double.IsFinite(LeaveDelay) ? LeaveDelay : 2.0, 1.2, 8.0);
-        HideWhenCovered = false; // Остров всегда виден на рабочем столе
+        LeaveDelay = Math.Clamp(double.IsFinite(LeaveDelay) ? LeaveDelay : 1.0, 0.4, 4.0);
+        HideWhenCovered = true; // Сворачивать в аккуратную полоску чёлки при открытых окнах
         GlassOpacity = 0.95;
         if (!Theme.IsAccentKey(Accent)) Accent = "violet";
         if (Language != "en" && Language != "ru" && Language != "tr") Language = "ru";
         if (ThemeMode != "dark" && ThemeMode != "light" && ThemeMode != "auto") ThemeMode = "dark";
-        if (IslandStyle != "island" && IslandStyle != "notch" && IslandStyle != "compact") IslandStyle = "island";
+        IslandStyle = "notch";
         SummonMode = "notch";
+        BgImage ??= "";
+        BgDim = Math.Clamp(double.IsFinite(BgDim) ? BgDim : 0.55, 0.0, 0.9);
+        BgBlur = Math.Clamp(double.IsFinite(BgBlur) ? BgBlur : 0.0, 0.0, 20.0);
         if (AiProvider != "gemini" && AiProvider != "openai" && AiProvider != "deepseek")
             AiProvider = "gemini";
         if (AiMode != "fast" && AiMode != "pro")

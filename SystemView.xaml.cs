@@ -59,7 +59,7 @@ public partial class SystemView : UserControl
         DiskProgressBar.Value = Math.Clamp(snap.DiskFraction * 100.0, 0.0, 100.0);
 
         // 4. Сеть
-        NetworkNameText.Text = $"🌐  {snap.NetworkName}";
+        NetworkNameText.Text = string.IsNullOrEmpty(snap.NetworkName) ? "Сеть" : snap.NetworkName;
         NetworkSpeedText.Text = snap.NetworkSpeed;
         NetworkProgressBar.Value = Math.Clamp(snap.NetworkFraction * 100.0, 0.0, 100.0);
 
@@ -108,18 +108,18 @@ public partial class SystemView : UserControl
             var badge = new Border
             {
                 Background = (Brush)FindResource("Surface2Brush"),
-                BorderBrush = (Brush)FindResource("BorderSubtleBrush"),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(6),
-                Padding = new Thickness(8, 2, 8, 2),
+                Padding = new Thickness(7, 2, 7, 2),
                 VerticalAlignment = VerticalAlignment.Center
             };
             var memText = new TextBlock
             {
                 Text = proc.Memory,
-                FontSize = 10.5,
-                FontWeight = FontWeights.Bold,
-                Foreground = (Brush)FindResource("AccentHotBrush")
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("TextPrimaryBrush")
             };
             badge.Child = memText;
             Grid.SetColumn(badge, 2);

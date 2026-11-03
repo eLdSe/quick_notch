@@ -14,7 +14,16 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        _singleInstanceMutex = new Mutex(true, "QuickNotch_SingleInstance_AppMutex_77f8a1", out bool isNewInstance);
+        bool isNewInstance = true;
+        try
+        {
+            _singleInstanceMutex = new Mutex(true, @"Local\QuickNotch_AppMutex_v2", out isNewInstance);
+        }
+        catch
+        {
+            isNewInstance = true;
+        }
+
         if (!isNewInstance)
         {
             // Уведомляем уже запущенный экземпляр развернуться

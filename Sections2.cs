@@ -1140,6 +1140,7 @@ public sealed class ClipboardSection : Section
         spPrv.X = 0;
         spPrv.Target = 0;
         isl.Kick();
+        isl.ClipboardHost?.RefreshAll();
 
         if (notify)
         {
@@ -1697,14 +1698,21 @@ public sealed class WeatherSection : Section
         Ensure(isl);
     }
 
+    public void OnSystemResumed(IslandView isl)
+    {
+        Error = null;
+        _loadedAt = -1e9; // сбрасываем возраст для немедленного обновления при первой возможности
+        Ensure(isl, force: true);
+    }
+
     /// <summary>Подгружает погоду, если город выбран, а данных нет или они старше 30 минут.</summary>
-    public void Ensure(IslandView isl)
+    public void Ensure(IslandView isl, bool force = false)
     {
         string? city = SelectedCity(isl);
         if (city == null || Loading) return;
         double age = Clock.Now - _loadedAt;
-        if (Data == null && Error != null && age < 120) return;       // после ошибки не долбим сеть чаще раза в 2 минуты
-        if (Data == null || age > Ttl) Load(isl, city);
+        if (!force && Data == null && Error != null && age < 120) return;       // после ошибки не долбим сеть чаще раза в 2 минуты
+        if (force || Data == null || age > Ttl) Load(isl, city);
     }
 
     private void Load(IslandView isl, string city)
@@ -1722,14 +1730,20 @@ public sealed class WeatherSection : Section
             Loading = false;
             if (err != null)
             {
-                Data = null;
-                Error = string.IsNullOrEmpty(err.Message) ? "Не удалось получить погоду." : err.Message;
+                // Не затираем старые данные при сетевой ошибке! Если данные уже были — сохраняем их.
+                if (Data == null)
+                {
+                    Error = string.IsNullOrEmpty(err.Message) ? "Не удалось получить погоду." : err.Message;
+                }
             }
             else
             {
                 Data = res;
+                Error = null;
             }
             isl.Kick();
+            isl.WeatherHost?.RefreshAll();
+            isl.NotchHost?.RefreshAll();
         });
         isl.Kick();
     }

@@ -63,7 +63,7 @@ public abstract class Section
         }
     }
 
-    public abstract void Paint(IslandView isl, Painter p, Rect rect);
+    public virtual void Paint(IslandView isl, Painter p, Rect rect) { }
     public virtual void Click(IslandView isl, string key) { }
     /// <summary>Один раз при старте, когда остров уже создан.</summary>
     public virtual void Attach(IslandView isl) { }
@@ -132,6 +132,7 @@ public sealed class HomeSection : Section
         var sett = Sections.Settings;
         Sections.Weather.Ensure(isl);
         sett.Tick(isl);
+        isl.HomeHost?.UpdateMediaProgress();
         if (Clock.Now >= _nextSnapTime)
         {
             _nextSnapTime = Clock.Now + 2.5; // Снимок системы каждые 2.5 сек вместо 1 сек

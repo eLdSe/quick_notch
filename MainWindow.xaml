@@ -16,68 +16,140 @@
         RenderOptions.ClearTypeHint="Enabled"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
+        MouseEnter="OnWindowMouseEnter"
+        MouseLeave="OnWindowMouseLeave"
+        MouseMove="OnWindowMouseMove"
         WindowStartupLocation="Manual">
     <Grid>
         <local:IslandView x:Name="Island"/>
-        <local:HomeView x:Name="HomeHost" 
-                        Width="808" Height="416"
-                        Margin="0,78,0,76" 
-                        HorizontalAlignment="Center" 
-                        VerticalAlignment="Center"
-                        Visibility="Collapsed" />
-        <local:SoundView x:Name="SoundHost" 
-                         Width="808" Height="416"
-                         Margin="0,78,0,76" 
+
+        <!-- Свёрнутый вырез (Notch / Компактный плеер) -->
+        <local:NotchView x:Name="NotchHost" 
                          HorizontalAlignment="Center" 
-                         VerticalAlignment="Center"
-                         Visibility="Collapsed" />
-        <local:MediaView x:Name="MediaHost" 
-                         Width="808" Height="416"
-                         Margin="0,78,0,76" 
+                         VerticalAlignment="Top" 
+                         Margin="0,0,0,0" 
+                         Panel.ZIndex="2"
+                         Visibility="Visible" />
+
+        <!-- Всплывающие уведомления Dynamic Island -->
+        <local:ToastView x:Name="ToastHost" 
                          HorizontalAlignment="Center" 
-                         VerticalAlignment="Center"
+                         VerticalAlignment="Top" 
+                         Margin="0,0,0,0" 
+                         Panel.ZIndex="3"
                          Visibility="Collapsed" />
-        <local:SystemView x:Name="SystemHost" 
-                          Width="808" Height="416"
-                          Margin="0,78,0,76" 
-                          HorizontalAlignment="Center" 
-                          VerticalAlignment="Center"
-                          Visibility="Collapsed" />
-        <local:SettingsView x:Name="SettingsHost" 
-                            Width="808" Height="416"
-                            Margin="0,78,0,76" 
-                            HorizontalAlignment="Center" 
-                            VerticalAlignment="Center"
-                            Visibility="Collapsed" />
-        <local:ClipboardView x:Name="ClipboardHost" 
-                             Width="808" Height="416"
-                             Margin="0,78,0,76" 
-                             HorizontalAlignment="Center" 
-                             VerticalAlignment="Center"
-                             Visibility="Collapsed" />
-        <local:AiView x:Name="AiHost" 
-                      Width="808" Height="416"
-                      Margin="0,78,0,76" 
-                      HorizontalAlignment="Center" 
-                      VerticalAlignment="Center"
-                      Visibility="Collapsed" />
-        <local:LinksView x:Name="LinksHost" 
-                         Width="808" Height="416"
-                         Margin="0,78,0,76" 
-                         HorizontalAlignment="Center" 
-                         VerticalAlignment="Center"
-                         Visibility="Collapsed" />
-        <local:WeatherView x:Name="WeatherHost" 
-                           Width="808" Height="416"
-                           Margin="0,78,0,76" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"
-                           Visibility="Collapsed" />
-        <local:CalendarView x:Name="CalendarHost" 
-                            Width="808" Height="416"
-                            Margin="0,78,0,76" 
-                            HorizontalAlignment="Center" 
-                            VerticalAlignment="Center"
-                            Visibility="Collapsed" />
+
+        <!-- Главный аппаратный контейнер раскрытого острова (Apple Expanded Island) -->
+        <Grid x:Name="ExpandedHost"
+              Width="760" Height="470"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Margin="0,0,0,0"
+              Panel.ZIndex="1"
+              Opacity="1"
+              Visibility="Collapsed"
+              MouseEnter="OnExpandedHostMouseEnter"
+              MouseLeave="OnExpandedHostMouseLeave"
+              SnapsToDevicePixels="True">
+
+            <!-- 1. Фоновая стеклянная капсула: плавно масштабируется от выреза -->
+            <Border x:Name="IslandCapsule"
+                    CornerRadius="0,0,32,32"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    SnapsToDevicePixels="True">
+                <Border.Background>
+                    <SolidColorBrush Color="#000000" />
+                </Border.Background>
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="#1C1C1E" />
+                </Border.BorderBrush>
+                <Border.BorderThickness>1</Border.BorderThickness>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.45" Color="#000000" RenderingBias="Performance" />
+                </Border.Effect>
+            </Border>
+
+            <!-- 2. Содержимое острова: благородно проявляется без сплющивания текста -->
+            <Grid x:Name="ExpandedContent"
+                  RenderTransformOrigin="0.5,0.1">
+
+                <!-- Шапка острова (хлебные крошки, время, закрытие) -->
+                <local:TopBarView x:Name="TopBarHost" 
+                                  Width="710" Height="38"
+                                  Margin="0,12,0,0"
+                                  HorizontalAlignment="Center" 
+                                  VerticalAlignment="Top" />
+
+                <!-- Экраны секций -->
+                <local:HomeView x:Name="HomeHost" 
+                                Width="710" Height="320"
+                                Margin="0,66,0,0" 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Top" 
+                                Visibility="Visible" />
+                <local:SoundView x:Name="SoundHost" 
+                                 Width="710" Height="320"
+                                 Margin="0,66,0,0" 
+                                 HorizontalAlignment="Center" 
+                                 VerticalAlignment="Top" 
+                                 Visibility="Collapsed" />
+                <local:MediaView x:Name="MediaHost" 
+                                 Width="710" Height="320"
+                                 Margin="0,66,0,0" 
+                                 HorizontalAlignment="Center" 
+                                 VerticalAlignment="Top" 
+                                 Visibility="Collapsed" />
+                <local:SystemView x:Name="SystemHost" 
+                                  Width="710" Height="320"
+                                 Margin="0,66,0,0" 
+                                  HorizontalAlignment="Center" 
+                                  VerticalAlignment="Top" 
+                                  Visibility="Collapsed" />
+                <local:SettingsView x:Name="SettingsHost" 
+                                    Width="710" Height="320"
+                                    Margin="0,66,0,0" 
+                                    HorizontalAlignment="Center" 
+                                    VerticalAlignment="Top" 
+                                    Visibility="Collapsed" />
+                <local:ClipboardView x:Name="ClipboardHost" 
+                                     Width="710" Height="320"
+                                     Margin="0,66,0,0" 
+                                     HorizontalAlignment="Center" 
+                                     VerticalAlignment="Top" 
+                                     Visibility="Collapsed" />
+                <local:AiView x:Name="AiHost" 
+                              Width="710" Height="320"
+                              Margin="0,66,0,0" 
+                              HorizontalAlignment="Center" 
+                              VerticalAlignment="Top" 
+                              Visibility="Collapsed" />
+                <local:LinksView x:Name="LinksHost" 
+                                 Width="710" Height="320"
+                                 Margin="0,66,0,0" 
+                                 HorizontalAlignment="Center" 
+                                 VerticalAlignment="Top" 
+                                 Visibility="Collapsed" />
+                <local:WeatherView x:Name="WeatherHost" 
+                                   Width="710" Height="320"
+                                   Margin="0,66,0,0" 
+                                   HorizontalAlignment="Center" 
+                                   VerticalAlignment="Top" 
+                                   Visibility="Collapsed" />
+                <local:CalendarView x:Name="CalendarHost" 
+                                    Width="710" Height="320"
+                                    Margin="0,66,0,0" 
+                                    HorizontalAlignment="Center" 
+                                    VerticalAlignment="Top" 
+                                    Visibility="Collapsed" />
+
+                <!-- Нижний док переключения вкладок -->
+                <local:DockView x:Name="DockHost" 
+                                HorizontalAlignment="Center" 
+                                VerticalAlignment="Bottom" 
+                                Margin="0,0,0,14" />
+            </Grid>
+        </Grid>
     </Grid>
 </Window>
+

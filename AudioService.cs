@@ -59,6 +59,34 @@ public static class AudioService
     private static MMDeviceEnumerator? _enumerator;
     private static readonly object _enumLock = new();
 
+    public static event Action<float, bool>? VolumeChanged;
+    private static MMDevice? _listenerDevice;
+    private static AudioEndpointVolume? _volumeNotifier;
+    private static readonly object _notifyLock = new();
+
+    public static void EnsureVolumeListener()
+    {
+        lock (_notifyLock)
+        {
+            if (_volumeNotifier != null) return;
+            try
+            {
+                var en = GetEnumerator();
+                _listenerDevice = DefaultDevice(en);
+                _volumeNotifier = _listenerDevice.AudioEndpointVolume;
+                _volumeNotifier.OnVolumeNotification += data =>
+                {
+                    try
+                    {
+                        VolumeChanged?.Invoke(data.MasterVolume, data.Muted);
+                    }
+                    catch { }
+                };
+            }
+            catch { }
+        }
+    }
+
     private static MMDeviceEnumerator GetEnumerator()
     {
         lock (_enumLock)

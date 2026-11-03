@@ -89,11 +89,18 @@ public static class SummonHookService
         if (_island == null) return;
         if (_island.Target == 1.0 || !_island.IsCoveredHidden) return;
 
-        double screenW = SystemParameters.PrimaryScreenWidth;
-        double cx = screenW / 2;
+        // Раньше центр считался в DIP (SystemParameters), а координаты хука — в физических пикселях.
+        // При масштабе 125–150% зона «полоски» съезжала ВЛЕВО от реальной чёлки — отсюда ложные открытия слева.
+        // Теперь переводим точку в координаты окна и проверяем строго по границам капсулы.
+        bool onCapsule;
+        try
+        {
+            var p = _island.Host.PointFromScreen(new Point(x, y));
+            onCapsule = _island.IsOnCapsule(p);
+        }
+        catch { onCapsule = false; }
 
-        // Строго нажатие левой кнопки мыши строго по полоске Notch (ширина 140px: |x - cx| <= 70, y <= 7)
-        if (y <= 7 && Math.Abs(x - cx) <= 70)
+        if (onCapsule)
         {
             long now = Environment.TickCount64;
             if (now - _lastSummonTicks > 800) // антидребезг 800 мс

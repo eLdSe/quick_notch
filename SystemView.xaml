@@ -43,15 +43,13 @@
     <!-- Сетка Bento из 2 колонок -->
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="430" />
-            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="10" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- ==================== ЛЕВАЯ КОЛОНКА: РЕСУРСЫ СИСТЕМЫ ==================== -->
-        <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                CornerRadius="22" Padding="22,18">
+        <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -62,64 +60,76 @@
                 </Grid.RowDefinitions>
 
                 <!-- Заголовок -->
-                <TextBlock Grid.Row="0" Text="РЕСУРСЫ СИСТЕМЫ" FontSize="10" FontWeight="Bold" 
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10" />
+                <TextBlock Grid.Row="0" Text="Ресурсы системы" FontSize="12.5" FontWeight="SemiBold" 
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" />
 
                 <!-- 1. ЦП -->
-                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,4">
+                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <TextBlock Text="⚡  ЦП (Процессор)" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE950;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="ЦП (Процессор)" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
                         <TextBlock x:Name="CpuValueText" Text="12%" FontSize="12" FontWeight="SemiBold" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar Grid.Row="1" x:Name="CpuProgressBar" Value="12" Minimum="0" Maximum="100" 
                                  Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource AccentBrush}" />
                 </Grid>
 
                 <!-- 2. Память -->
-                <Grid Grid.Row="2" VerticalAlignment="Center" Margin="0,4">
+                <Grid Grid.Row="2" VerticalAlignment="Center" Margin="0,2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <TextBlock Text="🧠  Память (RAM)" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE7F8;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentHotBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="Память (RAM)" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
                         <TextBlock x:Name="MemoryValueText" Text="8.2 / 32 ГБ (25%)" FontSize="12" FontWeight="SemiBold" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar Grid.Row="1" x:Name="MemoryProgressBar" Value="25" Minimum="0" Maximum="100" 
                                  Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource AccentHotBrush}" />
                 </Grid>
 
                 <!-- 3. Диск C: -->
-                <Grid Grid.Row="3" VerticalAlignment="Center" Margin="0,4">
+                <Grid Grid.Row="3" VerticalAlignment="Center" Margin="0,2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <TextBlock Text="💾  Диск C:" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xEDA2;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource DiskBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="Диск C:" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
                         <TextBlock x:Name="DiskValueText" Text="420 / 950 ГБ (44%)" FontSize="12" FontWeight="SemiBold" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar Grid.Row="1" x:Name="DiskProgressBar" Value="44" Minimum="0" Maximum="100" 
                                  Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource DiskBrush}" />
                 </Grid>
 
                 <!-- 4. Сеть -->
-                <Grid Grid.Row="4" VerticalAlignment="Center" Margin="0,4">
+                <Grid Grid.Row="4" VerticalAlignment="Center" Margin="0,2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <TextBlock x:Name="NetworkNameText" Text="🌐  Сеть" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE839;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource NetworkBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock x:Name="NetworkNameText" Text="Сеть" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
                         <TextBlock x:Name="NetworkSpeedText" Text="↑ 0 КБ/с  ↓ 0 КБ/с" FontSize="12" FontWeight="SemiBold" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar Grid.Row="1" x:Name="NetworkProgressBar" Value="10" Minimum="0" Maximum="100" 
                                  Style="{StaticResource AppleProgressBarStyle}" Foreground="{StaticResource NetworkBrush}" />
@@ -136,16 +146,17 @@
             </Grid.RowDefinitions>
 
             <!-- 1. Время работы (Uptime) -->
-            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                    CornerRadius="20" Padding="20,14">
+            <Border Grid.Row="0" Style="{StaticResource AppleGlassCardStyle}" Padding="20,14">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="⏱️  ВРЕМЯ РАБОТЫ (UPTIME)" FontSize="9.5" FontWeight="Bold" 
-                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <StackPanel Grid.Row="0" Orientation="Horizontal">
+                        <TextBlock Text="&#xE823;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="Время работы" FontSize="11" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock Grid.Row="1" x:Name="UptimeText" Text="1 дн 4 ч 30 мин" FontSize="17" 
                                FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" 
                                VerticalAlignment="Center" />
@@ -153,17 +164,18 @@
             </Border>
 
             <!-- 2. Топ процессов по памяти -->
-            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                    CornerRadius="20" Padding="20,16">
+            <Border Grid.Row="2" Style="{StaticResource AppleGlassCardStyle}" Padding="20,16">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="📊  ТОП ПРОЦЕССОВ (RAM)" FontSize="9.5" FontWeight="Bold" 
-                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,12" />
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="Топ процессов по памяти" FontSize="11" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
 
                     <!-- Список процессов -->
                     <StackPanel Grid.Row="1" x:Name="ProcessesPanel" VerticalAlignment="Center" />

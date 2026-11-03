@@ -29,8 +29,8 @@ public sealed class AeroPetWindow : Window
         ShowInTaskbar = false;
         Focusable = false;
         ResizeMode = ResizeMode.NoResize;
-        Width = 240;
-        Height = 220;
+        Width = 260;
+        Height = 250;
 
         _canvas = new AeroPetCanvas(island, this);
         Content = _canvas;
@@ -114,12 +114,20 @@ public sealed class AeroPetWindow : Window
     protected override void OnMouseEnter(MouseEventArgs e)
     {
         base.OnMouseEnter(e);
+        _canvas.StartAnimating();
         _canvas.ResetScratchAnchor(e.GetPosition(this));
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        var localPt = e.GetPosition(this);
+        if (_canvas.TryHandleMediaClick(localPt))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (WinApi.GetCursorPos(out var pt))
         {
             _isDragging = true;
@@ -415,6 +423,15 @@ public sealed class AeroPetCanvas : FrameworkElement
     private double _scratchAccum = 0.0;
     private double _scratchDecayTimer = 0.0;
     public double ScratchJoyTimer { get; private set; } = 0.0;
+
+    // Мини-пульт управления плеером на рабочем столе
+    private double _mediaControlsAlpha = 0.0;
+    private double _mediaHoverHold = 0.0;
+    private Point _lastHoverMousePos = new(-100, -100);
+    private Rect _mediaPillRect = Rect.Empty;
+    private Rect _mediaPrevRect = Rect.Empty;
+    private Rect _mediaPlayRect = Rect.Empty;
+    private Rect _mediaNextRect = Rect.Empty;
 
     // «Спросить Аэро» (ИИ)
     public bool IsAsking { get; private set; } = false;   // открыто поле ввода
@@ -714,7 +731,7 @@ public sealed class AeroPetCanvas : FrameworkElement
     {
         if (IsSleeping) return;
 
-        bool wasDrowsy = _mouseIdleSeconds >= 18.0 || _hasYawnedThisIdle;
+        bool wasDrowsy = _mouseIdleSeconds >= 90.0 || _hasYawnedThisIdle;
         _mouseIdleSeconds = 0.0;
         _hasYawnedThisIdle = false;
         _spSleepWeight.Target = 0.0;
@@ -771,8 +788,8 @@ public sealed class AeroPetCanvas : FrameworkElement
             {
                 _mouseIdleSeconds += 0.5;
 
-                // Фаза 1: милый сонный зевок (на ~18 сек)
-                if (_mouseIdleSeconds >= 18.0 && !_hasYawnedThisIdle && !IsSleeping)
+                // Фаза 1: милый сонный зевок (на ~90 сек)
+                if (_mouseIdleSeconds >= 90.0 && !_hasYawnedThisIdle && !IsSleeping)
                 {
                     _hasYawnedThisIdle = true;
                     _emotion = "yawn";
@@ -784,8 +801,8 @@ public sealed class AeroPetCanvas : FrameworkElement
                 }
 
                 // Фаза 2: плавное опускание век и микро-моргания (в OnRendering)
-                // Фаза 3: полное погружение в глубокий сон на 30 сек
-                if (_mouseIdleSeconds >= 30.0 && !IsSleeping)
+                // Фаза 3: полное погружение в глубокий сон на 120 сек (2 минуты)
+                if (_mouseIdleSeconds >= 120.0 && !IsSleeping)
                 {
                     FallAsleep();
                 }
@@ -899,16 +916,47 @@ public sealed class AeroPetCanvas : FrameworkElement
         long now = Stopwatch.GetTimestamp();
         double dt = (now - _lastTs) / (double)Stopwatch.Frequency;
 
-        // Плавная частота: 60 FPS для живого парения и засыпания, ~35 FPS только в глубоком сне
-        double minDt = (IsSleeping && _spSleepWeight.Settled) ? 0.028 : 0.016;
+        // Точный FPS-лимитер: ровно 60 FPS при активности (даже на 144/240 Гц мониторах) и 20 FPS в глубоком сне (Zzz)
+        double minDt = (IsSleeping && _spSleepWeight.Settled) ? 0.050 : 0.0165;
         if (dt < minDt) return;
         _lastTs = now;
-        dt = Math.Min(dt, 0.033);
+        dt = Math.Min(dt, 0.060);
 
         _animPhase = (_animPhase + dt * 3.2) % (Math.PI * 2000.0);
 
-        // Плавный расчет веса сна (0.0 = бодрствует, 1.0 = спит)
-        double targetSleep = IsSleeping ? 1.0 : (_mouseIdleSeconds > 20.0 ? Math.Min(1.0, (_mouseIdleSeconds - 20.0) / 10.0) : 0.0);
+        // Точный расчёт курсора в DIP координатах WPF (независимо от масштабирования экрана)
+        var mouseScreen = WinApi.GetCursorPos(out var pt) ? new Point(pt.X, pt.Y) : new Point(0, 0);
+        bool hasMedia = _island.IsMediaActive;
+
+        Point localMouse = Mouse.GetPosition(this);
+        _lastHoverMousePos = localMouse;
+        double wActual = ActualWidth > 0 ? ActualWidth : 260.0;
+        double hActual = ActualHeight > 0 ? ActualHeight : 250.0;
+        bool isHovered = (localMouse.X >= -10 && localMouse.X <= wActual + 10 &&
+                          localMouse.Y >= -10 && localMouse.Y <= hActual + 10 &&
+                          _window.IsVisible);
+
+        if (isHovered)
+        {
+            _mediaHoverHold = 2.0; // держим пульт активным 2 секунды, чтобы он не исчезал при быстром движении или клике
+        }
+        else if (_mediaHoverHold > 0)
+        {
+            _mediaHoverHold -= dt;
+        }
+
+        bool shouldShowControls = hasMedia && (_mediaHoverHold > 0) && !IsSleeping;
+        if (shouldShowControls)
+        {
+            _mediaControlsAlpha = Math.Min(1.0, _mediaControlsAlpha + dt * 6.0);
+        }
+        else
+        {
+            _mediaControlsAlpha = Math.Max(0.0, _mediaControlsAlpha - dt * 3.5);
+        }
+
+        // Плавный расчет веса сна (0.0 = бодрствует, 1.0 = спит, 2 минуты до сна)
+        double targetSleep = IsSleeping ? 1.0 : (_mouseIdleSeconds > 95.0 ? Math.Min(1.0, (_mouseIdleSeconds - 95.0) / 25.0) : 0.0);
         _spSleepWeight.Target = targetSleep;
         _spSleepWeight.Step(dt, 70, 15); // Очень мягкое, естественное опускание век
 
@@ -928,7 +976,6 @@ public sealed class AeroPetCanvas : FrameworkElement
         else
         {
             // Расчёт направления взгляда на курсор (с учетом сонливости)
-            var mouseScreen = WinApi.GetCursorPos(out var pt) ? new Point(pt.X, pt.Y) : new Point(0, 0);
             double cx = _window.Left + _window.Width / 2.0;
             double cy = _window.Top + _window.Height / 2.0;
             double dx = mouseScreen.X - cx;
@@ -1108,7 +1155,7 @@ public sealed class AeroPetCanvas : FrameworkElement
                 ActiveQuirk = "";
             }
         }
-        else if (!IsSleeping && !IsThinking && !IsAsking && _mouseIdleSeconds < 16.0 && ScratchJoyTimer <= 0 && _bubbleTime <= 0)
+        else if (!IsSleeping && !IsThinking && !IsAsking && _mouseIdleSeconds < 90.0 && ScratchJoyTimer <= 0 && _bubbleTime <= 0)
         {
             _quirkInterval -= dt;
             if (_quirkInterval <= 0)
@@ -1162,7 +1209,7 @@ public sealed class AeroPetCanvas : FrameworkElement
         double baseCy = h / 2 + 28;
         bool isMusic = _island.Media.Playing;
         double musicAwake = (!IsSleeping && sleepW < 0.85) ? (1.0 - sleepW) : 0.0;
-        double musicBob = (isMusic && ActiveQuirk != "dj") ? Math.Abs(Math.Sin(_animPhase * 3.0)) * 3.0 * musicAwake : 0.0;
+        double musicBob = (isMusic && ActiveQuirk != "dj") ? (0.5 - 0.5 * Math.Cos(_animPhase * 2.8)) * 3.2 * musicAwake : 0.0;
         double djBob = (ActiveQuirk == "dj") ? Math.Max(0.0, Math.Sin(_quirkPhase * 16.0)) * 3.5 : 0.0;
         double scratchPurr = ScratchJoyTimer > 0 ? Math.Sin(_animPhase * 35.0) * 1.5 : 0.0;
         double awakeFloat = Math.Sin(_animPhase) * 3.5 + scratchPurr;
@@ -1222,7 +1269,7 @@ public sealed class AeroPetCanvas : FrameworkElement
         }
         else if (isMusic && musicAwake > 0.05)
         {
-            double swayAngle = Math.Sin(_animPhase * 1.5) * 3.2 * musicAwake;
+            double swayAngle = Math.Sin(_animPhase * 1.4) * 3.2 * musicAwake;
             if (Math.Abs(swayAngle) > 0.05)
             {
                 _rotTransform.Angle = swayAngle;
@@ -1300,7 +1347,7 @@ public sealed class AeroPetCanvas : FrameworkElement
         // Парящие буковки Zzz при сне или погружении в сон
         if (IsSleeping || sleepW > 0.82)
         {
-            double sleepT = IsSleeping ? _sleepAnimTimer : (_mouseIdleSeconds - 24.0);
+            double sleepT = IsSleeping ? _sleepAnimTimer : (_mouseIdleSeconds - 100.0);
             double partAlphaFactor = IsSleeping ? 1.0 : Math.Clamp((sleepW - 0.82) / 0.18, 0.0, 1.0);
             for (int i = 0; i < 3; i++)
             {
@@ -1347,7 +1394,7 @@ public sealed class AeroPetCanvas : FrameworkElement
                 new Point(cx + 34, cy - 25));
 
             // Массивные светящиеся чашки наушников
-            double ledPulse = musicAwake > 0.05 ? (Math.Sin(_animPhase * 6.0) + 1.0) * 0.5 : 0.35;
+            double ledPulse = musicAwake > 0.05 ? (Math.Sin(_animPhase * 2.8) + 1.0) * 0.5 : 0.35;
             Color cupBg = Color.FromRgb(22, 25, 36);
             Color cupRim = Theme.Mix(Theme.Accent, Theme.AccentHot, ledPulse);
             p.Card(new Rect(cx - 45, cy - 14, 11, 28), cupBg, 5.5, cupRim);
@@ -1860,7 +1907,7 @@ public sealed class AeroPetCanvas : FrameworkElement
         else
         {
             // Естественное парение пухлых лапок рядом с чиби-тельцем
-            double pawBob = IsSleeping ? 0.0 : (isMusic ? Math.Sin(_animPhase * 6.0) * 3.5 : Math.Sin(_animPhase * 1.5 - 0.6) * 2.8);
+            double pawBob = IsSleeping ? 0.0 : (isMusic ? Math.Sin(_animPhase * 2.8) * 2.8 : Math.Sin(_animPhase * 1.5 - 0.6) * 2.8);
             double sleepTuckX = sleepW * 5.0; // во сне уютно поджимает лапки ближе к животику
             double sleepTuckY = sleepW * 2.5;
             bool showPads = happy > 0.2 || ScratchJoyTimer > 0 || isMusic;
@@ -1872,5 +1919,108 @@ public sealed class AeroPetCanvas : FrameworkElement
         {
             dc.Pop();
         }
+
+        // 6. Плавающий мини-пульт медиаплеера на столе (Aero Mini Remote - чистая векторная графика)
+        bool hasMedia = _island.IsMediaActive;
+        if (_mediaControlsAlpha > 0.02 && hasMedia)
+        {
+            double a = _mediaControlsAlpha;
+            double pillW = 104.0;
+            double pillH = 32.0;
+            double pillX = cx - pillW / 2.0;
+            double pillY = cy + 34.0;
+            _mediaPillRect = new Rect(pillX, pillY, pillW, pillH);
+
+            // Мягкая полупрозрачная стеклянная капсула
+            Color pillBg = Color.FromArgb((byte)(a * 230), 16, 16, 22);
+            Color pillBorder = Color.FromArgb((byte)(a * 70), 255, 255, 255);
+            p.Card(_mediaPillRect, pillBg, 16.0, pillBorder);
+
+            // Кнопка Prev
+            _mediaPrevRect = new Rect(pillX + 5, pillY + 3, 26, 26);
+            bool isPrevHover = _mediaPrevRect.Contains(_lastHoverMousePos);
+            if (isPrevHover)
+            {
+                p.Circle(new Point(_mediaPrevRect.X + 13, _mediaPrevRect.Y + 13), 12.0, Color.FromArgb((byte)(a * 45), 255, 255, 255));
+            }
+            Color prevCol = Color.FromArgb((byte)(a * (isPrevHover ? 255 : 200)), 240, 240, 245);
+            // Бар слева: 2x9
+            p.Card(new Rect(_mediaPrevRect.X + 7, _mediaPrevRect.Y + 8.5, 2.0, 9.0), prevCol, 0.8);
+            // Треугольник влево
+            p.Polygon(prevCol,
+                new Point(_mediaPrevRect.X + 17.5, _mediaPrevRect.Y + 8.5),
+                new Point(_mediaPrevRect.X + 10.5, _mediaPrevRect.Y + 13.0),
+                new Point(_mediaPrevRect.X + 17.5, _mediaPrevRect.Y + 17.5));
+
+            // Кнопка Play/Pause в акцентном кружке Apple Dynamic Island
+            _mediaPlayRect = new Rect(pillX + 39, pillY + 3, 26, 26);
+            bool isPlayHover = _mediaPlayRect.Contains(_lastHoverMousePos);
+            Color playBg = isPlayHover ? Theme.AccentHot : Theme.Accent;
+            p.Circle(new Point(_mediaPlayRect.X + 13, _mediaPlayRect.Y + 13), 12.5, Color.FromArgb((byte)(a * 255), playBg.R, playBg.G, playBg.B));
+
+            if (_island.Media.Playing)
+            {
+                // Иконка Паузы: две аккуратные белые вертикальные полоски
+                p.Card(new Rect(_mediaPlayRect.X + 9.2, _mediaPlayRect.Y + 8.5, 2.5, 9.0), Colors.White, 1.0);
+                p.Card(new Rect(_mediaPlayRect.X + 14.3, _mediaPlayRect.Y + 8.5, 2.5, 9.0), Colors.White, 1.0);
+            }
+            else
+            {
+                // Иконка Воспроизведения: чистый выверенный треугольник вправо
+                p.Polygon(Colors.White,
+                    new Point(_mediaPlayRect.X + 11.0, _mediaPlayRect.Y + 8.0),
+                    new Point(_mediaPlayRect.X + 17.5, _mediaPlayRect.Y + 13.0),
+                    new Point(_mediaPlayRect.X + 11.0, _mediaPlayRect.Y + 18.0));
+            }
+
+            // Кнопка Next
+            _mediaNextRect = new Rect(pillX + 73, pillY + 3, 26, 26);
+            bool isNextHover = _mediaNextRect.Contains(_lastHoverMousePos);
+            if (isNextHover)
+            {
+                p.Circle(new Point(_mediaNextRect.X + 13, _mediaNextRect.Y + 13), 12.0, Color.FromArgb((byte)(a * 45), 255, 255, 255));
+            }
+            Color nextCol = Color.FromArgb((byte)(a * (isNextHover ? 255 : 200)), 240, 240, 245);
+            // Треугольник вправо
+            p.Polygon(nextCol,
+                new Point(_mediaNextRect.X + 8.5, _mediaNextRect.Y + 8.5),
+                new Point(_mediaNextRect.X + 15.5, _mediaNextRect.Y + 13.0),
+                new Point(_mediaNextRect.X + 8.5, _mediaNextRect.Y + 17.5));
+            // Бар справа: 2x9
+            p.Card(new Rect(_mediaNextRect.X + 17.0, _mediaNextRect.Y + 8.5, 2.0, 9.0), nextCol, 0.8);
+        }
+        else
+        {
+            _mediaPillRect = Rect.Empty;
+            _mediaPrevRect = Rect.Empty;
+            _mediaPlayRect = Rect.Empty;
+            _mediaNextRect = Rect.Empty;
+        }
+    }
+
+    public bool TryHandleMediaClick(Point p)
+    {
+        if (_mediaControlsAlpha < 0.2) return false;
+
+        if (_mediaPrevRect.Contains(p))
+        {
+            _island.PrevTrack();
+            Pet();
+            return true;
+        }
+        if (_mediaPlayRect.Contains(p))
+        {
+            _island.TogglePlay();
+            Pet();
+            return true;
+        }
+        if (_mediaNextRect.Contains(p))
+        {
+            _island.NextTrack();
+            Pet();
+            return true;
+        }
+
+        return false;
     }
 }

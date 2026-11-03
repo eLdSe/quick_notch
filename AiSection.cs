@@ -24,6 +24,34 @@ public sealed class AiSection : Section
     public void SendPrompt(IslandView isl, string prompt) => ExecutePrompt(isl, prompt);
     public void NewChat(IslandView isl) { _messages.Clear(); _currentSessionId = Guid.NewGuid().ToString("N"); isl.Kick(); }
     public void LoadSession(IslandView isl, AeroChatSession session) { _currentSessionId = session.Id; _messages.Clear(); _messages.AddRange(session.Messages); isl.Kick(); }
+    public void DeleteSession(IslandView isl, AeroChatSession session)
+    {
+        _sessions.Remove(session);
+        if (_currentSessionId == session.Id)
+        {
+            _messages.Clear();
+            if (_sessions.Count > 0)
+            {
+                var next = _sessions[0];
+                _currentSessionId = next.Id;
+                _messages.AddRange(next.Messages);
+            }
+            else
+            {
+                _currentSessionId = Guid.NewGuid().ToString("N");
+            }
+        }
+        StoreService.SaveAeroChats(_sessions);
+        isl.Kick();
+    }
+    public void ClearAllSessions(IslandView isl)
+    {
+        _sessions.Clear();
+        _messages.Clear();
+        _currentSessionId = Guid.NewGuid().ToString("N");
+        StoreService.SaveAeroChats(_sessions);
+        isl.Kick();
+    }
     private readonly Spring _historySpring = new(0.0);
     private string? _error;
     private bool _loading;

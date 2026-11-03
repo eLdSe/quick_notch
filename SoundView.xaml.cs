@@ -59,7 +59,8 @@ public partial class SoundView : UserControl
             MasterVolumeSlider.Value = volPct;
             _isMuted = muted;
             MasterVolumePercentText.Text = muted ? Loc.T("Без звука", "Muted", "Sessiz") : $"{volPct}%";
-            MuteButtonText.Text = muted ? Loc.T("🔇 Звук выкл", "🔇 Muted", "🔇 Sessiz") : Loc.T("🔊 Звук вкл", "🔊 Audio On", "🔊 Ses Açık");
+            MuteIcon.Text = muted ? "\uE74F" : "\uE767";
+            MuteButtonText.Text = muted ? Loc.T("Звук выключен", "Muted", "Sessiz") : Loc.T("Звук включен", "Audio On", "Ses Açık");
         }
         catch { }
         finally
@@ -68,12 +69,18 @@ public partial class SoundView : UserControl
         }
     }
 
+    public void ApplyAccent()
+    {
+        RefreshDevices();
+    }
+
     public void RefreshDevices()
     {
-        DevicesPanel.Children.Clear();
-        try
+        Bg.Run(AudioService.ListOutputDevices, (res, err) =>
         {
-            var (devices, defaultId) = AudioService.ListOutputDevices();
+            if (err != null || res.Devices == null) return;
+            DevicesPanel.Children.Clear();
+            var (devices, defaultId) = res;
             for (int i = 0; i < devices.Count; i++)
             {
                 var dev = devices[i];
@@ -88,7 +95,7 @@ public partial class SoundView : UserControl
                 if (isSelected)
                 {
                     btn.Background = new SolidColorBrush(Color.FromArgb(40, 10, 132, 255));
-                    btn.BorderBrush = (Brush)FindResource("AccentBrush");
+                    btn.BorderBrush = Theme.AccentBrush;
                 }
 
                 var grid = new Grid();
@@ -96,20 +103,20 @@ public partial class SoundView : UserControl
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
 
-                // Иконка наушников или колонок
-                string iconText = dev.Name.Contains("head", StringComparison.OrdinalIgnoreCase) ||
-                                  dev.Name.Contains("науш", StringComparison.OrdinalIgnoreCase) ? "🎧" : "🔊";
+                bool isHeadphones = dev.Name.Contains("head", StringComparison.OrdinalIgnoreCase) ||
+                                   dev.Name.Contains("науш", StringComparison.OrdinalIgnoreCase);
                 var icon = new TextBlock
                 {
-                    Text = iconText,
-                    FontSize = 13,
+                    Text = isHeadphones ? "\uE7F6" : "\uE7F5",
+                    FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                    FontSize = 14,
+                    Foreground = isSelected ? Theme.AccentBrush : (Brush)FindResource("TextSecondaryBrush"),
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.Left
                 };
                 Grid.SetColumn(icon, 0);
                 grid.Children.Add(icon);
 
-                // Название устройства
                 var nameText = new TextBlock
                 {
                     Text = dev.Name,
@@ -122,15 +129,15 @@ public partial class SoundView : UserControl
                 Grid.SetColumn(nameText, 1);
                 grid.Children.Add(nameText);
 
-                // Индикатор выбора (галочка)
                 if (isSelected)
                 {
                     var check = new TextBlock
                     {
-                        Text = "✓",
+                        Text = "\uE73E",
+                        FontFamily = new FontFamily("Segoe MDL2 Assets"),
                         FontSize = 12,
                         FontWeight = FontWeights.Bold,
-                        Foreground = (Brush)FindResource("AccentBrush"),
+                        Foreground = Theme.AccentBrush,
                         VerticalAlignment = VerticalAlignment.Center,
                         HorizontalAlignment = HorizontalAlignment.Right
                     };
@@ -147,16 +154,15 @@ public partial class SoundView : UserControl
 
                 DevicesPanel.Children.Add(btn);
             }
-        }
-        catch { }
+        });
     }
 
     public void RefreshApps()
     {
-        AppsPanel.Children.Clear();
-        try
+        Bg.Run(AudioService.ListAppVolumes, (apps, err) =>
         {
-            var apps = AudioService.ListAppVolumes();
+            if (err != null || apps == null) return;
+            AppsPanel.Children.Clear();
             if (apps.Count == 0)
             {
                 NoAppsPanel.Visibility = Visibility.Visible;
@@ -179,7 +185,6 @@ public partial class SoundView : UserControl
 
                 var sp = new StackPanel();
 
-                // Заголовок и процент
                 var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
                 var nameText = new TextBlock
                 {
@@ -200,12 +205,13 @@ public partial class SoundView : UserControl
                 headerGrid.Children.Add(pctText);
                 sp.Children.Add(headerGrid);
 
-                // Слайдер громкости приложения
                 var slider = new Slider
                 {
                     Minimum = 0,
                     Maximum = 100,
                     Value = (int)Math.Round(app.Level * 100),
+                    IsMoveToPointEnabled = true,
+                    Height = 32,
                     Style = (Style)FindResource("AppleSliderStyle"),
                     Tag = app
                 };
@@ -224,8 +230,7 @@ public partial class SoundView : UserControl
                 appCard.Child = sp;
                 AppsPanel.Children.Add(appCard);
             }
-        }
-        catch { }
+        });
     }
 
     private void OnMasterVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

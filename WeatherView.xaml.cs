@@ -39,18 +39,36 @@ public partial class WeatherView : UserControl
         _island?.StopLeaveTimer();
     }
 
-    public static string GetWeatherEmoji(int code) => code switch
+    private static readonly SolidColorBrush SunBrush = new((Color)ColorConverter.ConvertFromString("#FFD60A"));
+    private static readonly SolidColorBrush CloudBrush = new((Color)ColorConverter.ConvertFromString("#CBD5E1"));
+    private static readonly SolidColorBrush RainBrush = new((Color)ColorConverter.ConvertFromString("#38BDF8"));
+    private static readonly SolidColorBrush SnowBrush = Brushes.White;
+    private static readonly SolidColorBrush ThunderBrush = new((Color)ColorConverter.ConvertFromString("#FACC15"));
+    private static readonly SolidColorBrush FogBrush = new((Color)ColorConverter.ConvertFromString("#94A3B8"));
+
+    static WeatherView()
     {
-        0 => "☀️",
-        1 or 2 => "🌤️",
-        3 => "☁️",
-        45 or 48 => "🌫️",
-        51 or 53 or 55 or 56 or 57 => "🌧️",
-        61 or 63 or 65 or 66 or 67 or 80 or 81 or 82 => "🌧️",
-        71 or 73 or 75 or 77 or 85 or 86 => "❄️",
-        95 or 96 or 99 => "⛈️",
-        _ => "🌤️"
+        SunBrush.Freeze();
+        CloudBrush.Freeze();
+        RainBrush.Freeze();
+        ThunderBrush.Freeze();
+        FogBrush.Freeze();
+    }
+
+    public static (string Symbol, Brush Color) GetWeatherVisual(int code) => code switch
+    {
+        0 => ("☼", SunBrush),
+        1 or 2 => ("⛅", SunBrush),
+        3 => ("☁", CloudBrush),
+        45 or 48 => ("☁", FogBrush),
+        51 or 53 or 55 or 56 or 57 => ("🌧", RainBrush),
+        61 or 63 or 65 or 66 or 67 or 80 or 81 or 82 => ("🌧", RainBrush),
+        71 or 73 or 75 or 77 or 85 or 86 => ("❄", SnowBrush),
+        95 or 96 or 99 => ("⛈", ThunderBrush),
+        _ => ("⛅", CloudBrush)
     };
+
+    public static string GetWeatherEmoji(int code) => GetWeatherVisual(code).Symbol;
 
     public void RefreshAll()
     {
@@ -70,7 +88,9 @@ public partial class WeatherView : UserControl
         CityNameText.Text = data.City;
         string sign = data.Temp > 0 ? "+" : "";
         CurrentTempText.Text = $"{sign}{Math.Round(data.Temp)}°";
-        WeatherIconText.Text = GetWeatherEmoji(data.Code);
+        var (mainIcon, mainColor) = GetWeatherVisual(data.Code);
+        WeatherIconText.Text = mainIcon;
+        WeatherIconText.Foreground = mainColor;
         WeatherDescText.Text = data.Description;
 
         string appSign = data.Apparent > 0 ? "+" : "";
@@ -114,10 +134,12 @@ public partial class WeatherView : UserControl
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 HorizontalAlignment = HorizontalAlignment.Center
             };
+            var (hIcon, hColor) = GetWeatherVisual(h.Code);
             var iconText = new TextBlock
             {
-                Text = GetWeatherEmoji(h.Code),
+                Text = hIcon,
                 FontSize = 16,
+                Foreground = hColor,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 4)
             };
@@ -161,10 +183,12 @@ public partial class WeatherView : UserControl
             row.Children.Add(dayText);
 
             // Иконка
+            var (dIcon, dColor) = GetWeatherVisual(d.Code);
             var icon = new TextBlock
             {
-                Text = GetWeatherEmoji(d.Code),
+                Text = dIcon,
                 FontSize = 14,
+                Foreground = dColor,
                 VerticalAlignment = VerticalAlignment.Center
             };
             Grid.SetColumn(icon, 1);
@@ -214,4 +238,17 @@ public partial class WeatherView : UserControl
             RefreshAll();
         }
     }
+
+    private void OnHourlyForecastMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is ScrollViewer sv)
+        {
+            if (e.Delta < 0)
+                sv.LineRight();
+            else if (e.Delta > 0)
+                sv.LineLeft();
+            e.Handled = true;
+        }
+    }
+
 }

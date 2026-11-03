@@ -48,6 +48,8 @@ artifacts/
 launchSettings.json
 
 # User state, secrets & local configs
+*.bak
+*.backup
 state.json
 *.env
 .env*

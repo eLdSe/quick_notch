@@ -12,6 +12,10 @@ public static class DeviceService
 {
     public const string BrightnessUnsupported = "Монитор не поддерживает управление яркостью.";
 
+    private static int? _pendingBrightness;
+    private static bool _brightnessWorkerRunning;
+    private static readonly object _brightnessLock = new();
+
     public static int GetBrightness()
     {
         using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightness");
@@ -27,6 +31,41 @@ public static class DeviceService
     }
 
     public static void SetBrightness(int level)
+    {
+        level = Math.Clamp(level, 0, 100);
+        lock (_brightnessLock)
+        {
+            _pendingBrightness = level;
+            if (_brightnessWorkerRunning) return;
+            _brightnessWorkerRunning = true;
+        }
+
+        Task.Run(() =>
+        {
+            while (true)
+            {
+                int target;
+                lock (_brightnessLock)
+                {
+                    if (_pendingBrightness == null)
+                    {
+                        _brightnessWorkerRunning = false;
+                        break;
+                    }
+                    target = _pendingBrightness.Value;
+                    _pendingBrightness = null;
+                }
+
+                try
+                {
+                    SetBrightnessDirect(target);
+                }
+                catch { }
+            }
+        });
+    }
+
+    public static void SetBrightnessDirect(int level)
     {
         level = Math.Clamp(level, 0, 100);
         using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightnessMethods");
@@ -68,4 +107,3 @@ public static class DeviceService
             throw new UnauthorizedAccessException("Windows не разрешила изменить состояние.");
     }
 }
-

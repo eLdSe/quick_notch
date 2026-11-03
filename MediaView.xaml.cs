@@ -42,6 +42,11 @@ public partial class MediaView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    public void ApplyAccent()
+    {
+        RefreshAll();
+    }
+
     public void RefreshAll()
     {
         if (_island == null) return;
@@ -77,8 +82,8 @@ public partial class MediaView : UserControl
         }
 
         // 4. Кнопка Play / Pause
-        PlayPauseIcon.Text = m.Playing ? "❚❚" : "▶";
-        PlayPauseIcon.Margin = m.Playing ? new Thickness(0) : new Thickness(3, 0, 0, 0);
+        PlayPauseIcon.Text = m.Playing ? "\uE103" : "\uE102";
+        PlayPauseIcon.Margin = m.Playing ? new Thickness(0) : new Thickness(2, 0, 0, 0);
 
         // 5. Позиция и слайдер трека
         if (!_isDraggingSeek)

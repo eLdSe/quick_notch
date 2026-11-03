@@ -10,19 +10,11 @@
              FontFamily="Segoe UI Variable Display, Segoe UI">
 
     <UserControl.Resources>
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
-        <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
-        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
-        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
-
-        <!-- Стиль переключателя вкладок сегментов -->
+        <!-- Стиль переключателя вкладок сегментов (использует активный акцент пользователя) -->
         <Style x:Key="SegmentButtonStyle" TargetType="RadioButton">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Foreground" Value="#8E8E93" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
@@ -33,7 +25,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#0A84FF" />
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource AccentBrush}" />
                                 <Setter Property="Foreground" Value="White" />
                             </Trigger>
                             <MultiTrigger>
@@ -41,8 +33,8 @@
                                     <Condition Property="IsChecked" Value="False" />
                                     <Condition Property="IsMouseOver" Value="True" />
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="b" Property="Background" Value="#2C2C2E" />
-                                <Setter Property="Foreground" Value="White" />
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -50,23 +42,23 @@
             </Setter>
         </Style>
 
-        <!-- Стиль кнопки выбора опции (Тема, Чёлка и т.п.) -->
+        <!-- Стиль кнопки выбора опции (Тема, Язык и т.п.) -->
         <Style x:Key="ChoiceButtonStyle" TargetType="RadioButton">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Foreground" Value="#8E8E93" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="b" Background="#262629" BorderBrush="#28282B" BorderThickness="1" CornerRadius="12" Padding="12,6">
+                        <Border x:Name="b" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="12" Padding="12,6">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#0A84FF" />
-                                <Setter TargetName="b" Property="BorderBrush" Value="#0A84FF" />
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                 <Setter Property="Foreground" Value="White" />
                             </Trigger>
                             <MultiTrigger>
@@ -74,8 +66,8 @@
                                     <Condition Property="IsChecked" Value="False" />
                                     <Condition Property="IsMouseOver" Value="True" />
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="b" Property="Background" Value="#323236" />
-                                <Setter Property="Foreground" Value="White" />
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -83,49 +75,114 @@
             </Setter>
         </Style>
 
-        <!-- Стиль Apple Slider -->
-        <Style x:Key="AppleSliderStyle" TargetType="Slider">
+        <!-- Стиль переключателя Apple Switch -->
+        <Style x:Key="AppleSwitchStyle" TargetType="CheckBox">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="bg" Width="40" Height="22" CornerRadius="11" Background="{DynamicResource Surface2Brush}" 
+                                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" SnapsToDevicePixels="True">
+                            <Ellipse x:Name="thumb" Width="16" Height="16" Fill="White" HorizontalAlignment="Left" Margin="2,0,0,0">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.35" />
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="bg" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="thumb" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="thumb" Property="Margin" Value="0,0,2,0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль вспомогательных кнопок действий -->
+        <Style x:Key="SettingsActionButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource Surface2Brush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+                <!-- Стиль Apple Capsule Slider (тактильная капсула с акцентом) -->
+        <Style x:Key="AppleSliderStyle" TargetType="Slider">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="IsMoveToPointEnabled" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
                     <ControlTemplate TargetType="Slider">
-                        <Grid VerticalAlignment="Center" Height="28">
-                            <Border x:Name="TrackBg" Background="#2C2C2E" CornerRadius="14" Height="6" />
-                            <Track x:Name="PART_Track">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="Slider.DecreaseLarge">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate>
-                                                <Border Background="#0A84FF" CornerRadius="14,0,0,14" Height="6" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb>
-                                        <Thumb.Template>
-                                            <ControlTemplate>
-                                                <Ellipse Width="18" Height="18" Fill="White">
-                                                    <Ellipse.Effect>
-                                                        <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.4" />
-                                                    </Ellipse.Effect>
-                                                </Ellipse>
-                                            </ControlTemplate>
-                                        </Thumb.Template>
-                                    </Thumb>
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="Slider.IncreaseLarge">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate>
-                                                <Border Background="Transparent" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Grid>
+                        <Border x:Name="CapsuleBorder" CornerRadius="12" Background="#18FFFFFF" 
+                                BorderBrush="#20FFFFFF" BorderThickness="1" ClipToBounds="True">
+                            <Grid>
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="{DynamicResource AccentBrush}" CornerRadius="11,0,0,11" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Width="14" Height="32" Cursor="Hand">
+                                            <Thumb.Template>
+                                                <ControlTemplate>
+                                                    <Border Width="5" Height="20" Background="White" CornerRadius="2.5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                        <Border.Effect>
+                                                            <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.45" Color="Black" RenderingBias="Performance" />
+                                                        </Border.Effect>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="Transparent" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CapsuleBorder" Property="BorderBrush" Value="#38FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -139,16 +196,18 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Верхний сегментированный переключатель macOS Settings -->
-        <Border Grid.Row="0" Background="#1C1C1E" BorderBrush="{StaticResource BorderSubtleBrush}" 
-                BorderThickness="1" CornerRadius="16" Padding="4" HorizontalAlignment="Center" Margin="0,0,0,14">
+        <!-- Сегментный переключатель вкладок в стиле macOS Settings -->
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" 
+                BorderThickness="1" CornerRadius="16" Padding="4" HorizontalAlignment="Center" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal">
                 <RadioButton x:Name="TabAppearanceRadio" Style="{StaticResource SegmentButtonStyle}" 
-                             Content="🎨 Оформление" IsChecked="True" Checked="OnSubTabChanged" />
+                             Content="Оформление" IsChecked="True" Click="OnSubTabChanged" />
+                <RadioButton x:Name="TabBackgroundRadio" Style="{StaticResource SegmentButtonStyle}" 
+                             Content="Фон" Click="OnSubTabChanged" />
                 <RadioButton x:Name="TabBehaviorRadio" Style="{StaticResource SegmentButtonStyle}" 
-                             Content="⚡ Поведение" Margin="4,0,0,0" Checked="OnSubTabChanged" />
+                             Content="Поведение" Click="OnSubTabChanged" />
                 <RadioButton x:Name="TabSystemRadio" Style="{StaticResource SegmentButtonStyle}" 
-                             Content="⚙️ Система" Margin="4,0,0,0" Checked="OnSubTabChanged" />
+                             Content="Система" Click="OnSubTabChanged" />
             </StackPanel>
         </Border>
 
@@ -157,11 +216,12 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Верхний ряд: Тема (Dark/Light/Auto) и Форм-фактор (Island/Notch/Compact) -->
-            <Grid Grid.Row="0" Margin="0,0,0,12">
+            <!-- Верхний ряд: Тема острова и Эффект стекла -->
+            <Grid Grid.Row="0" Margin="0,0,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="14" />
@@ -169,83 +229,53 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Карточка темы -->
-                <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="16,12">
+                <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,8">
                     <StackPanel>
-                        <TextBlock Text="Тема острова" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Светлый, тёмный или авто-режим" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,8" />
+                        <TextBlock Text="Тема острова" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Светлый, тёмный или авто-режим" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <RadioButton Grid.Column="0" x:Name="ThemeDarkRadio" Style="{StaticResource ChoiceButtonStyle}" Content="🌙 Тёмная" Margin="0,0,4,0" Click="OnThemeDarkClick" />
-                            <RadioButton Grid.Column="1" x:Name="ThemeLightRadio" Style="{StaticResource ChoiceButtonStyle}" Content="☀️ Светлая" Margin="2,0,2,0" Click="OnThemeLightClick" />
-                            <RadioButton Grid.Column="2" x:Name="ThemeAutoRadio" Style="{StaticResource ChoiceButtonStyle}" Content="⚡ Авто" Margin="4,0,0,0" Click="OnThemeAutoClick" />
+                            <RadioButton Grid.Column="0" x:Name="ThemeDarkRadio" Style="{StaticResource ChoiceButtonStyle}" Content="Тёмная" Margin="0,0,4,0" Click="OnThemeDarkClick" />
+                            <RadioButton Grid.Column="1" x:Name="ThemeLightRadio" Style="{StaticResource ChoiceButtonStyle}" Content="Светлая" Margin="2,0,2,0" Click="OnThemeLightClick" />
+                            <RadioButton Grid.Column="2" x:Name="ThemeAutoRadio" Style="{StaticResource ChoiceButtonStyle}" Content="Авто" Margin="4,0,0,0" Click="OnThemeAutoClick" />
                         </Grid>
-                    </StackPanel>
-                </Border>
-
-                <!-- Карточка форм-фактора -->
-                <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="16,12">
-                    <StackPanel>
-                        <TextBlock Text="Форм-фактор острова" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Стиль в свёрнутом виде" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,8" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <RadioButton Grid.Column="0" x:Name="StyleIslandRadio" Style="{StaticResource ChoiceButtonStyle}" Content="🏝️ Остров" Margin="0,0,4,0" Click="OnStyleIslandClick" />
-                            <RadioButton Grid.Column="1" x:Name="StyleNotchRadio" Style="{StaticResource ChoiceButtonStyle}" Content="💻 Чёлка" Margin="2,0,2,0" Click="OnStyleNotchClick" />
-                            <RadioButton Grid.Column="2" x:Name="StyleCompactRadio" Style="{StaticResource ChoiceButtonStyle}" Content="✨ Компакт" Margin="4,0,0,0" Click="OnStyleCompactClick" />
-                        </Grid>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- Средний ряд: Акцентные цвета и Эффект стекла -->
-            <Grid Grid.Row="1" Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="14" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Палитра акцентных цветов -->
-                <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="16,12">
-                    <StackPanel>
-                        <TextBlock Text="Акцентный цвет" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Цвета подсветки и активных элементов" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,8" />
-                        <WrapPanel x:Name="AccentColorsPanel" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Border>
 
                 <!-- Эффект матового стекла (Liquid Glass) -->
-                <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="16,14">
+                <Border Grid.Column="2" Style="{StaticResource AppleGlassCardStyle}" Padding="12,8">
                     <Grid VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="Эффект стекла" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock Text="Матовое стекло Liquid Glass" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
-                            <TextBlock Text="Плотность 95% (Space Black)" FontSize="9" Foreground="#636366" Margin="0,1,0,0" />
+                            <TextBlock Text="Эффект стекла" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="Матовое стекло Liquid Glass" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock Text="Apple Frosted Glass с глубиной" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
                         </StackPanel>
-                        <CheckBox Grid.Column="1" x:Name="GlassCheckBox" VerticalAlignment="Center" Click="OnGlassToggleClick" />
+                        <CheckBox Grid.Column="1" x:Name="GlassCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnGlassToggleClick" />
                     </Grid>
                 </Border>
             </Grid>
 
+            <!-- Средний ряд: Палитра акцентных цветов во всю ширину -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="12,8" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Text="Акцентный цвет" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <TextBlock Text="Цвета подсветки и активных элементов" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
+                    <WrapPanel x:Name="AccentColorsPanel" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
             <!-- Нижний ряд: Робот-компаньон Aero -->
-            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="16,12">
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="12,8">
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -254,59 +284,48 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="🤖 Робот-компаньон Aero" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="🤖 Робот-компаньон Aero" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
                         <TextBlock Text="Интерактивный питомец: следит за курсором и может летать по рабочему столу" 
-                                   FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0" />
+                                   FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
                     </StackPanel>
                     <Button Grid.Column="1" x:Name="RoamButton" Content="🚀 Выпустить на рабочий стол" 
-                            Background="#262629" Foreground="{StaticResource TextPrimaryBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" 
-                            BorderThickness="1" Padding="12,6" FontSize="10.5" FontWeight="SemiBold" Cursor="Hand" Click="OnRoamClick">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                    <CheckBox Grid.Column="3" x:Name="RobotCompanionCheckBox" VerticalAlignment="Center" Click="OnRobotCompanionClick" />
+                            Style="{StaticResource SettingsActionButton}" Click="OnRoamClick" />
+                    <CheckBox Grid.Column="3" x:Name="RobotCompanionCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnRobotCompanionClick" />
                 </Grid>
             </Border>
         </Grid>
 
-        <!-- ==================== Вкладка 2: ПОВЕДЕНИЕ ==================== -->
-        <Grid Grid.Row="1" x:Name="BehaviorPanel" Visibility="Collapsed">
+        <!-- ==================== Вкладка 2: ФОН ОСТРОВА ==================== -->
+        <Grid Grid.Row="1" x:Name="BackgroundPanel" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Способ вызова (Hover, Hotkey, Both, Notch) -->
-            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Text="Способ вызова острова" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                    <TextBlock Text="Как активировать и раскрывать QuickNotch" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,10" />
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <RadioButton Grid.Column="0" x:Name="SummonHoverRadio" Style="{StaticResource ChoiceButtonStyle}" Content="🖱️ Наведение" Margin="0,0,4,0" Click="OnSummonHoverClick" />
-                        <RadioButton Grid.Column="1" x:Name="SummonHotkeyRadio" Style="{StaticResource ChoiceButtonStyle}" Content="⌨️ Горячая клавиша" Margin="2,0,2,0" Click="OnSummonHotkeyClick" />
-                        <RadioButton Grid.Column="2" x:Name="SummonBothRadio" Style="{StaticResource ChoiceButtonStyle}" Content="✨ Оба способа" Margin="2,0,2,0" Click="OnSummonBothClick" />
-                        <RadioButton Grid.Column="3" x:Name="SummonNotchRadio" Style="{StaticResource ChoiceButtonStyle}" Content="💻 Только чёлка" Margin="4,0,0,0" Click="OnSummonNotchClick" />
-                    </Grid>
-                </StackPanel>
+            <!-- Карточка 1: Выбор файла обоев -->
+            <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14" Margin="0,0,0,8">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Фоновое изображение острова" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="BgFileText" Text="Фон не выбран" FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="BgClearButton" Content="Сбросить" Style="{StaticResource SettingsActionButton}" Margin="0,0,8,0" Click="OnBgClearClick" />
+                        <Button x:Name="BgPickButton" Content="📁 Выбрать файл..." Style="{StaticResource SettingsActionButton}" Click="OnBgPickClick" />
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <!-- Задержка автоматического скрытия -->
-            <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14" Margin="0,0,0,12">
+            <!-- Карточка 2: Затемнение фона -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14" Margin="0,0,0,8">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -314,38 +333,85 @@
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="Задержка скрытия (Auto-Collapse)" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock Text="Время до сворачивания после ухода курсора" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock Text="Затемнение фонового рисунка" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="Регулировка яркости подложки под карточками" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                         </StackPanel>
-                        <TextBlock x:Name="DelayValueText" Text="1.5 сек" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <TextBlock x:Name="BgDimValueText" Text="55%" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <Slider Grid.Row="1" x:Name="BgDimSlider" Minimum="0" Maximum="0.9" Value="0.55" 
+                            Style="{StaticResource AppleSliderStyle}" ValueChanged="OnBgLookChanged" />
+                </Grid>
+            </Border>
+
+            <!-- Карточка 3: Размытие фона (Blur) -->
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Размытие фона (Gaussian Blur)" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="Мягкое матовое размытие обоев острова" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <TextBlock x:Name="BgBlurValueText" Text="0" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <Slider Grid.Row="1" x:Name="BgBlurSlider" Minimum="0" Maximum="20" Value="0" 
+                            Style="{StaticResource AppleSliderStyle}" ValueChanged="OnBgLookChanged" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ==================== Вкладка 3: ПОВЕДЕНИЕ ==================== -->
+        <Grid Grid.Row="1" x:Name="BehaviorPanel" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Способ вызова (Только чёлка) -->
+            <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14" Margin="0,0,0,8">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Способ вызова острова" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Остров раскрывается исключительно по нажатию на чёлку экрана" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="12" Padding="12,6">
+                        <TextBlock Text="💻 Только чёлка" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Задержка автоматического скрытия -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Задержка скрытия (Auto-Collapse)" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="Время до сворачивания после ухода курсора" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <TextBlock x:Name="DelayValueText" Text="1.5 сек" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <Slider Grid.Row="1" x:Name="DelaySlider" Minimum="0.5" Maximum="8.0" Value="1.5" 
                             Style="{StaticResource AppleSliderStyle}" ValueChanged="OnDelaySliderChanged" />
                 </Grid>
             </Border>
-
-            <!-- Затемнение экрана в свёрнутом виде -->
-            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <StackPanel>
-                            <TextBlock Text="Затемнение островка в покое" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock Text="Полупрозрачность полоски острова при бездействии" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
-                        </StackPanel>
-                        <TextBlock x:Name="DimValueText" Text="50%" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    </Grid>
-                    <Slider Grid.Row="1" x:Name="DimSlider" Minimum="0.2" Maximum="0.9" Value="0.5" 
-                            Style="{StaticResource AppleSliderStyle}" ValueChanged="OnDimSliderChanged" />
-                </Grid>
-            </Border>
         </Grid>
 
-        <!-- ==================== Вкладка 3: СИСТЕМА ==================== -->
+        <!-- ==================== Вкладка 4: СИСТЕМА ==================== -->
         <Grid Grid.Row="1" x:Name="SystemPanel" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -354,35 +420,33 @@
             </Grid.RowDefinitions>
 
             <!-- Верхний ряд: Автозапуск и Язык интерфейса -->
-            <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid Grid.Row="0" Margin="0,0,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="14" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!-- Автозапуск с Windows -->
-                <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="16,14">
+                <!-- Автозапуск Windows -->
+                <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,8">
                     <Grid VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="Автозапуск с Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock Text="Запускать QuickNotch при входе в систему" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock Text="Запуск с Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="Автозагрузка при старте системы" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                         </StackPanel>
-                        <CheckBox Grid.Column="1" x:Name="AutostartCheckBox" VerticalAlignment="Center" Click="OnAutostartClick" />
+                        <CheckBox Grid.Column="1" x:Name="AutostartCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnAutostartClick" />
                     </Grid>
                 </Border>
 
                 <!-- Язык интерфейса -->
-                <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="16,14">
+                <Border Grid.Column="2" Style="{StaticResource AppleGlassCardStyle}" Padding="12,8">
                     <StackPanel>
-                        <TextBlock Text="Язык интерфейса" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Русский, English, Türkçe" FontSize="9.5" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,8" />
+                        <TextBlock Text="Язык интерфейса" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Русский, English, Türkçe" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -398,50 +462,38 @@
             </Grid>
 
             <!-- Средний ряд: Горячая клавиша -->
-            <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14" Margin="0,0,0,12">
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14" Margin="0,0,0,8">
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Горячая клавиша активации" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Быстрое открытие и скрытие острова из любого приложения" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                        <TextBlock Text="Горячая клавиша активации" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Быстрое открытие и скрытие острова из любого приложения" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
-                    <Border Grid.Column="1" Background="#262629" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8" Padding="12,5">
-                        <TextBlock Text="Ctrl + Alt + N" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                    <Border Grid.Column="1" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8" Padding="12,5">
+                        <TextBlock Text="Ctrl + Alt + N" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
                     </Border>
                 </Grid>
             </Border>
 
             <!-- Нижний ряд: О программе и кнопка теста уведомления -->
-            <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14">
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,14">
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="QuickNotch v1.0.4  ·  macOS Dynamic Island для Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Аппаратно-ускоренный движок WPF XAML (0% нагрузки на ЦП)" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0" />
+                        <TextBlock Text="QuickNotch v1.0.4  ·  macOS Dynamic Island для Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Аппаратно-ускоренный движок WPF XAML (0% нагрузки на ЦП)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
                     </StackPanel>
-                    <Button Grid.Column="1" Content="🔔 Тест уведомления" Background="#262629" Foreground="{StaticResource TextPrimaryBrush}" 
-                            BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" Padding="14,8" FontSize="11" FontWeight="SemiBold" 
-                            Cursor="Hand" Click="OnTestNotificationClick">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
+                    <Button Grid.Column="1" Content="🔔 Тест уведомления" Style="{StaticResource SettingsActionButton}" Padding="14,8" Click="OnTestNotificationClick" />
                 </Grid>
             </Border>
         </Grid>
     </Grid>
 </UserControl>
-

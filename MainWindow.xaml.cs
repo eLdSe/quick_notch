@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 
 namespace QuickNotchCs;
@@ -63,6 +64,20 @@ public partial class MainWindow : Window
             WeatherHost.Attach(Island);
             Island.CalendarHost = CalendarHost;
             CalendarHost.Attach(Island);
+            Island.DockHost = DockHost;
+            DockHost.Attach(Island);
+            Island.TopBarHost = TopBarHost;
+            TopBarHost.Attach(Island);
+            Island.CapsuleHost = ExpandedHost;
+            Island.CapsuleBorder = IslandCapsule;
+            Island.ContentHost = ExpandedContent;
+            Island.NotchHost = NotchHost;
+            NotchHost.Attach(Island);
+            Island.ToastHost = ToastHost;
+            ToastHost.Attach(Island);
+            Island.ApplyIslandStyle();
+            Island.ApplyAccent();
+            Island.ApplyBackground();
 
             SummonHookService.Initialize(Island);
             if (Island.S.RobotCompanion && Island.S.RobotRoaming)
@@ -136,6 +151,42 @@ public partial class MainWindow : Window
     public void ShowWindow() => Visibility = Visibility.Visible;
 
     public void HideWindow() => Visibility = Visibility.Hidden;
+
+    private void OnWindowMouseEnter(object sender, MouseEventArgs e)
+    {
+        Island.StopLeaveTimer();
+    }
+
+    private void OnWindowMouseLeave(object sender, MouseEventArgs e)
+    {
+        Island.OnCursorLeftIsland();
+    }
+
+    private void OnWindowMouseMove(object sender, MouseEventArgs e)
+    {
+        if (Island.Target == 1.0)
+        {
+            var p = e.GetPosition(this);
+            if (Island.HitTestIsland(p))
+            {
+                Island.StopLeaveTimer();
+            }
+            else
+            {
+                Island.OnCursorLeftIsland();
+            }
+        }
+    }
+
+    private void OnExpandedHostMouseEnter(object sender, MouseEventArgs e)
+    {
+        Island.StopLeaveTimer();
+    }
+
+    private void OnExpandedHostMouseLeave(object sender, MouseEventArgs e)
+    {
+        Island.OnCursorLeftIsland();
+    }
 
     protected override void OnClosed(EventArgs e)
     {

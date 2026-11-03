@@ -50,43 +50,32 @@ public partial class SettingsView : UserControl
             var s = _island.S;
 
             // 1. Тема острова
-            ThemeDarkRadio.IsChecked = s.ThemeMode == "dark";
-            ThemeLightRadio.IsChecked = s.ThemeMode == "light";
-            ThemeAutoRadio.IsChecked = s.ThemeMode == "auto";
+            if (ThemeDarkRadio != null) ThemeDarkRadio.IsChecked = s.ThemeMode == "dark";
+            if (ThemeLightRadio != null) ThemeLightRadio.IsChecked = s.ThemeMode == "light";
+            if (ThemeAutoRadio != null) ThemeAutoRadio.IsChecked = s.ThemeMode == "auto";
 
-            // 2. Форм-фактор
-            StyleIslandRadio.IsChecked = s.IslandStyle == "island";
-            StyleNotchRadio.IsChecked = s.IslandStyle == "notch";
-            StyleCompactRadio.IsChecked = s.IslandStyle == "compact";
-
-            // 3. Палитра акцентных цветов
+            // 2. Палитра акцентных цветов
             BuildAccentPalette();
 
-            // 4. Эффект стекла
-            GlassCheckBox.IsChecked = s.GlassEnabled;
+            // 3. Эффект стекла
+            if (GlassCheckBox != null) GlassCheckBox.IsChecked = s.GlassEnabled;
 
-            // 5. Робот-компаньон Aero
-            RobotCompanionCheckBox.IsChecked = s.RobotCompanion;
-            RoamButton.Content = s.RobotRoaming ? "🏠 Вернуть в островок" : "🚀 На рабочий стол";
+            // 4. Робот-компаньон Aero
+            if (RobotCompanionCheckBox != null) RobotCompanionCheckBox.IsChecked = s.RobotCompanion;
+            if (RoamButton != null) RoamButton.Content = s.RobotRoaming ? "🏠 Вернуть в островок" : "🚀 На рабочий стол";
 
-            // 6. Способ вызова
-            SummonHoverRadio.IsChecked = s.SummonMode == "hover";
-            SummonHotkeyRadio.IsChecked = s.SummonMode == "hotkey";
-            SummonBothRadio.IsChecked = s.SummonMode == "both";
-            SummonNotchRadio.IsChecked = s.SummonMode == "notch";
+            // 5. Задержка скрытия
+            if (DelaySlider != null) DelaySlider.Value = s.LeaveDelay;
+            if (DelayValueText != null) DelayValueText.Text = $"{s.LeaveDelay:F1} сек";
 
-            // 7. Слайдеры задержки и затемнения
-            DelaySlider.Value = s.LeaveDelay;
-            DelayValueText.Text = $"{s.LeaveDelay:F1} сек";
+            // 6. Автозапуск и язык
+            if (AutostartCheckBox != null) AutostartCheckBox.IsChecked = _island.Autostart;
+            if (LangRuRadio != null) LangRuRadio.IsChecked = s.Language == "ru";
+            if (LangEnRadio != null) LangEnRadio.IsChecked = s.Language == "en";
+            if (LangTrRadio != null) LangTrRadio.IsChecked = s.Language == "tr";
 
-            DimSlider.Value = s.DimLevel;
-            DimValueText.Text = $"{(int)Math.Round(s.DimLevel * 100)}%";
-
-            // 8. Автозапуск и язык
-            AutostartCheckBox.IsChecked = _island.Autostart;
-            LangRuRadio.IsChecked = s.Language == "ru";
-            LangEnRadio.IsChecked = s.Language == "en";
-            LangTrRadio.IsChecked = s.Language == "tr";
+            // 7. Фон острова
+            RefreshBackgroundCard();
         }
         finally
         {
@@ -94,8 +83,9 @@ public partial class SettingsView : UserControl
         }
     }
 
-    private void BuildAccentPalette()
+    public void BuildAccentPalette()
     {
+        if (AccentColorsPanel == null) return;
         AccentColorsPanel.Children.Clear();
         for (int i = 0; i < Theme.Accents.Length; i++)
         {
@@ -139,22 +129,132 @@ public partial class SettingsView : UserControl
 
     private void OnSubTabChanged(object sender, RoutedEventArgs e)
     {
-        if (AppearancePanel == null || BehaviorPanel == null || SystemPanel == null) return;
+        if (AppearancePanel == null || BehaviorPanel == null || SystemPanel == null || BackgroundPanel == null) return;
 
         AppearancePanel.Visibility = TabAppearanceRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        BackgroundPanel.Visibility = TabBackgroundRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         BehaviorPanel.Visibility = TabBehaviorRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SystemPanel.Visibility = TabSystemRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void OnThemeDarkClick(object sender, RoutedEventArgs e) => _island?.SetThemeMode("dark");
-    private void OnThemeLightClick(object sender, RoutedEventArgs e) => _island?.SetThemeMode("light");
-    private void OnThemeAutoClick(object sender, RoutedEventArgs e) => _island?.SetThemeMode("auto");
+    // ---------- задний фон острова ----------
 
-    private void OnStyleIslandClick(object sender, RoutedEventArgs e) => _island?.SetIslandStyle("island");
-    private void OnStyleNotchClick(object sender, RoutedEventArgs e) => _island?.SetIslandStyle("notch");
-    private void OnStyleCompactClick(object sender, RoutedEventArgs e) => _island?.SetIslandStyle("compact");
+    private readonly System.Windows.Threading.DispatcherTimer _bgLookTimer =
+        new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private bool _bgTimerHooked;
 
-    private void OnGlassToggleClick(object sender, RoutedEventArgs e) => _island?.ToggleGlass();
+    private void RefreshBackgroundCard()
+    {
+        if (_island == null || BgFileText == null) return;
+        var s = _island.S;
+        bool has = !string.IsNullOrEmpty(s.BgImage);
+        BgFileText.Text = has ? System.IO.Path.GetFileName(s.BgImage) : Loc.T("Фон не выбран", "No background selected", "Arka plan seçilmedi");
+        if (BgClearButton != null)
+        {
+            BgClearButton.IsEnabled = has;
+            BgClearButton.Opacity = has ? 1.0 : 0.45;
+        }
+        if (BgDimSlider == null || BgBlurSlider == null || BgDimValueText == null || BgBlurValueText == null) return;
+
+        bool dragging = _bgLookTimer.IsEnabled
+            || (Mouse.LeftButton == MouseButtonState.Pressed && (BgDimSlider.IsMouseOver || BgBlurSlider.IsMouseOver));
+        if (dragging) return;
+        BgDimSlider.Value = s.BgDim;
+        BgBlurSlider.Value = s.BgBlur;
+        BgDimValueText.Text = $"{(int)Math.Round(s.BgDim * 100)}%";
+        BgBlurValueText.Text = $"{(int)Math.Round(s.BgBlur)}";
+    }
+
+    private void OnBgPickClick(object sender, RoutedEventArgs e)
+    {
+        if (_island == null) return;
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = Loc.T("Выберите картинку для фона острова", "Choose island background", "Ada arka planı seçin"),
+            Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp;*.webp;*.gif|All files|*.*",
+            CheckFileExists = true,
+        };
+        _island.Busy++;
+        bool ok;
+        try { ok = dlg.ShowDialog() == true; }
+        finally { _island.Busy--; }
+        if (!ok) return;
+
+        try
+        {
+            string dir = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "QuickNotch");
+            System.IO.Directory.CreateDirectory(dir);
+            string dest = System.IO.Path.Combine(dir, "background" + System.IO.Path.GetExtension(dlg.FileName).ToLowerInvariant());
+            foreach (var old in System.IO.Directory.GetFiles(dir, "background.*"))
+            {
+                if (!string.Equals(old, dest, StringComparison.OrdinalIgnoreCase))
+                    try { System.IO.File.Delete(old); } catch { }
+            }
+            System.IO.File.Copy(dlg.FileName, dest, true);
+            _island.SetBackgroundImage(dest);
+        }
+        catch (Exception ex)
+        {
+            App.LogCrash(ex, "SettingsView.OnBgPickClick");
+            _island.SetBackgroundImage(dlg.FileName);
+        }
+        _loading = true;
+        try { RefreshBackgroundCard(); } finally { _loading = false; }
+    }
+
+    private void OnBgClearClick(object sender, RoutedEventArgs e)
+    {
+        if (_island == null) return;
+        _island.SetBackgroundImage("");
+        _loading = true;
+        try { RefreshBackgroundCard(); } finally { _loading = false; }
+    }
+
+    private void OnBgLookChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_loading || _island == null || BgDimSlider == null || BgBlurSlider == null
+            || BgDimValueText == null || BgBlurValueText == null) return;
+
+        BgDimValueText.Text = $"{(int)Math.Round(BgDimSlider.Value * 100)}%";
+        BgBlurValueText.Text = $"{(int)Math.Round(BgBlurSlider.Value)}";
+
+        if (!_bgTimerHooked)
+        {
+            _bgTimerHooked = true;
+            _bgLookTimer.Tick += (_, _) =>
+            {
+                _bgLookTimer.Stop();
+                _island?.SetBackgroundLook(BgDimSlider.Value, BgBlurSlider.Value);
+            };
+        }
+        _bgLookTimer.Stop();
+        _bgLookTimer.Start();
+    }
+
+    private void OnThemeDarkClick(object sender, RoutedEventArgs e)
+    {
+        _island?.SetThemeMode("dark");
+        RefreshAll();
+    }
+
+    private void OnThemeLightClick(object sender, RoutedEventArgs e)
+    {
+        _island?.SetThemeMode("light");
+        RefreshAll();
+    }
+
+    private void OnThemeAutoClick(object sender, RoutedEventArgs e)
+    {
+        _island?.SetThemeMode("auto");
+        RefreshAll();
+    }
+
+    private void OnGlassToggleClick(object sender, RoutedEventArgs e)
+    {
+        _island?.ToggleGlass();
+        RefreshAll();
+    }
 
     private void OnRobotCompanionClick(object sender, RoutedEventArgs e)
     {
@@ -170,11 +270,6 @@ public partial class SettingsView : UserControl
         RefreshAll();
     }
 
-    private void OnSummonHoverClick(object sender, RoutedEventArgs e) => _island?.SetSummonMode("hover");
-    private void OnSummonHotkeyClick(object sender, RoutedEventArgs e) => _island?.SetSummonMode("hotkey");
-    private void OnSummonBothClick(object sender, RoutedEventArgs e) => _island?.SetSummonMode("both");
-    private void OnSummonNotchClick(object sender, RoutedEventArgs e) => _island?.SetSummonMode("notch");
-
     private void OnDelaySliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_loading || _island == null || DelaySlider == null || DelayValueText == null) return;
@@ -182,15 +277,6 @@ public partial class SettingsView : UserControl
         _island.S.LeaveDelay = val;
         _island.SaveState();
         DelayValueText.Text = $"{val:F1} сек";
-    }
-
-    private void OnDimSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_loading || _island == null || DimSlider == null || DimValueText == null) return;
-        double val = Math.Round(DimSlider.Value, 2);
-        _island.S.DimLevel = val;
-        _island.SaveState();
-        DimValueText.Text = $"{(int)Math.Round(val * 100)}%";
     }
 
     private void OnAutostartClick(object sender, RoutedEventArgs e) => _island?.ToggleAutostart();
@@ -205,4 +291,3 @@ public partial class SettingsView : UserControl
         NotificationService.TriggerTest();
     }
 }
-

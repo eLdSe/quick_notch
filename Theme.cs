@@ -17,34 +17,32 @@ public static class Theme
     public static bool IsLight { get; private set; } = false;
 
     public static Color Bg => IsLight
-        ? (GlassEnabled ? Color.FromArgb(244, 246, 248, 252) : C("#F3F4F6"))
-        : (GlassEnabled ? Color.FromArgb(242, 12, 13, 18) : C("#0A0A0E"));
+        ? (GlassEnabled ? Color.FromArgb(215, 246, 248, 252) : Color.FromRgb(242, 244, 247))
+        : (GlassEnabled ? Color.FromArgb(200, 14, 16, 22) : Color.FromRgb(10, 10, 14));
 
     public static Color Surface => IsLight
-        ? (GlassEnabled ? Color.FromArgb(215, 255, 255, 255) : C("#FFFFFF"))
-        : (GlassEnabled ? Color.FromArgb(195, 20, 22, 29) : C("#121217"));
+        ? (GlassEnabled ? Color.FromArgb(205, 255, 255, 255) : Color.FromRgb(255, 255, 255))
+        : (GlassEnabled ? Color.FromArgb(190, 26, 28, 38) : Color.FromRgb(28, 28, 30));
 
     public static Color Surface2 => IsLight
-        ? (GlassEnabled ? Color.FromArgb(235, 241, 245, 249) : C("#EAECEF"))
-        : (GlassEnabled ? Color.FromArgb(220, 28, 31, 40) : C("#1A1A22"));
+        ? (GlassEnabled ? Color.FromArgb(215, 241, 245, 249) : Color.FromRgb(238, 241, 246))
+        : (GlassEnabled ? Color.FromArgb(205, 34, 38, 50) : Color.FromRgb(38, 38, 41));
 
     public static Color Surface3 => IsLight
-        ? (GlassEnabled ? Color.FromArgb(245, 226, 232, 240) : C("#DFE3E8"))
-        : (GlassEnabled ? Color.FromArgb(235, 38, 42, 54) : C("#252532"));
+        ? (GlassEnabled ? Color.FromArgb(225, 228, 234, 242) : Color.FromRgb(226, 230, 236))
+        : (GlassEnabled ? Color.FromArgb(215, 42, 46, 62) : Color.FromRgb(50, 50, 54));
 
     public static Color Border => IsLight
-        ? (GlassEnabled ? Color.FromArgb(50, 0, 0, 0) : C("#D1D5DB"))
-        : (GlassEnabled ? Color.FromArgb(95, 255, 255, 255) : C("#262633"));
+        ? Color.FromArgb(90, 0, 0, 0)
+        : (GlassEnabled ? Color.FromArgb(50, 255, 255, 255) : Color.FromRgb(58, 58, 60));
 
     public static Color BorderSubtle => IsLight
-        ? (GlassEnabled ? Color.FromArgb(22, 0, 0, 0) : C("#E5E7EB"))
-        : (GlassEnabled ? Color.FromArgb(48, 255, 255, 255) : C("#1A1A24"));
+        ? Color.FromArgb(35, 0, 0, 0)
+        : (GlassEnabled ? Color.FromArgb(28, 255, 255, 255) : Color.FromRgb(40, 40, 43));
 
-    public static Color Text => IsLight ? C("#0F172A") : C("#FFFFFF");
+    public static Color Text => IsLight ? Color.FromRgb(15, 23, 42) : Color.FromRgb(255, 255, 255);
 
-    public static Color Muted => IsLight
-        ? C("#64748B")
-        : (GlassEnabled ? C("#A8A8B8") : C("#9494A0"));
+    public static Color Muted => IsLight ? Color.FromRgb(100, 116, 139) : (GlassEnabled ? Color.FromRgb(160, 160, 172) : Color.FromRgb(142, 142, 147));
 
     public static Color Disabled => IsLight ? C("#94A3B8") : C("#6C6C78");
 
@@ -99,9 +97,25 @@ public static class Theme
         foreach (var (k, main, hot) in Accents)
         {
             if (k != key) continue;
-            AccentBrush.Color = C(main);
-            AccentHotBrush.Color = C(hot);
+            var mainCol = C(main);
+            var hotCol = C(hot);
+            try
+            {
+                if (!AccentBrush.IsFrozen) AccentBrush.Color = mainCol;
+                if (!AccentHotBrush.IsFrozen) AccentHotBrush.Color = hotCol;
+            }
+            catch { }
             CurrentAccent = k;
+
+            if (Application.Current != null)
+            {
+                try
+                {
+                    Application.Current.Resources["AccentBrush"] = new SolidColorBrush(mainCol);
+                    Application.Current.Resources["AccentHotBrush"] = new SolidColorBrush(hotCol);
+                }
+                catch { }
+            }
             return;
         }
     }
@@ -133,6 +147,36 @@ public static class Theme
         return false;
     }
 
+    public static void ApplyToAppResources()
+    {
+        if (Application.Current == null) return;
+        var res = Application.Current.Resources;
+        if (res == null) return;
+
+        void UpdateBrush(string key, Color color)
+        {
+            if (res.Contains(key) && res[key] is SolidColorBrush brush && !brush.IsFrozen)
+            {
+                brush.Color = color;
+            }
+            else
+            {
+                res[key] = new SolidColorBrush(color);
+            }
+        }
+
+        UpdateBrush("SurfaceBrush", Surface);
+        UpdateBrush("Surface2Brush", Surface2);
+        UpdateBrush("Surface3Brush", Surface3);
+        UpdateBrush("SurfaceHoverBrush", IsLight ? Color.FromRgb(226, 232, 240) : (GlassEnabled ? Color.FromArgb(210, 44, 46, 58) : Color.FromRgb(44, 44, 46)));
+        UpdateBrush("BorderBrush", Border);
+        UpdateBrush("BorderSubtleBrush", BorderSubtle);
+        UpdateBrush("TextPrimaryBrush", Text);
+        UpdateBrush("TextSecondaryBrush", Muted);
+        UpdateBrush("AccentBrush", Accent);
+        UpdateBrush("AccentHotBrush", AccentHot);
+    }
+
     public static void InvalidateTheme()
     {
         _cachedGlassBgBrush = null;
@@ -145,6 +189,7 @@ public static class Theme
         TextBrush.Color = Text;
         MutedBrush.Color = Muted;
         DisabledBrush.Color = Disabled;
+        ApplyToAppResources();
     }
 
     public static void SetGlass(bool enabled, double opacity = GlassOpacity)
@@ -177,11 +222,9 @@ public static class Theme
     {
         if (IsLight)
         {
-            byte aTop = 248;
-            byte aBottom = 242;
             var brush = new LinearGradientBrush(
-                Color.FromArgb(aTop, 255, 255, 255),
-                Color.FromArgb(aBottom, 243, 245, 249),
+                Color.FromArgb(210, 255, 255, 255),
+                Color.FromArgb(232, 240, 244, 250),
                 new Point(0.5, 0),
                 new Point(0.5, 1));
             brush.Freeze();
@@ -189,16 +232,37 @@ public static class Theme
         }
         else
         {
-            byte aTop = 246;
-            byte aBottom = 240;
             var brush = new LinearGradientBrush(
-                Color.FromArgb(aTop, 14, 15, 20),
-                Color.FromArgb(aBottom, 9, 10, 14),
+                Color.FromArgb(195, 20, 24, 34),
+                Color.FromArgb(228, 11, 13, 19),
                 new Point(0.5, 0),
                 new Point(0.5, 1));
             brush.Freeze();
             return brush;
         }
+    }
+
+    public static Brush CreateGlassBorderBrush(double width = 1.0)
+    {
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = new Point(0.5, 0),
+            EndPoint = new Point(0.5, 1)
+        };
+        if (IsLight)
+        {
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(180, 255, 255, 255), 0.0));
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(50, 0, 0, 0), 0.5));
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(80, 0, 0, 0), 1.0));
+        }
+        else
+        {
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(120, 255, 255, 255), 0.0));
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(40, 255, 255, 255), 0.5));
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(20, 255, 255, 255), 1.0));
+        }
+        brush.Freeze();
+        return brush;
     }
 
     public static Pen CreateGlassBorderPen(double width = 1.0)

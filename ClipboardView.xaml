@@ -3,39 +3,30 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" 
-             d:DesignHeight="416" d:DesignWidth="808"
+             mc:Ignorable="d"
+             d:DesignHeight="416"
+             d:DesignWidth="808"
              TextOptions.TextFormattingMode="Display"
              TextOptions.TextRenderingMode="ClearType"
              FontFamily="Segoe UI Variable Display, Segoe UI">
 
     <UserControl.Resources>
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
-        <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
-        <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#323236" />
-        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
-        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
-
-        <!-- Стиль фильтра буфера -->
-        <Style x:Key="ClipFilterRadioStyle" TargetType="RadioButton">
+        <!-- Стиль фильтра буфера (сегментный переключатель в стиле Apple) -->
+        <Style x:Key="ClipSegmentRadioStyle" TargetType="RadioButton">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Foreground" Value="#8E8E93" />
-            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="b" Background="#262629" BorderBrush="#28282B" BorderThickness="1" CornerRadius="10" Padding="8,4">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="8" Padding="10,4">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#0A84FF" />
-                                <Setter TargetName="b" Property="BorderBrush" Value="#0A84FF" />
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource AccentBrush}" />
                                 <Setter Property="Foreground" Value="White" />
                             </Trigger>
                             <MultiTrigger>
@@ -43,7 +34,7 @@
                                     <Condition Property="IsChecked" Value="False" />
                                     <Condition Property="IsMouseOver" Value="True" />
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="b" Property="Background" Value="#323236" />
+                                <Setter TargetName="b" Property="Background" Value="#1AFFFFFF" />
                                 <Setter Property="Foreground" Value="White" />
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
@@ -56,23 +47,27 @@
         <Style x:Key="ActionButtonStyle" TargetType="Button">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Background" Value="#262629" />
-            <Setter Property="BorderBrush" Value="#28282B" />
+            <Setter Property="Background" Value="#18FFFFFF" />
+            <Setter Property="BorderBrush" Value="#20FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Padding" Value="10,5" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="b" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#323236" />
+                                <Setter TargetName="b" Property="Background" Value="#2AFFFFFF" />
+                                <Setter TargetName="b" Property="BorderBrush" Value="#38FFFFFF" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -84,15 +79,13 @@
     <!-- Сетка из 2 колонок: Список + Предпросмотр -->
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="360" />
-            <ColumnDefinition Width="14" />
+            <ColumnDefinition Width="310" />
+            <ColumnDefinition Width="10" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- ==================== ЛЕВАЯ КОЛОНКА: СПИСОК ЭЛЕМЕНТОВ ==================== -->
-        <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                CornerRadius="22" Padding="14,14">
+        <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="10,8">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -101,15 +94,24 @@
 
                 <!-- Панель фильтров и очистки -->
                 <Grid Grid.Row="0" Margin="0,0,0,10">
-                    <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="FilterAllRadio" Style="{StaticResource ClipFilterRadioStyle}" Content="Все" IsChecked="True" Checked="OnFilterChanged" />
-                        <RadioButton x:Name="FilterCodeRadio" Style="{StaticResource ClipFilterRadioStyle}" Content="💻 Код" Margin="4,0,0,0" Checked="OnFilterChanged" />
-                        <RadioButton x:Name="FilterUrlRadio" Style="{StaticResource ClipFilterRadioStyle}" Content="🔗 Ссылки" Margin="4,0,0,0" Checked="OnFilterChanged" />
-                        <RadioButton x:Name="FilterTextRadio" Style="{StaticResource ClipFilterRadioStyle}" Content="📝 Текст" Margin="4,0,0,0" Checked="OnFilterChanged" />
-                    </StackPanel>
-                    <Button Style="{StaticResource ActionButtonStyle}" HorizontalAlignment="Right" Padding="8,4" 
+                    <!-- Сегментный трек -->
+                    <Border Background="#14FFFFFF" CornerRadius="10" Padding="3" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="FilterAllRadio" Style="{StaticResource ClipSegmentRadioStyle}"
+                                         Content="Все" IsChecked="True" Checked="OnFilterChanged" />
+                            <RadioButton x:Name="FilterCodeRadio" Style="{StaticResource ClipSegmentRadioStyle}"
+                                         Content="Код" Margin="2,0,0,0" Checked="OnFilterChanged" />
+                            <RadioButton x:Name="FilterUrlRadio" Style="{StaticResource ClipSegmentRadioStyle}"
+                                         Content="Ссылки" Margin="2,0,0,0" Checked="OnFilterChanged" />
+                            <RadioButton x:Name="FilterTextRadio" Style="{StaticResource ClipSegmentRadioStyle}"
+                                         Content="Текст" Margin="2,0,0,0" Checked="OnFilterChanged" />
+                        </StackPanel>
+                    </Border>
+
+                    <Button Style="{StaticResource ActionButtonStyle}" HorizontalAlignment="Right" Padding="8,4"
                             ToolTip="Очистить незакрепленные" Click="OnClearAllClick">
-                        <TextBlock Text="🗑️" FontSize="11" />
+                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" 
+                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
                     </Button>
                 </Grid>
 
@@ -120,17 +122,15 @@
 
                 <!-- Заглушка, если список пуст -->
                 <StackPanel x:Name="EmptyClipsPanel" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
-                    <TextBlock Text="📋" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8" />
-                    <TextBlock Text="Буфер обмена пуст" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
-                    <TextBlock Text="Скопируйте текст или ссылку" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="36" Foreground="#44FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Text="Буфер обмена пуст" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Скопируйте текст или ссылку" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0" />
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- ==================== ПРАВАЯ КОЛОНКА: ПОЛНЫЙ ПРЕДПРОСМОТР ==================== -->
-        <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                CornerRadius="22" Padding="20,18">
+        <Border Grid.Column="2" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -141,63 +141,80 @@
                 <!-- Верхний заголовок предпросмотра: Бейдж типа + Кнопки действий -->
                 <Grid Grid.Row="0" Margin="0,0,0,12">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border x:Name="PreviewTypeBadge" Background="{StaticResource Surface2Brush}" CornerRadius="6" Padding="8,3" Margin="0,0,10,0">
-                            <TextBlock x:Name="PreviewTypeBadgeText" Text="ТЕКСТ" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <Border x:Name="PreviewTypeBadge" Background="{DynamicResource Surface2Brush}"
+                                CornerRadius="6" Padding="8,3" Margin="0,0,10,0">
+                            <TextBlock x:Name="PreviewTypeBadgeText" Text="ТЕКСТ" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
                         </Border>
-                        <TextBlock x:Name="PreviewMetaText" Text="сейчас" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="PreviewMetaText" Text="сейчас" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button x:Name="PinButton" Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" Click="OnPinClick">
-                            <TextBlock x:Name="PinButtonText" Text="📌 Закрепить" FontSize="11" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="PinIcon" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                <TextBlock x:Name="PinButtonText" Text="Закрепить" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
                         </Button>
                         <Button Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" Click="OnDeleteClick">
-                            <TextBlock Text="🗑️ Удалить" FontSize="11" Foreground="{StaticResource AccentHotBrush}" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource AccentHotBrush}" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Удалить" FontSize="11" Foreground="{DynamicResource AccentHotBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource ActionButtonStyle}" Background="#0A84FF" BorderThickness="0" Click="OnCopyClick">
-                            <TextBlock Text="📋 Скопировать" FontSize="11" FontWeight="Bold" Foreground="White" />
+                        <Button Style="{StaticResource ActionButtonStyle}" Background="{DynamicResource AccentBrush}" BorderThickness="0" Click="OnCopyClick">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="White" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Копировать" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                            </StackPanel>
                         </Button>
                     </StackPanel>
                 </Grid>
 
                 <!-- Содержимое предпросмотра -->
-                <Border Grid.Row="1" Background="{StaticResource Surface2Brush}" 
-                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                        CornerRadius="14" Padding="14,12">
+                <Border Grid.Row="1" Style="{StaticResource AppleGlassWellStyle}" Padding="14,12">
                     <Grid>
                         <!-- Панель для URL -->
                         <StackPanel x:Name="UrlPreviewPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
-                            <TextBlock Text="🔗" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
-                            <TextBlock x:Name="UrlText" Text="https://..." FontSize="13" FontWeight="SemiBold" 
-                                       Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
-                            <Button Style="{StaticResource ActionButtonStyle}" Background="#0A84FF" BorderThickness="0" 
+                            <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="36" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" Margin="0,0,0,12" />
+                            <TextBlock x:Name="UrlText" Text="https://..." FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
+                            <Button Style="{StaticResource ActionButtonStyle}" Background="{DynamicResource AccentBrush}" BorderThickness="0"
                                     Margin="0,16,0,0" Padding="16,8" HorizontalAlignment="Center" Click="OnOpenUrlClick">
-                                <TextBlock Text="🌐 Открыть ссылку в браузере" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Открыть ссылку в браузере" FontSize="12" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+                                </StackPanel>
                             </Button>
                         </StackPanel>
 
                         <!-- Панель для HEX цвета -->
                         <StackPanel x:Name="HexPreviewPanel" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
-                            <Border x:Name="HexSwatch" Width="70" Height="70" CornerRadius="16" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" HorizontalAlignment="Center" Margin="0,0,0,12" />
-                            <TextBlock x:Name="HexCodeText" Text="#FFFFFF" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
-                            <TextBlock x:Name="HexRgbText" Text="RGB: 255, 255, 255" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                            <Border x:Name="HexSwatch" Width="72" Height="72" CornerRadius="18"
+                                    BorderBrush="#38FFFFFF" BorderThickness="1.5" HorizontalAlignment="Center" Margin="0,0,0,14">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.35" Color="Black" RenderingBias="Performance" />
+                                </Border.Effect>
+                            </Border>
+                            <TextBlock x:Name="HexCodeText" Text="#FFFFFF" FontSize="18" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="HexRgbText" Text="RGB: 255, 255, 255" FontSize="12"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0" />
                         </StackPanel>
 
                         <!-- Панель для Текста / Кода -->
                         <ScrollViewer x:Name="TextPreviewScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                            <TextBox x:Name="PreviewTextBox" Background="Transparent" BorderThickness="0" 
-                                     Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" 
-                                     FontFamily="Consolas, Cascadia Code, Segoe UI" 
-                                     IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" />
+                            <TextBox x:Name="PreviewTextBox" Background="Transparent" BorderThickness="0"
+                                     Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12.5"
+                                     FontFamily="Consolas, Cascadia Code, Segoe UI" IsReadOnly="True"
+                                     TextWrapping="Wrap" AcceptsReturn="True" />
                         </ScrollViewer>
                     </Grid>
                 </Border>
 
                 <!-- Нижний статус предпросмотра: кол-во символов и строк -->
-                <TextBlock Grid.Row="2" x:Name="PreviewStatsText" Text="0 симв.  ·  0 стр." FontSize="10.5" 
-                           Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" Margin="0,8,0,0" />
+                <TextBlock Grid.Row="2" x:Name="PreviewStatsText" Text="0 симв.  ·  0 стр."
+                           FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Right" Margin="0,8,0,0" />
             </Grid>
         </Border>
     </Grid>
 </UserControl>
-

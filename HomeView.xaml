@@ -3,43 +3,120 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" 
-             d:DesignHeight="400" d:DesignWidth="800"
+             mc:Ignorable="d"
+             d:DesignHeight="400"
+        d:DesignWidth="800"
              TextOptions.TextFormattingMode="Display"
              TextOptions.TextRenderingMode="ClearType"
              FontFamily="Segoe UI Variable Display, Segoe UI">
 
     <UserControl.Resources>
-        <!-- Стили цветов темы Apple Dark Glass -->
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
-        <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#2C2C2E" />
-        <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#3A3A3C" />
-        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
-        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
-        <SolidColorBrush x:Key="GreenBrush" Color="#30D158" />
+        <!-- Базовый стиль карточки Liquid Glass с тонкой полированной гранью сверху -->
+        <Style x:Key="AppleGlassCardStyle"
+                TargetType="Border">
+            <Setter Property="Background"
+                    Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="CornerRadius"
+                    Value="18"/>
+            <Setter Property="BorderBrush">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0"
+                            EndPoint="0,1">
+                        <GradientStop Color="#38FFFFFF"
+                                Offset="0"/>
+                        <GradientStop Color="#10FFFFFF"
+                                Offset="0.5"/>
+                        <GradientStop Color="#06FFFFFF"
+                                Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- Стиль современной плитки-кнопки переключателя (Wi-Fi, Bluetooth и т.д.) -->
-        <Style x:Key="AppleTileButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Cursor" Value="Hand" />
+        <Style x:Key="AppleTileButtonStyle"
+                TargetType="Button">
+            <Setter Property="Background"
+                    Value="Transparent"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="14" Padding="6,4">
-                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="14"
+                                Padding="6,4">
+                            <ContentPresenter HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#1AFFFFFF" />
+                            <Trigger Property="IsMouseOver"
+                                    Value="True">
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="#1AFFFFFF"/>
                             </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#2AFFFFFF" />
+                            <Trigger Property="IsPressed"
+                                    Value="True">
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="#2AFFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль главной кнопки Play/Pause (Apple Red Glow) -->
+        <Style x:Key="PrimaryMediaPlayPauseStyle"
+                TargetType="Button">
+            <Setter Property="Background"
+                    Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="Foreground"
+                    Value="White"/>
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse x:Name="bg"
+                                    Fill="{TemplateBinding Background}">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect BlurRadius="14"
+                                            ShadowDepth="2"
+                                            Opacity="0.45"
+                                            Color="#E53935"
+                                            RenderingBias="Performance"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                    Value="True">
+                                <Setter TargetName="bg"
+                                        Property="Fill"
+                                        Value="{DynamicResource AccentHotBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed"
+                                    Value="True">
+                                <Setter TargetName="bg"
+                                        Property="Opacity"
+                                        Value="0.85"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -48,25 +125,39 @@
         </Style>
 
         <!-- Стиль круглой кнопки медиа -->
-        <Style x:Key="MediaCircleButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#2C2C2E" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Cursor" Value="Hand" />
+        <Style x:Key="MediaCircleButtonStyle"
+                TargetType="Button">
+            <Setter Property="Background"
+                    Value="#2C2C2E"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="Foreground"
+                    Value="White"/>
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Grid>
-                            <Ellipse x:Name="bg" Fill="{TemplateBinding Background}" />
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Ellipse x:Name="bg"
+                                    Fill="{TemplateBinding Background}"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"/>
                         </Grid>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bg" Property="Fill" Value="#3A3A3C" />
+                            <Trigger Property="IsMouseOver"
+                                    Value="True">
+                                <Setter TargetName="bg"
+                                        Property="Fill"
+                                        Value="#3A3A3C"/>
                             </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bg" Property="Fill" Value="#48484A" />
+                            <Trigger Property="IsPressed"
+                                    Value="True">
+                                <Setter TargetName="bg"
+                                        Property="Fill"
+                                        Value="#48484A"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -74,259 +165,844 @@
             </Setter>
         </Style>
 
-        <!-- Стиль для аккуратного ползунка Apple Slider -->
-        <Style x:Key="AppleSliderStyle" TargetType="Slider">
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Cursor" Value="Hand" />
+        <!-- Стиль тактильного слайдера-капсулы в стиле macOS Control Center -->
+        <Style x:Key="AppleCapsuleSliderStyle"
+                TargetType="Slider">
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
+            <Setter Property="Height"
+                    Value="42"/>
+            <Setter Property="IsMoveToPointEnabled"
+                    Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
-                        <Grid VerticalAlignment="Center" Height="36">
-                            <!-- Задняя дорожка -->
-                            <Border x:Name="TrackBg" Background="#2C2C2E" CornerRadius="18" Height="36" />
-                            <!-- Заполненная часть дорожки -->
-                            <Track x:Name="PART_Track">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="Slider.DecreaseLarge">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate>
-                                                <Border Background="#0A84FF" CornerRadius="18,0,0,18" Height="36" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb>
-                                        <Thumb.Template>
-                                            <ControlTemplate>
-                                                <Ellipse Width="30" Height="30" Fill="White">
-                                                    <Ellipse.Effect>
-                                                        <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.3" />
-                                                    </Ellipse.Effect>
-                                                </Ellipse>
-                                            </ControlTemplate>
-                                        </Thumb.Template>
-                                    </Thumb>
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="Slider.IncreaseLarge">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate>
-                                                <Border Background="Transparent" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.IncreaseRepeatButton>
-                            </Track>
+                        <Border x:Name="CapsuleBorder"
+                                CornerRadius="14"
+                                Background="#18FFFFFF"
+                                BorderBrush="#20FFFFFF"
+                                BorderThickness="1"
+                                ClipToBounds="True">
+                            <Grid>
+                                <!-- Заполненная часть дорожки слева до бегунка -->
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="{DynamicResource AccentBrush}"
+                                                            CornerRadius="13,0,0,13"/>
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Width="14"
+                                                Height="42"
+                                                Cursor="Hand">
+                                            <Thumb.Template>
+                                                <ControlTemplate>
+                                                    <!-- Белый округлый разделитель-ручка в стиле Apple Control Center -->
+                                                    <Border Width="5"
+                                                            Height="24"
+                                                            Background="White"
+                                                            CornerRadius="2.5"
+                                                            VerticalAlignment="Center"
+                                                            HorizontalAlignment="Center">
+                                                        <Border.Effect>
+                                                            <DropShadowEffect BlurRadius="4"
+                                                                    ShadowDepth="1"
+                                                                    Opacity="0.45"
+                                                                    Color="Black"
+                                                                    RenderingBias="Performance"/>
+                                                        </Border.Effect>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate>
+                                                    <Border Background="Transparent"/>
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                    Value="True">
+                                <Setter TargetName="CapsuleBorder"
+                                        Property="BorderBrush"
+                                        Value="#38FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Плитка быстрых действий (иконка сверху, подпись и статус снизу) -->
+        <Style x:Key="QuickTileButtonStyle"
+                TargetType="Button">
+            <Setter Property="Background"
+                    Value="Transparent"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+            <Setter Property="Cursor"
+                    Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <ContentPresenter/>
+                            <Border x:Name="hover"
+                                    CornerRadius="14"
+                                    Background="#14FFFFFF"
+                                    Opacity="0"
+                                    IsHitTestVisible="False"/>
                         </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver"
+                                    Value="True">
+                                <Setter TargetName="hover"
+                                        Property="Opacity"
+                                        Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed"
+                                    Value="True">
+                                <Setter TargetName="hover"
+                                        Property="Opacity"
+                                        Value="1"/>
+                                <Setter TargetName="hover"
+                                        Property="Background"
+                                        Value="#24FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
     </UserControl.Resources>
 
-    <!-- Сетка Apple Bento Grid (2 колонки x 2 ряда) -->
+    <!-- Сетка 2x2 в стиле макета: быстрые действия, плеер, громкость/яркость, система -->
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="16" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="14"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="175" />
-            <RowDefinition Height="16" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="12"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- ==================== 1. КАРТОЧКА СВЯЗИ (ВЕРХНИЙ ЛЕВЫЙ БЛОК) ==================== -->
-        <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="20" Padding="14">
+        <!-- ==================== 1. БЫСТРЫЕ ДЕЙСТВИЯ ==================== -->
+        <Border Grid.Row="0"
+                Grid.Column="0"
+                Style="{StaticResource AppleGlassCardStyle}"
+                Padding="14,10,14,12">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="1" />
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="1" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
 
-                <!-- Разделители ячеек -->
-                <Rectangle Grid.Row="0" Grid.Column="1" Grid.RowSpan="3" Fill="{StaticResource BorderSubtleBrush}" Margin="0,10" />
-                <Rectangle Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Fill="{StaticResource BorderSubtleBrush}" Margin="10,0" />
+                <StackPanel Grid.Row="0"
+                        Orientation="Horizontal"
+                        Margin="2,0,0,8">
+                    <TextBlock Text="&#xE945;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="15"
+                            Foreground="{DynamicResource AccentBrush}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"/>
+                    <TextBlock x:Name="QuickTitleText"
+                            Text="Быстрые действия"
+                            FontSize="13.5"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource TextPrimaryBrush}"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
 
-                <!-- Ячейка: Wi-Fi -->
-                <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource AppleTileButtonStyle}" Click="OnWifiClick">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border x:Name="WifiIndicator" Width="36" Height="36" CornerRadius="18" Background="#0A84FF" Margin="4,0,10,0">
-                            <TextBlock Text="📶" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Wi-Fi -->
+                    <Button Grid.Column="0"
+                            Style="{StaticResource QuickTileButtonStyle}"
+                            Click="OnWifiClick">
+                        <Border x:Name="WifiIndicator"
+                                CornerRadius="14"
+                                BorderThickness="1.2"
+                                BorderBrush="Transparent"
+                                Background="#14FFFFFF">
+                            <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center">
+                                <TextBlock x:Name="WifiIcon"
+                                        Text="&#xE701;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="22"
+                                        Foreground="White"
+                                        HorizontalAlignment="Center"/>
+                                <TextBlock Text="Wi-Fi"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,9,0,0"/>
+                                <TextBlock x:Name="WifiStatusText"
+                                        Text="Вкл"
+                                        FontSize="10.5"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,2,0,0"/>
+                            </StackPanel>
                         </Border>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Wi-Fi" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock x:Name="WifiStatusText" Text="Вкл" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Button>
+                    </Button>
 
-                <!-- Ячейка: Bluetooth -->
-                <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource AppleTileButtonStyle}" Click="OnBluetoothClick">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border x:Name="BtIndicator" Width="36" Height="36" CornerRadius="18" Background="#0A84FF" Margin="4,0,10,0">
-                            <TextBlock Text="ᛒ" FontSize="15" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <!-- Bluetooth -->
+                    <Button Grid.Column="2"
+                            Style="{StaticResource QuickTileButtonStyle}"
+                            Click="OnBluetoothClick">
+                        <Border x:Name="BtIndicator"
+                                CornerRadius="14"
+                                BorderThickness="1.2"
+                                BorderBrush="Transparent"
+                                Background="#14FFFFFF">
+                            <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center">
+                                <TextBlock x:Name="BtIcon"
+                                        Text="&#xE702;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="22"
+                                        Foreground="White"
+                                        HorizontalAlignment="Center"/>
+                                <TextBlock Text="Bluetooth"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,9,0,0"/>
+                                <TextBlock x:Name="BtStatusText"
+                                        Text="Вкл"
+                                        FontSize="10.5"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,2,0,0"/>
+                            </StackPanel>
                         </Border>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Bluetooth" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock x:Name="BtStatusText" Text="Вкл" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Button>
+                    </Button>
 
-                <!-- Ячейка: Тёмная тема -->
-                <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource AppleTileButtonStyle}" Click="OnThemeClick">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="36" Height="36" CornerRadius="18" Background="#2C2C2E" Margin="4,0,10,0">
-                            <TextBlock Text="🌙" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <!-- Тема -->
+                    <Button Grid.Column="4"
+                            Style="{StaticResource QuickTileButtonStyle}"
+                            Click="OnThemeClick">
+                        <Border x:Name="ThemeIndicator"
+                                CornerRadius="14"
+                                BorderThickness="1.2"
+                                BorderBrush="Transparent"
+                                Background="#14FFFFFF">
+                            <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center">
+                                <TextBlock x:Name="ThemeIcon"
+                                        Text="&#xE708;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="22"
+                                        Foreground="White"
+                                        HorizontalAlignment="Center"/>
+                                <TextBlock Text="Тема"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,9,0,0"/>
+                                <TextBlock x:Name="ThemeStatusText"
+                                        Text="Тёмная"
+                                        FontSize="10.5"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,2,0,0"/>
+                            </StackPanel>
                         </Border>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Тема" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock x:Name="ThemeStatusText" Text="Тёмная" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Button>
+                    </Button>
 
-                <!-- Ячейка: Бодрствование -->
-                <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource AppleTileButtonStyle}" Click="OnKeepAwakeClick">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border x:Name="AwakeIndicator" Width="36" Height="36" CornerRadius="18" Background="#2C2C2E" Margin="4,0,10,0">
-                            <TextBlock Text="☕" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <!-- Бодрствование -->
+                    <Button Grid.Column="6"
+                            Style="{StaticResource QuickTileButtonStyle}"
+                            Click="OnKeepAwakeClick">
+                        <Border x:Name="AwakeIndicator"
+                                CornerRadius="14"
+                                BorderThickness="1.2"
+                                BorderBrush="Transparent"
+                                Background="#14FFFFFF">
+                            <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center">
+                                <TextBlock x:Name="AwakeIcon"
+                                        Text="&#xE7E8;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="22"
+                                        Foreground="White"
+                                        HorizontalAlignment="Center"/>
+                                <TextBlock Text="Бодрствование"
+                                        FontSize="11"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,9,0,0"/>
+                                <TextBlock x:Name="AwakeStatusText"
+                                        Text="Выкл"
+                                        FontSize="10.5"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,2,0,0"/>
+                            </StackPanel>
                         </Border>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Бодрствование" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock x:Name="AwakeStatusText" Text="Выкл" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Button>
+                    </Button>
+                </Grid>
             </Grid>
         </Border>
 
-        <!-- ==================== 2. КАРТОЧКА МЕДИА (ВЕРХНИЙ ПРАВЫЙ БЛОК) ==================== -->
-        <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="20" Padding="18,14">
+        <!-- ==================== 2. СЕЙЧАС ИГРАЕТ ==================== -->
+        <Border Grid.Row="0"
+                Grid.Column="2"
+                Style="{StaticResource AppleGlassCardStyle}"
+                Padding="16,10,16,10"
+                Cursor="Hand"
+                MouseLeftButtonUp="OnMediaCardClick"
+                ToolTip="Открыть плеер">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Заголовок карточки медиа -->
-                <Grid Grid.Row="0">
-                    <TextBlock Text="СЕЙЧАС ИГРАЕТ" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
-                    <TextBlock x:Name="MediaAppBadge" Text="Spotify" FontSize="10" FontWeight="SemiBold" 
-                               Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Right" />
+                <!-- Заголовок -->
+                <Grid Grid.Row="0"
+                        Margin="0,0,0,6">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE768;"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="14"
+                                Foreground="{DynamicResource AccentBrush}"
+                                VerticalAlignment="Center"
+                                Margin="0,0,8,0"/>
+                        <TextBlock x:Name="NowPlayingTitleText"
+                                Text="Сейчас играет"
+                                FontSize="13.5"
+                                FontWeight="SemiBold"
+                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:Name="MediaAppBadge"
+                            Text=""
+                            FontSize="11"
+                            Foreground="{DynamicResource TextSecondaryBrush}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"/>
                 </Grid>
 
-                <!-- Информация о треке и обложка -->
-                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,8,0,8">
+                <!-- Обложка, название, автор -->
+                <Grid Grid.Row="1"
+                        VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="52" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="56"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-
-                    <!-- Обложка альбома -->
-                    <Border Grid.Column="0" Width="52" Height="52" CornerRadius="12" Background="#262629">
-                        <Image x:Name="AlbumCoverImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <Border Grid.Column="0"
+                            Width="56"
+                            Height="56"
+                            CornerRadius="10"
+                            Background="#262629"
+                            ClipToBounds="True">
+                        <Grid>
+                            <TextBlock Text="♫"
+                                    FontSize="22"
+                                    Foreground="#8E8E93"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"/>
+                            <Image x:Name="AlbumCoverImage"
+                                    Stretch="UniformToFill"
+                                    RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Grid>
                     </Border>
-
-                    <!-- Название и автор -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
-                        <TextBlock x:Name="TrackTitleText" Text="Не воспроизводится" FontSize="14" FontWeight="Bold" 
-                                   Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock x:Name="TrackArtistText" Text="Включите музыку в плеере" FontSize="11.5" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Margin="14,0,0,0">
+                        <TextBlock x:Name="TrackTitleText"
+                                Text="Не воспроизводится"
+                                FontSize="15"
+                                FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="TrackArtistText"
+                                Text="Включите музыку в плеере"
+                                FontSize="11.5"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                Margin="0,3,0,0"
+                                TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                 </Grid>
 
-                <!-- Кнопки управления воспроизведением -->
-                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Width="32" Height="32" Style="{StaticResource MediaCircleButtonStyle}" Margin="0,0,16,0" Click="OnMediaPrevClick">
-                        <TextBlock Text="⏮" FontSize="11" />
+                <!-- Прогресс трека -->
+                <Grid Grid.Row="2"
+                        Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="MediaPosText"
+                            Grid.Column="0"
+                            Text="0:00"
+                            FontSize="10"
+                            Foreground="{DynamicResource TextSecondaryBrush}"
+                            VerticalAlignment="Center"/>
+                    <ProgressBar x:Name="MediaProgress"
+                            Grid.Column="1"
+                            Height="4"
+                            Maximum="1"
+                            Value="0"
+                            Margin="8,0,8,0"
+                                 Foreground="{DynamicResource AccentBrush}"
+                            Background="#33FFFFFF"
+                            BorderThickness="0"
+                            VerticalAlignment="Center"/>
+                    <TextBlock x:Name="MediaDurText"
+                            Grid.Column="2"
+                            Text="0:00"
+                            FontSize="10"
+                            Foreground="{DynamicResource TextSecondaryBrush}"
+                            VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Кнопки управления -->
+                <StackPanel Grid.Row="3"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="0,4,0,0">
+                    <Button Width="32"
+                            Height="32"
+                            Style="{StaticResource MediaCircleButtonStyle}"
+                            Background="Transparent"
+                            Margin="0,0,16,0"
+                            Click="OnMediaPrevClick">
+                        <TextBlock Text="&#xE892;"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="13"/>
                     </Button>
-                    <Button x:Name="PlayPauseButton" Width="38" Height="38" Background="#0A84FF" Style="{StaticResource MediaCircleButtonStyle}" Click="OnMediaPlayPauseClick">
-                        <TextBlock x:Name="PlayPauseIcon" Text="▶" FontSize="14" Margin="2,0,0,0" />
+                    <Button x:Name="PlayPauseButton"
+                            Width="40"
+                            Height="40"
+                            Style="{StaticResource PrimaryMediaPlayPauseStyle}"
+                            Click="OnMediaPlayPauseClick">
+                        <Grid HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                            <Path x:Name="HomePauseIcon"
+                                    Fill="#FFFFFF"
+                                  Data="M 0,0 L 3.2,0 L 3.2,12 L 0,12 Z M 6.8,0 L 10,0 L 10,12 L 6.8,12 Z"
+                                  Width="10"
+                                    Height="12"
+                                    Stretch="Uniform"
+                                    Visibility="Visible"
+                                    SnapsToDevicePixels="True"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <ScaleTransform x:Name="HomePauseScale"
+                                            ScaleX="1"
+                                            ScaleY="1"/>
+                                </Path.RenderTransform>
+                            </Path>
+                            <Path x:Name="HomePlayIcon"
+                                    Fill="#FFFFFF"
+                                  Data="M 0.5,0 L 10.5,6 L 0.5,12 Z"
+                                  Width="10"
+                                    Height="12"
+                                    Stretch="Uniform"
+                                    Margin="1,0,0,0"
+                                    Visibility="Collapsed"
+                                    SnapsToDevicePixels="True"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <ScaleTransform x:Name="HomePlayScale"
+                                            ScaleX="1"
+                                            ScaleY="1"/>
+                                </Path.RenderTransform>
+                            </Path>
+                        </Grid>
                     </Button>
-                    <Button Width="32" Height="32" Style="{StaticResource MediaCircleButtonStyle}" Margin="16,0,0,0" Click="OnMediaNextClick">
-                        <TextBlock Text="⏭" FontSize="11" />
+                    <Button Width="32"
+                            Height="32"
+                            Style="{StaticResource MediaCircleButtonStyle}"
+                            Background="Transparent"
+                            Margin="16,0,0,0"
+                            Click="OnMediaNextClick">
+                        <TextBlock Text="&#xE893;"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="13"/>
                     </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- ==================== 3. КАРТОЧКА СЛАЙДЕРОВ (НИЖНИЙ ЛЕВЫЙ БЛОК) ==================== -->
-        <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="20" Padding="18,14">
-            <StackPanel VerticalAlignment="Center">
-                <!-- ГРОМКОСТЬ -->
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="ГРОМКОСТЬ ДИНАМИКОВ" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
-                    <TextBlock x:Name="VolumePercentText" Text="70%" FontSize="11.5" FontWeight="SemiBold" 
-                               Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="70" 
-                        Style="{StaticResource AppleSliderStyle}" ValueChanged="OnVolumeSliderChanged" />
-
-                <!-- Разделитель -->
-                <Rectangle Fill="{StaticResource BorderSubtleBrush}" Height="1" Margin="0,14,0,14" />
-
-                <!-- ЯРКОСТЬ ДИСПЛЕЯ -->
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="ЯРКОСТЬ ДИСПЛЕЯ" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
-                    <TextBlock x:Name="BrightnessPercentText" Text="100%" FontSize="11.5" FontWeight="SemiBold" 
-                               Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="BrightnessSlider" Minimum="0" Maximum="100" Value="100" 
-                        Style="{StaticResource AppleSliderStyle}" ValueChanged="OnBrightnessSliderChanged" />
-            </StackPanel>
-        </Border>
-
-        <!-- ==================== 4. КАРТОЧКА СИСТЕМЫ И ПОГОДЫ (НИЖНИЙ ПРАВЫЙ БЛОК) ==================== -->
-        <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="20" Padding="18,14">
+        <!-- ==================== 3. ГРОМКОСТЬ И ЯРКОСТЬ (macOS Control Center Pills) ==================== -->
+        <Border Grid.Row="2"
+                Grid.Column="0"
+                Style="{StaticResource AppleGlassCardStyle}"
+                Padding="16,12,16,12">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="СИСТЕМА И ПОГОДА" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                <!-- Заголовок (клик открывает настройки звука) -->
+                <StackPanel Grid.Row="0"
+                        Orientation="Horizontal"
+                        Margin="0,0,0,10"
+                        Cursor="Hand"
+                        Background="Transparent"
+                            MouseLeftButtonUp="OnSoundHeaderClick"
+                        ToolTip="Открыть настройки звука">
+                    <TextBlock Text="&#xE767;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="15"
+                            Foreground="{DynamicResource AccentBrush}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"/>
+                    <TextBlock x:Name="VolumeTitleText"
+                            Text="Громкость и Яркость"
+                            FontSize="13.5"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource TextPrimaryBrush}"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
 
-                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,8,0,0">
+                <StackPanel Grid.Row="1"
+                        VerticalAlignment="Center">
+                    <!-- 1. Капсула Громкости: перетаскивание и клик в любое место капсулы -->
+                    <Grid x:Name="VolumeCapsuleContainer"
+                            Height="42"
+                            Margin="0,0,0,10"
+                            Background="Transparent"
+                            Cursor="Hand"
+                          PreviewMouseDown="OnVolumeCapsuleMouseDown"
+                          PreviewMouseMove="OnVolumeCapsuleMouseMove"
+                          PreviewMouseUp="OnVolumeCapsuleMouseUp">
+                        <Slider x:Name="VolumeSlider"
+                                Minimum="0"
+                                Maximum="100"
+                                Value="70"
+                                IsMoveToPointEnabled="True"
+                                Focusable="False"
+                                IsHitTestVisible="False"
+                                Style="{StaticResource AppleCapsuleSliderStyle}"
+                                ValueChanged="OnVolumeSliderChanged"/>
+                        <Grid IsHitTestVisible="False"
+                                Margin="14,0,14,0">
+                            <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="VolumeIcon"
+                                        Text="&#xE767;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="16"
+                                        Foreground="White"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,10,0">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect BlurRadius="4"
+                                                ShadowDepth="1"
+                                                Opacity="0.5"
+                                                Color="Black"
+                                                RenderingBias="Performance"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <TextBlock x:Name="VolumeLabelText"
+                                        Text="Динамики"
+                                        FontSize="12.5"
+                                        FontWeight="SemiBold"
+                                        Foreground="White"
+                                        VerticalAlignment="Center">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect BlurRadius="4"
+                                                ShadowDepth="1"
+                                                Opacity="0.5"
+                                                Color="Black"
+                                                RenderingBias="Performance"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                            </StackPanel>
+                            <TextBlock x:Name="VolumePercentText"
+                                    Text="70%"
+                                    FontSize="12"
+                                    FontWeight="Bold"
+                                       Foreground="White"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect BlurRadius="4"
+                                            ShadowDepth="1"
+                                            Opacity="0.5"
+                                            Color="Black"
+                                            RenderingBias="Performance"/>
+                                </TextBlock.Effect>
+                            </TextBlock>
+                        </Grid>
+                    </Grid>
+
+                    <!-- 2. Капсула Яркости: перетаскивание и клик в любое место капсулы -->
+                    <Grid x:Name="BrightnessCapsuleContainer"
+                            Height="42"
+                            Margin="0,0,0,0"
+                            Background="Transparent"
+                            Cursor="Hand"
+                          PreviewMouseDown="OnBrightnessCapsuleMouseDown"
+                          PreviewMouseMove="OnBrightnessCapsuleMouseMove"
+                          PreviewMouseUp="OnBrightnessCapsuleMouseUp">
+                        <Slider x:Name="BrightnessSlider"
+                                Minimum="0"
+                                Maximum="100"
+                                Value="100"
+                                IsMoveToPointEnabled="True"
+                                Focusable="False"
+                                IsHitTestVisible="False"
+                                Style="{StaticResource AppleCapsuleSliderStyle}"
+                                ValueChanged="OnBrightnessSliderChanged"/>
+                        <Grid IsHitTestVisible="False"
+                                Margin="14,0,14,0">
+                            <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="BrightnessIcon"
+                                        Text="&#xE706;"
+                                        FontFamily="Segoe MDL2 Assets"
+                                        FontSize="16"
+                                        Foreground="White"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,10,0">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect BlurRadius="4"
+                                                ShadowDepth="1"
+                                                Opacity="0.5"
+                                                Color="Black"
+                                                RenderingBias="Performance"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <TextBlock x:Name="BrightnessLabelText"
+                                        Text="Яркость дисплея"
+                                        FontSize="12.5"
+                                        FontWeight="SemiBold"
+                                        Foreground="White"
+                                        VerticalAlignment="Center">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect BlurRadius="4"
+                                                ShadowDepth="1"
+                                                Opacity="0.5"
+                                                Color="Black"
+                                                RenderingBias="Performance"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                            </StackPanel>
+                            <TextBlock x:Name="BrightnessPercentText"
+                                    Text="100%"
+                                    FontSize="12"
+                                    FontWeight="Bold"
+                                       Foreground="White"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect BlurRadius="4"
+                                            ShadowDepth="1"
+                                            Opacity="0.5"
+                                            Color="Black"
+                                            RenderingBias="Performance"/>
+                                </TextBlock.Effect>
+                            </TextBlock>
+                        </Grid>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ==================== 4. СИСТЕМА (Apple Activity Rings) ==================== -->
+        <Border Grid.Row="2"
+                Grid.Column="2"
+                Style="{StaticResource AppleGlassCardStyle}"
+                Padding="16,12,16,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0"
+                        Orientation="Horizontal"
+                        Margin="0,0,0,10"
+                        Cursor="Hand"
+                        Background="Transparent"
+                            MouseLeftButtonUp="OnSystemCardClick"
+                        ToolTip="Открыть системный монитор">
+                    <TextBlock Text="&#x2699;"
+                            FontFamily="Segoe UI Symbol"
+                            FontSize="15"
+                            Foreground="{DynamicResource AccentBrush}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"/>
+                    <TextBlock x:Name="SystemTitleText"
+                            Text="Система"
+                            FontSize="13.5"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource TextPrimaryBrush}"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Grid Grid.Row="1"
+                        VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="1" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="1"/>
+                        <ColumnDefinition Width="1.25*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Погода -->
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock x:Name="WeatherTempText" Text="+21°" FontSize="28" FontWeight="Bold" 
-                                   Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
-                        <TextBlock x:Name="WeatherCityText" Text="Ясно" FontSize="12" 
-                                   Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,2,0,0" />
-                    </StackPanel>
+                    <!-- Погода (клик открывает прогноз) -->
+                    <Border Grid.Column="0"
+                            CornerRadius="14"
+                            Cursor="Hand"
+                            Background="Transparent"
+                            Padding="6,4"
+                            MouseLeftButtonUp="OnWeatherCardClick"
+                            ToolTip="Открыть прогноз погоды">
+                        <StackPanel VerticalAlignment="Center"
+                                HorizontalAlignment="Center">
+                            <TextBlock x:Name="WeatherTempText"
+                                    Text="+21°"
+                                    FontSize="32"
+                                    FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                    HorizontalAlignment="Center"/>
+                            <TextBlock x:Name="WeatherCityText"
+                                    Text="Ясно"
+                                    FontSize="11.5"
+                                    TextWrapping="Wrap"
+                                    TextAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Border>
 
-                    <Rectangle Grid.Column="1" Fill="{StaticResource BorderSubtleBrush}" Margin="0,6" />
+                    <Rectangle Grid.Column="1"
+                            Fill="#1EFFFFFF"
+                            Margin="0,6"/>
 
-                    <!-- Ресурсы CPU/RAM -->
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="16,0,0,0">
-                        <TextBlock x:Name="CpuText" Text="CPU: 3%" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <ProgressBar x:Name="CpuBar" Height="4" Value="3" Maximum="100" Margin="0,4,0,8" Foreground="{StaticResource AccentBrush}" Background="#2C2C2E" BorderThickness="0" />
+                    <!-- Кольца активности CPU / RAM (Apple Activity Rings) -->
+                    <Grid Grid.Column="2"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Margin="6,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                        <TextBlock x:Name="RamText" Text="RAM: 42%" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <ProgressBar x:Name="RamBar" Height="4" Value="42" Maximum="100" Margin="0,4,0,0" Foreground="{StaticResource AccentHotBrush}" Background="#2C2C2E" BorderThickness="0" />
-                    </StackPanel>
+                        <!-- Кольцо 1: CPU -->
+                        <StackPanel Grid.Column="0"
+                                HorizontalAlignment="Center"
+                                Cursor="Hand"
+                                MouseLeftButtonUp="OnSystemCardClick"
+                                ToolTip="Загрузка процессора">
+                            <Grid Width="52"
+                                    Height="52"
+                                    HorizontalAlignment="Center">
+                                <!-- Фоновое темное кольцо -->
+                                <Ellipse Stroke="#22FFFFFF"
+                                        StrokeThickness="5"
+                                        Width="52"
+                                        Height="52"/>
+                                <!-- Активная дуга CPU -->
+                                <Path x:Name="CpuRingPath"
+                                        Stroke="{DynamicResource AccentBrush}"
+                                        StrokeThickness="5"
+                                      StrokeStartLineCap="Round"
+                                        StrokeEndLineCap="Round"
+                                        SnapsToDevicePixels="True"/>
+                                <!-- Процент в центре -->
+                                <TextBlock x:Name="CpuPercentText"
+                                        Text="3%"
+                                        FontSize="11"
+                                        FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"/>
+                            </Grid>
+                            <TextBlock x:Name="CpuLabelText"
+                                    Text="CPU"
+                                    FontSize="10.5"
+                                    FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,5,0,0"/>
+                        </StackPanel>
+
+                        <!-- Кольцо 2: RAM -->
+                        <StackPanel Grid.Column="2"
+                                HorizontalAlignment="Center"
+                                Cursor="Hand"
+                                MouseLeftButtonUp="OnSystemCardClick"
+                                ToolTip="Использование оперативной памяти">
+                            <Grid Width="52"
+                                    Height="52"
+                                    HorizontalAlignment="Center">
+                                <!-- Фоновое темное кольцо -->
+                                <Ellipse Stroke="#22FFFFFF"
+                                        StrokeThickness="5"
+                                        Width="52"
+                                        Height="52"/>
+                                <!-- Активная дуга RAM -->
+                                <Path x:Name="RamRingPath"
+                                        Stroke="{DynamicResource AccentHotBrush}"
+                                        StrokeThickness="5"
+                                      StrokeStartLineCap="Round"
+                                        StrokeEndLineCap="Round"
+                                        SnapsToDevicePixels="True"/>
+                                <!-- Процент в центре -->
+                                <TextBlock x:Name="RamPercentText"
+                                        Text="42%"
+                                        FontSize="11"
+                                        FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"/>
+                            </Grid>
+                            <TextBlock x:Name="RamLabelText"
+                                    Text="RAM"
+                                    FontSize="10.5"
+                                    FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </Grid>
         </Border>

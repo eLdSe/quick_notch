@@ -81,11 +81,7 @@
     </UserControl.Resources>
 
     <!-- Основная плашка LaunchDeck -->
-    <Border Background="{StaticResource SurfaceBrush}" 
-            BorderBrush="{StaticResource BorderSubtleBrush}" 
-            BorderThickness="1" 
-            CornerRadius="22" 
-            Padding="20,16">
+    <Border Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -96,22 +92,22 @@
             <!-- 1. Верхняя панель: Заголовок + Фильтры + Кнопки добавления -->
             <Grid Grid.Row="0" Margin="0,0,0,12">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🚀 Быстрый запуск" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,14,0" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center" /><TextBlock Text="Быстрый запуск" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" /></StackPanel>
                     <RadioButton x:Name="FilterAllRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Все" IsChecked="True" Checked="OnFilterChanged" />
-                    <RadioButton x:Name="FilterWebRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="🌐 Сайты" Margin="4,0,0,0" Checked="OnFilterChanged" />
-                    <RadioButton x:Name="FilterFolderRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="📁 Папки" Margin="4,0,0,0" Checked="OnFilterChanged" />
-                    <RadioButton x:Name="FilterAppRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="⚡ Программы" Margin="4,0,0,0" Checked="OnFilterChanged" />
+                    <RadioButton x:Name="FilterWebRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Сайты" Margin="4,0,0,0" Checked="OnFilterChanged" />
+                    <RadioButton x:Name="FilterFolderRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Папки" Margin="4,0,0,0" Checked="OnFilterChanged" />
+                    <RadioButton x:Name="FilterAppRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Программы" Margin="4,0,0,0" Checked="OnFilterChanged" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Style="{StaticResource HeaderActionButton}" Margin="0,0,6,0" Click="OnAddUrlClick">
-                        <TextBlock Text="➕ Ссылка (URL)" />
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Ссылка" FontSize="11" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                     <Button Style="{StaticResource HeaderActionButton}" Margin="0,0,6,0" Click="OnAddFileClick">
-                        <TextBlock Text="📁 Файл / Программа" />
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Файл / Приложение" FontSize="11" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                     <Button x:Name="EditModeButton" Style="{StaticResource HeaderActionButton}" Click="OnToggleEditClick">
-                        <TextBlock x:Name="EditModeButtonText" Text="✏️ Изменить" />
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock x:Name="EditModeButtonText" Text="Изменить" FontSize="11" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -122,9 +118,7 @@
             </ScrollViewer>
 
             <!-- 3. Нижняя плашка: Популярные шаблоны в 1 клик -->
-            <Border Grid.Row="2" Background="{StaticResource Surface2Brush}" 
-                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-                    CornerRadius="14" Padding="14,8" Margin="0,8,0,0">
+            <Border Grid.Row="2" Style="{StaticResource AppleGlassWellStyle}" Padding="14,8" Margin="0,8,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />

@@ -909,6 +909,7 @@ public sealed class LinksSection : Section
                 string? label = isl.Ask(Loc.T("Название ссылки", "Link Name", "Bağlantı Adı"),
                                         Loc.T("Введите отображаемое имя ссылки:", "Enter link display name:", "Bağlantı görünen adını girin:"),
                                         defaultLabel);
+                if (label == null) return;
                 if (string.IsNullOrWhiteSpace(label)) label = defaultLabel;
 
                 _links.Add(new QuickLink { Label = label.Trim(), Target = target });

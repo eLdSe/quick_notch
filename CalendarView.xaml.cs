@@ -58,9 +58,36 @@ public partial class CalendarView : UserControl
         _island?.StopLeaveTimer();
     }
 
+    public void RefreshLabels()
+    {
+        if (TodayButtonText != null)
+            TodayButtonText.Text = Loc.T("Сегодня", "Today", "Bugün");
+
+        if (NewTaskButtonText != null)
+            NewTaskButtonText.Text = Loc.T("Новая задача", "New Task", "Yeni Görev");
+
+        if (SelectedDaySubtext != null)
+            SelectedDaySubtext.Text = Loc.T("Задачи и напоминания", "Tasks & Reminders", "Görevler ve Hatırlatıcılar");
+
+        if (NoNotesTitleText != null)
+            NoNotesTitleText.Text = Loc.T("На этот день нет задач", "No tasks for this day", "Bu gün için görev yok");
+
+        if (NoNotesSubtext != null)
+            NoNotesSubtext.Text = Loc.T("Нажмите «Новая задача», чтобы добавить", "Click \"New Task\" to add one", "Eklemek için \"Yeni Görev\"e tıklayın");
+
+        if (DayHeader0 != null) DayHeader0.Text = Loc.T("пн", "Mon", "Pzt");
+        if (DayHeader1 != null) DayHeader1.Text = Loc.T("вт", "Tue", "Sal");
+        if (DayHeader2 != null) DayHeader2.Text = Loc.T("ср", "Wed", "Çar");
+        if (DayHeader3 != null) DayHeader3.Text = Loc.T("чт", "Thu", "Per");
+        if (DayHeader4 != null) DayHeader4.Text = Loc.T("пт", "Fri", "Cum");
+        if (DayHeader5 != null) DayHeader5.Text = Loc.T("сб", "Sat", "Cmt");
+        if (DayHeader6 != null) DayHeader6.Text = Loc.T("вс", "Sun", "Paz");
+    }
+
     public void RefreshAll()
     {
         if (_island == null) return;
+        RefreshLabels();
 
         // 1. Шапка месяца
         string monthTitle = _viewMonth.ToString("MMMM yyyy", Loc.Culture);
@@ -301,7 +328,9 @@ public partial class CalendarView : UserControl
         int dayOfYear = _selectedDay.DayOfYear;
         int totalDays = DateTime.IsLeapYear(_selectedDay.Year) ? 366 : 365;
         int daysLeft = totalDays - dayOfYear;
-        YearStatsText.Text = $"День {dayOfYear} из {totalDays}  ·  До Нового года: {daysLeft} дн.";
+        YearStatsText.Text = string.Format(
+            Loc.T("День {0} из {1}  ·  До Нового года: {2} дн.", "Day {0} of {1}  ·  {2} days until New Year", "{0} / {1}. Gün  ·  Yılbaşına: {2} gün"),
+            dayOfYear, totalDays, daysLeft);
     }
 
     private static ControlTemplate CreateRoundButtonTemplate()
@@ -346,7 +375,10 @@ public partial class CalendarView : UserControl
     {
         if (_island == null) return;
         string dateStr = _selectedDay.ToString("d MMMM", Loc.Culture);
-        string? text = _island.Ask("Новая задача", $"Напоминание на {dateStr}:");
+        string title = Loc.T("Новая задача", "New Task", "Yeni Görev");
+        string prompt = Loc.T($"Напоминание на {dateStr}:", $"Reminder for {dateStr}:", $"{dateStr} için hatırlatıcı:");
+        string? text = _island.Ask(title, prompt);
+        if (text == null) return;
         if (!string.IsNullOrWhiteSpace(text))
         {
             Sections.Calendar.AddNote(_selectedDay.ToString("yyyy-MM-dd"), text.Trim());

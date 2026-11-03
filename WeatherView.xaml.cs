@@ -228,8 +228,11 @@ public partial class WeatherView : UserControl
     private void OnChangeCityClick(object sender, RoutedEventArgs e)
     {
         if (_island == null) return;
-        string current = _island.S.WeatherCity ?? "Москва";
-        string? entered = _island.Ask("Выбор города", "Введите название города (например, Москва, Сочи, Стамбул):", current);
+        string current = _island.S.WeatherCity ?? Loc.T("Москва", "Moscow", "İstanbul");
+        string title = Loc.T("Выбор города", "Select City", "Şehir Seçimi");
+        string prompt = Loc.T("Введите название города (например, Москва, Сочи, Стамбул):", "Enter city name (e.g. London, New York, Tokyo):", "Şehir adını girin (örn. İstanbul, Ankara, İzmir):");
+        string? entered = _island.Ask(title, prompt, current);
+        if (entered == null) return;
         if (!string.IsNullOrWhiteSpace(entered))
         {
             _island.S.WeatherCity = entered.Trim();

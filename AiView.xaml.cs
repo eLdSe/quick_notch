@@ -90,11 +90,73 @@ public partial class AiView : UserControl
 
 
 
-    public void RefreshAll()
-
+    public void RefreshLabels()
     {
+        if (PetAeroText != null)
+            PetAeroText.Text = Loc.T("Погладить Аэро", "Pet Aero", "Aero'yu Sev");
 
+        if (ToolsTitleText != null)
+            ToolsTitleText.Text = Loc.T("Инструменты", "Tools", "Araçlar");
+
+        if (ExplainClipboardText != null)
+            ExplainClipboardText.Text = Loc.T("Объясни буфер", "Explain Clipboard", "Panoyu Açıkla");
+
+        if (ExplainClipboardButton != null)
+            ExplainClipboardButton.ToolTip = Loc.T("Объяснить скопированный в Windows текст", "Explain copied text from Windows", "Kopyalanan metni açıkla");
+
+        if (FixClipboardText != null)
+            FixClipboardText.Text = Loc.T("Исправь текст", "Fix Text", "Metni Düzelt");
+
+        if (FixClipboardButton != null)
+            FixClipboardButton.ToolTip = Loc.T("Исправить ошибки и улучшить текст из буфера", "Fix errors and improve clipboard text", "Panodaki metnin hatalarını düzelt");
+
+        if (ApiKeyButton != null)
+            ApiKeyButton.ToolTip = Loc.T("Настройки модели и API-ключа", "Model and API key settings", "Model ve API anahtarı ayarları");
+
+        if (ChatHeaderTitleText != null)
+            ChatHeaderTitleText.Text = Loc.T("Диалог с Аэро", "Chat with Aero", "Aero ile Sohbet");
+
+        if (NewChatButtonText != null)
+            NewChatButtonText.Text = Loc.T("Новый чат", "New Chat", "Yeni Sohbet");
+
+        if (NewChatButton != null)
+            NewChatButton.ToolTip = Loc.T("Начать новый диалог", "Start new chat", "Yeni sohbet başlat");
+
+        if (HistoryButtonText != null)
+            HistoryButtonText.Text = Loc.T("История", "History", "Geçmiş");
+
+        if (HistoryButton != null)
+            HistoryButton.ToolTip = Loc.T("История переписки", "Chat history", "Sohbet geçmişi");
+
+        if (WelcomeTitleText != null)
+            WelcomeTitleText.Text = Loc.T("Чем могу помочь сегодня?", "How can I help today?", "Bugün nasıl yardımcı olabilirim?");
+
+        if (WelcomeSubtitleText != null)
+            WelcomeSubtitleText.Text = Loc.T("Задайте любой вопрос или выберите быструю подсказку", "Ask any question or pick a prompt", "Herhangi bir soru sorun veya bir ipucu seçin");
+
+        if (PromptChip1 != null)
+            PromptChip1.Content = Loc.T("Объясни квантовые вычисления простыми словами", "Explain quantum computing in simple terms", "Kuantum hesaplamayı basit kelimelerle açıkla");
+
+        if (PromptChip2 != null)
+            PromptChip2.Content = Loc.T("Напиши вежливый ответ коллеге на рабочее письмо", "Write a polite reply to a coworker's email", "İş e-postasına kibar bir yanıt yaz");
+
+        if (PromptChip3 != null)
+            PromptChip3.Content = Loc.T("Напиши C# метод для подсчёта хэша SHA-256 файла", "Write a C# method to compute file SHA-256 hash", "Dosyanın SHA-256 karmasını hesaplayan C# metodu yaz");
+
+        if (HistoryTitleText != null)
+            HistoryTitleText.Text = Loc.T("История бесед", "Chat History", "Sohbet Geçmişi");
+
+        if (ClearHistoryText != null)
+            ClearHistoryText.Text = Loc.T("Очистить всю историю", "Clear All History", "Tüm Geçmişi Temizle");
+
+        if (PromptPlaceholder != null)
+            PromptPlaceholder.Text = Loc.T("Спросите Аэро о чём угодно... (Enter для отправки)", "Ask Aero anything... (Enter to send)", "Aero'ya istediğinizi sorun... (Göndermek için Enter)");
+    }
+
+    public void RefreshAll()
+    {
         if (_island == null) return;
+        RefreshLabels();
 
 
 
@@ -470,78 +532,42 @@ public partial class AiView : UserControl
 
                 {
 
-                    string prompt = $"Объясни кратко и понятно следующий текст:\n\n\"{text}\"";
-
+                    string prompt = Loc.T($"Объясни кратко и понятно следующий текст:\n\n\"{text}\"", $"Explain clearly and concisely the following text:\n\n\"{text}\"", $"Aşağıdaki metni açık ve net bir şekilde açıkla:\n\n\"{text}\"");
                     Sections.Ai.SendPrompt(_island, prompt);
-
                     RefreshAll();
-
                     return;
-
                 }
-
             }
-
         }
-
         catch { }
 
-
-
-        PromptTextBox.Text = "Объясни текст: ";
-
+        PromptTextBox.Text = Loc.T("Объясни текст: ", "Explain text: ", "Metni açıkla: ");
         PromptTextBox.Focus();
-
         PromptTextBox.CaretIndex = PromptTextBox.Text.Length;
-
     }
 
-
-
     private void OnFixClipboardClick(object sender, RoutedEventArgs e)
-
     {
-
         if (_island == null) return;
-
         try
-
         {
-
             if (Clipboard.ContainsText())
-
             {
-
                 string text = Clipboard.GetText().Trim();
-
                 if (!string.IsNullOrEmpty(text))
-
                 {
-
-                    string prompt = $"Исправь орфографию, пунктуацию и сделай красивый рерайт текста:\n\n\"{text}\"";
-
+                    string prompt = Loc.T($"Исправь орфографию, пунктуацию и сделай красивый рерайт текста:\n\n\"{text}\"", $"Fix spelling, punctuation, and improve the writing of this text:\n\n\"{text}\"", $"Bu metnin imlasını, noktalama işaretlerini düzelt ve akıcı hale getir:\n\n\"{text}\"");
                     Sections.Ai.SendPrompt(_island, prompt);
-
                     RefreshAll();
-
                     return;
-
                 }
-
             }
-
         }
-
         catch { }
 
-
-
-        PromptTextBox.Text = "Исправь ошибки: ";
-
+        PromptTextBox.Text = Loc.T("Исправь ошибки: ", "Fix errors: ", "Hataları düzelt: ");
         PromptTextBox.Focus();
-
         PromptTextBox.CaretIndex = PromptTextBox.Text.Length;
-
     }
 
 
@@ -794,7 +820,9 @@ public partial class AiView : UserControl
 
         string prov = _island.S.AiProvider.ToUpperInvariant();
 
-        string? entered = _island.Ask($"API-ключ {prov}", "Вставьте ваш персональный ключ:", current);
+        string title = Loc.T($"API-ключ {prov}", $"{prov} API Key", $"{prov} API Anahtarı");
+        string prompt = Loc.T("Вставьте ваш персональный ключ:", "Paste your personal API key:", "Kişisel API anahtarınızı yapıştırın:");
+        string? entered = _island.Ask(title, prompt, current);
 
         if (entered != null)
 

@@ -92,7 +92,7 @@
             <!-- 1. Верхняя панель: Заголовок + Фильтры + Кнопки добавления -->
             <Grid Grid.Row="0" Margin="0,0,0,12">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center" /><TextBlock Text="Быстрый запуск" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" /></StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0"><TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center" /><TextBlock x:Name="LinksTitleText" Text="Быстрый запуск" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" /></StackPanel>
                     <RadioButton x:Name="FilterAllRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Все" IsChecked="True" Checked="OnFilterChanged" />
                     <RadioButton x:Name="FilterWebRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Сайты" Margin="4,0,0,0" Checked="OnFilterChanged" />
                     <RadioButton x:Name="FilterFolderRadio" Style="{StaticResource LinkFilterRadioStyle}" Content="Папки" Margin="4,0,0,0" Checked="OnFilterChanged" />
@@ -101,10 +101,10 @@
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Style="{StaticResource HeaderActionButton}" Margin="0,0,6,0" Click="OnAddUrlClick">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Ссылка" FontSize="11" VerticalAlignment="Center" /></StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock x:Name="AddUrlButtonText" Text="Ссылка" FontSize="11" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                     <Button Style="{StaticResource HeaderActionButton}" Margin="0,0,6,0" Click="OnAddFileClick">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Файл / Приложение" FontSize="11" VerticalAlignment="Center" /></StackPanel>
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xED25;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock x:Name="AddFileButtonText" Text="Файл / Приложение" FontSize="11" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                     <Button x:Name="EditModeButton" Style="{StaticResource HeaderActionButton}" Click="OnToggleEditClick">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock x:Name="EditModeButtonText" Text="Изменить" FontSize="11" VerticalAlignment="Center" /></StackPanel>
@@ -124,7 +124,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Добавить в 1 клик:" FontSize="10" FontWeight="Bold" 
+                    <TextBlock x:Name="PresetsTitleText" Grid.Column="0" Text="Добавить в 1 клик:" FontSize="10" FontWeight="Bold" 
                                Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <WrapPanel Grid.Column="1" x:Name="PresetsPanel" VerticalAlignment="Center" />
                 </Grid>

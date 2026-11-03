@@ -15,14 +15,14 @@ public partial class LinksView : UserControl
     private string _filter = "all";
     private bool _isEditMode = false;
 
-    private static readonly (string Label, string Url, string Icon, string Type)[] Presets = new[]
+    private static (string Label, string Url, string Icon, string Type)[] GetPresets() => new[]
     {
         ("GitHub", "https://github.com", "⎇", "web"),
         ("Telegram", "https://web.telegram.org", "✈", "web"),
         ("YouTube", "https://youtube.com", "▶", "web"),
         ("ChatGPT", "https://chatgpt.com", "✦", "web"),
-        ("Загрузки", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"), "📥", "folder"),
-        ("Рабочий стол", Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "🖥", "folder"),
+        (Loc.T("Загрузки", "Downloads", "İndirilenler"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads"), "📥", "folder"),
+        (Loc.T("Рабочий стол", "Desktop", "Masaüstü"), Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "🖥", "folder"),
     };
 
     public LinksView()
@@ -93,9 +93,40 @@ public partial class LinksView : UserControl
         return target;
     }
 
+    public void RefreshLabels()
+    {
+        if (LinksTitleText != null)
+            LinksTitleText.Text = Loc.T("Быстрый запуск", "Quick Launch", "Hızlı Başlat");
+
+        if (FilterAllRadio != null)
+            FilterAllRadio.Content = Loc.T("Все", "All", "Tümü");
+
+        if (FilterWebRadio != null)
+            FilterWebRadio.Content = Loc.T("Сайты", "Websites", "Siteler");
+
+        if (FilterFolderRadio != null)
+            FilterFolderRadio.Content = Loc.T("Папки", "Folders", "Klasörler");
+
+        if (FilterAppRadio != null)
+            FilterAppRadio.Content = Loc.T("Программы", "Apps", "Uygulamalar");
+
+        if (AddUrlButtonText != null)
+            AddUrlButtonText.Text = Loc.T("Ссылка", "Link", "Bağlantı");
+
+        if (AddFileButtonText != null)
+            AddFileButtonText.Text = Loc.T("Файл / Приложение", "File / App", "Dosya / Uygulama");
+
+        if (EditModeButtonText != null)
+            EditModeButtonText.Text = _isEditMode ? Loc.T("✓ Готово", "✓ Done", "✓ Tamam") : Loc.T("Изменить", "Edit", "Düzenle");
+
+        if (PresetsTitleText != null)
+            PresetsTitleText.Text = Loc.T("Добавить в 1 клик:", "Add in 1 click:", "1 tıkla ekle:");
+    }
+
     public void RefreshAll()
     {
         if (_island == null) return;
+        RefreshLabels();
 
         var allLinks = Sections.Links.Links;
         var filtered = allLinks.Where(l =>
@@ -206,7 +237,7 @@ public partial class LinksView : UserControl
                 }
                 catch (Exception ex)
                 {
-                    _island?.Alert($"Не удалось открыть ссылку:\n{ex.Message}");
+                    _island?.Alert(Loc.T($"Не удалось открыть ссылку:\n{ex.Message}", $"Failed to open link:\n{ex.Message}", $"Bağlantı açılamadı:\n{ex.Message}"));
                 }
             };
 
@@ -220,9 +251,10 @@ public partial class LinksView : UserControl
     {
         PresetsPanel.Children.Clear();
         var allLinks = Sections.Links.Links;
-        for (int i = 0; i < Presets.Length; i++)
+        var presets = GetPresets();
+        for (int i = 0; i < presets.Length; i++)
         {
-            var pr = Presets[i];
+            var pr = presets[i];
             bool alreadyAdded = allLinks.Any(l => l.Target.Equals(pr.Url, StringComparison.OrdinalIgnoreCase));
             if (alreadyAdded) continue;
 
@@ -264,12 +296,17 @@ public partial class LinksView : UserControl
     private void OnAddUrlClick(object sender, RoutedEventArgs e)
     {
         if (_island == null) return;
-        string? url = _island.Ask("Новая ссылка", "Введите адрес сайта (URL):");
+        string title1 = Loc.T("Новая ссылка", "New Link", "Yeni Bağlantı");
+        string prompt1 = Loc.T("Введите адрес сайта (URL):", "Enter website address (URL):", "Web sitesi adresini girin (URL):");
+        string? url = _island.Ask(title1, prompt1);
         if (string.IsNullOrWhiteSpace(url)) return;
         url = url.Trim();
         if (!url.Contains("://") && !url.Contains(":\\")) url = "https://" + url;
 
-        string? label = _island.Ask("Название ссылки", "Введите отображаемое имя:", GetSubtitle(url));
+        string title2 = Loc.T("Название ссылки", "Link Name", "Bağlantı Adı");
+        string prompt2 = Loc.T("Введите отображаемое имя:", "Enter display name:", "Görünen adı girin:");
+        string? label = _island.Ask(title2, prompt2, GetSubtitle(url));
+        if (label == null) return;
         if (string.IsNullOrWhiteSpace(label)) label = GetSubtitle(url);
 
         Sections.Links.AddLink(new QuickLink { Label = label.Trim(), Target = url });
@@ -281,8 +318,8 @@ public partial class LinksView : UserControl
         if (_island == null) return;
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Выберите приложение или файл",
-            Filter = "Все файлы (*.*)|*.*|Программы (*.exe;*.lnk)|*.exe;*.lnk"
+            Title = Loc.T("Выберите приложение или файл", "Select application or file", "Uygulama veya dosya seçin"),
+            Filter = Loc.T("Все файлы (*.*)|*.*|Программы (*.exe;*.lnk)|*.exe;*.lnk", "All Files (*.*)|*.*|Programs (*.exe;*.lnk)|*.exe;*.lnk", "Tüm Dosyalar (*.*)|*.*|Programlar (*.exe;*.lnk)|*.exe;*.lnk")
         };
         if (dlg.ShowDialog() == true)
         {
@@ -295,7 +332,8 @@ public partial class LinksView : UserControl
     private void OnToggleEditClick(object sender, RoutedEventArgs e)
     {
         _isEditMode = !_isEditMode;
-        EditModeButtonText.Text = _isEditMode ? "✓ Готово" : "✏️ Изменить";
+        if (EditModeButtonText != null)
+            EditModeButtonText.Text = _isEditMode ? Loc.T("✓ Готово", "✓ Done", "✓ Tamam") : Loc.T("Изменить", "Edit", "Düzenle");
         RefreshAll();
     }
 }

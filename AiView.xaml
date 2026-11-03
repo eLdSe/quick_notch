@@ -1,701 +1,325 @@
 <UserControl x:Class="QuickNotchCs.AiView"
-
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-
              mc:Ignorable="d" 
-
              d:DesignHeight="366" d:DesignWidth="808"
-
              TextOptions.TextFormattingMode="Display"
-
              TextOptions.TextRenderingMode="ClearType"
-
              FontFamily="Segoe UI Variable Display, Segoe UI">
-
-
-
     <UserControl.Resources>
-
         <!-- Стиль служебных кнопок в заголовке -->
-
         <Style x:Key="AiHeaderButton" TargetType="Button">
-
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-
             <Setter Property="Cursor" Value="Hand" />
-
             <Setter Property="Background" Value="#262629" />
-
             <Setter Property="BorderBrush" Value="#28282B" />
-
             <Setter Property="BorderThickness" Value="1" />
-
             <Setter Property="Foreground" Value="White" />
-
             <Setter Property="FontSize" Value="11" />
-
             <Setter Property="FontWeight" Value="SemiBold" />
-
             <Setter Property="Padding" Value="10,5" />
-
             <Setter Property="Template">
-
                 <Setter.Value>
-
                     <ControlTemplate TargetType="Button">
-
                         <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
-
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-
                         </Border>
-
                         <ControlTemplate.Triggers>
-
                             <Trigger Property="IsMouseOver" Value="True">
-
                                 <Setter TargetName="b" Property="Background" Value="#323236" />
-
                             </Trigger>
-
                         </ControlTemplate.Triggers>
-
                     </ControlTemplate>
-
                 </Setter.Value>
-
             </Setter>
-
         </Style>
-
-
-
         <!-- Кнопка действия с Аэро (Выпустить / Погладить) -->
-
         <Style x:Key="AeroActionButton" TargetType="Button">
-
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-
             <Setter Property="Cursor" Value="Hand" />
-
             <Setter Property="Background" Value="#26262C" />
-
             <Setter Property="BorderBrush" Value="#383842" />
-
             <Setter Property="BorderThickness" Value="1" />
-
             <Setter Property="Foreground" Value="White" />
-
             <Setter Property="FontSize" Value="11" />
-
             <Setter Property="Height" Value="26" />
-
             <Setter Property="Template">
-
                 <Setter.Value>
-
                     <ControlTemplate TargetType="Button">
-
                         <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="8,2">
-
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-
                         </Border>
-
                         <ControlTemplate.Triggers>
-
                             <Trigger Property="IsMouseOver" Value="True">
-
                                 <Setter TargetName="b" Property="Background" Value="#32323A" />
-
                                 <Setter TargetName="b" Property="BorderBrush" Value="#484854" />
-
                             </Trigger>
-
                         </ControlTemplate.Triggers>
-
                     </ControlTemplate>
-
                 </Setter.Value>
-
             </Setter>
-
         </Style>
-
-
-
         <!-- Кнопка смарт-инструмента (Объясни буфер, Исправь ошибки) -->
-
         <Style x:Key="AeroToolButton" TargetType="Button">
-
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-
             <Setter Property="Cursor" Value="Hand" />
-
             <Setter Property="Background" Value="#222226" />
-
             <Setter Property="BorderBrush" Value="#2E2E36" />
-
             <Setter Property="BorderThickness" Value="1" />
-
             <Setter Property="Foreground" Value="White" />
-
             <Setter Property="Height" Value="28" />
-
             <Setter Property="Template">
-
                 <Setter.Value>
-
                     <ControlTemplate TargetType="Button">
-
                         <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="10,4">
-
                             <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
-
                         </Border>
-
                         <ControlTemplate.Triggers>
-
                             <Trigger Property="IsMouseOver" Value="True">
-
                                 <Setter TargetName="b" Property="Background" Value="#2C2C32" />
-
                                 <Setter TargetName="b" Property="BorderBrush" Value="#0A84FF" />
-
                             </Trigger>
-
                         </ControlTemplate.Triggers>
-
                     </ControlTemplate>
-
                 </Setter.Value>
-
             </Setter>
-
         </Style>
-
-
-
         <!-- Кнопка быстрого вопроса (Prompt Chip) -->
-
         <Style x:Key="PromptChipButton" TargetType="Button">
-
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-
             <Setter Property="Cursor" Value="Hand" />
-
             <Setter Property="Background" Value="#262629" />
-
             <Setter Property="BorderBrush" Value="#28282B" />
-
             <Setter Property="BorderThickness" Value="1" />
-
             <Setter Property="Foreground" Value="White" />
-
             <Setter Property="FontSize" Value="11" />
-
             <Setter Property="Padding" Value="14,7" />
-
             <Setter Property="Margin" Value="0,0,0,6" />
-
             <Setter Property="HorizontalAlignment" Value="Center" />
-
             <Setter Property="Template">
-
                 <Setter.Value>
-
                     <ControlTemplate TargetType="Button">
-
                         <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
-
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-
                         </Border>
-
                         <ControlTemplate.Triggers>
-
                             <Trigger Property="IsMouseOver" Value="True">
-
                                 <Setter TargetName="b" Property="Background" Value="#323236" />
-
                                 <Setter TargetName="b" Property="BorderBrush" Value="#0A84FF" />
-
                             </Trigger>
-
                         </ControlTemplate.Triggers>
-
                     </ControlTemplate>
-
                 </Setter.Value>
-
             </Setter>
-
         </Style>
-
     </UserControl.Resources>
-
-
-
     <!-- Главная 2-колоночная раскладка: Слева — Штаб Аэро, Справа — Диалог с ИИ -->
-
     <Grid>
-
         <Grid.ColumnDefinitions>
-
             <!-- 1. Левая панель: Персонаж Аэро и смарт-действия -->
-
             <ColumnDefinition Width="180" />
-
             <ColumnDefinition Width="10" />
-
             <!-- 2. Правая панель: Чат с Аэро -->
-
             <ColumnDefinition Width="*" />
-
         </Grid.ColumnDefinitions>
-
-
-
         <!-- ==================== ЛЕВАЯ ПАНЕЛЬ: ШТАБ АЭРО ==================== -->
-
         <Border Grid.Column="0" Background="{StaticResource SurfaceBrush}" 
-
                 BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-
                 CornerRadius="20" Padding="10,8">
-
             <Grid>
-
                 <Grid.RowDefinitions>
-
                     <!-- Карточка Аэро -->
-
                     <RowDefinition Height="Auto" />
-
                     <!-- Разделитель -->
-
                     <RowDefinition Height="14" />
-
                     <!-- Смарт-инструменты -->
-
                     <RowDefinition Height="*" />
-
                 </Grid.RowDefinitions>
-
-
-
                 <!-- 1. Профиль Аэро -->
-
                 <StackPanel Grid.Row="0">
-
                     <!-- Аватар Аэро: гармонично центрированный векторный чиби-робот -->
-
                     <Grid Width="56" Height="56" HorizontalAlignment="Center" Margin="0,2,0,4" Cursor="Hand" MouseLeftButtonUp="OnAeroAvatarClick" ToolTip="Погладить Аэро ✨">
-
                         <!-- Неоновый ореол -->
-
                         <Ellipse Width="56" Height="56" Fill="#1438BDF8">
-
                             <Ellipse.Effect>
-
                                 <DropShadowEffect BlurRadius="16" ShadowDepth="0" Color="#38BDF8" Opacity="0.5" RenderingBias="Performance" />
-
                             </Ellipse.Effect>
-
                         </Ellipse>
-
-
-
                         <!-- Стеклянная капсула -->
-
                         <Border Width="56" Height="56" CornerRadius="28" Background="#131622" BorderBrush="#3538BDF8" BorderThickness="1.5" SnapsToDevicePixels="True">
-
                             <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-
                                 <!-- Неоновые чашки наушников -->
-
                                 <Border Width="4" Height="14" CornerRadius="2" Background="#38BDF8" HorizontalAlignment="Left" Margin="-3,0,0,0" VerticalAlignment="Center">
-
                                     <Border.Effect>
-
                                         <DropShadowEffect BlurRadius="4" ShadowDepth="0" Color="#38BDF8" Opacity="0.75" RenderingBias="Performance" />
-
                                     </Border.Effect>
-
                                 </Border>
-
                                 <Border Width="4" Height="14" CornerRadius="2" Background="#38BDF8" HorizontalAlignment="Right" Margin="0,0,-3,0" VerticalAlignment="Center">
-
                                     <Border.Effect>
-
                                         <DropShadowEffect BlurRadius="4" ShadowDepth="0" Color="#38BDF8" Opacity="0.75" RenderingBias="Performance" />
-
                                     </Border.Effect>
-
                                 </Border>
-
-
-
                                 <!-- Белый керамический корпус головы -->
-
                                 <Border Width="38" Height="30" CornerRadius="10" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="1" SnapsToDevicePixels="True">
-
                                     <Grid>
-
                                         <!-- Глянцевый блик сверху шлема -->
-
                                         <Border Height="4" CornerRadius="2" Background="#70FFFFFF" VerticalAlignment="Top" Margin="5,1.5,5,0" />
-
-
-
                                         <!-- Темный OLED-визор -->
-
                                         <Border Width="28" Height="18" CornerRadius="6" Background="#0F172A" BorderBrush="#2538BDF8" BorderThickness="0.8" 
-
                                                 HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0">
-
                                             <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-
                                                 <!-- Глазки в покое (с двойными бликами) -->
-
                                                 <Grid x:Name="AeroAvatarNormalEyes" Visibility="Visible">
-
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
                                                         <!-- Левый глаз -->
-
                                                         <Border Width="6" Height="7" CornerRadius="2.8" Background="#38BDF8" Margin="0,0,4,0">
-
                                                             <Border.Effect>
-
                                                                 <DropShadowEffect BlurRadius="3" ShadowDepth="0" Color="#38BDF8" Opacity="0.85" RenderingBias="Performance" />
-
                                                             </Border.Effect>
-
                                                             <Ellipse Width="1.8" Height="1.8" Fill="#FFFFFF" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1,1,0,0" />
-
                                                         </Border>
-
                                                         <!-- Правый глаз -->
-
                                                         <Border Width="6" Height="7" CornerRadius="2.8" Background="#38BDF8">
-
                                                             <Border.Effect>
-
                                                                 <DropShadowEffect BlurRadius="3" ShadowDepth="0" Color="#38BDF8" Opacity="0.85" RenderingBias="Performance" />
-
                                                             </Border.Effect>
-
                                                             <Ellipse Width="1.8" Height="1.8" Fill="#FFFFFF" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="1,1,0,0" />
-
                                                         </Border>
-
                                                     </StackPanel>
-
                                                 </Grid>
-
-
-
                                                 <!-- Глазки от удовольствия ( ^ ‿ ^ ) при поглаживании -->
-
                                                 <Grid x:Name="AeroAvatarHappyEyes" Visibility="Collapsed">
-
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
                                                         <Path Data="M 0,4 Q 3,0 6,4" Stroke="#38BDF8" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Margin="0,0,3,0">
-
                                                             <Path.Effect>
-
                                                                 <DropShadowEffect BlurRadius="3" ShadowDepth="0" Color="#38BDF8" Opacity="0.85" RenderingBias="Performance" />
-
                                                             </Path.Effect>
-
                                                         </Path>
-
                                                         <Path Data="M 0,4 Q 3,0 6,4" Stroke="#38BDF8" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
-
                                                             <Path.Effect>
-
                                                                 <DropShadowEffect BlurRadius="3" ShadowDepth="0" Color="#38BDF8" Opacity="0.85" RenderingBias="Performance" />
-
                                                             </Path.Effect>
-
                                                         </Path>
-
                                                     </StackPanel>
-
                                                 </Grid>
-
                                             </Grid>
-
                                         </Border>
-
                                     </Grid>
-
                                 </Border>
-
                             </Grid>
-
                         </Border>
-
                     </Grid>
-
-
-
                     <!-- Имя и статус -->
-
                     <TextBlock Text="Аэро" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
-
-                    
-
                     <Border Background="#202024" CornerRadius="9" Padding="8,2" HorizontalAlignment="Center" Margin="0,2,0,6">
-
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
                             <Ellipse x:Name="AeroStatusDot" Width="5.5" Height="5.5" Fill="{StaticResource GreenBrush}" Margin="0,0,5,0" />
-
                             <TextBlock x:Name="AeroStatusText" Text="В острове" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource GreenBrush}" />
-
                         </StackPanel>
-
                     </Border>
-
-
-
                     <!-- Кнопки управления персонажем -->
-
                     <Button x:Name="ToggleRoamButton" Style="{StaticResource AeroActionButton}" Click="OnToggleRoamClick">
-
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-
                             <TextBlock x:Name="ToggleRoamIcon" Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-
                             <TextBlock x:Name="ToggleRoamText" Text="На рабочий стол" FontWeight="SemiBold" />
-
                         </StackPanel>
-
                     </Button>
-
-
-
                     <Button Style="{StaticResource AeroActionButton}" Click="OnPetAeroClick" Margin="0,4,0,0">
-
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-
                             <TextBlock Text="&#xE76E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center" />
-
-                            <TextBlock Text="Погладить Аэро" />
-
+                            <TextBlock x:Name="PetAeroText" Text="Погладить Аэро" />
                         </StackPanel>
-
                     </Button>
-
                 </StackPanel>
-
-
-
                 <!-- 2. Разделитель -->
-
                 <Rectangle Grid.Row="1" Fill="{StaticResource BorderSubtleBrush}" Height="1" VerticalAlignment="Center" Margin="0,6" />
-
-
-
                 <!-- 3. Смарт-инструменты в 1 клик -->
-
                 <StackPanel Grid.Row="2" VerticalAlignment="Top">
-
-                    <TextBlock Text="Инструменты" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="2,0,0,6" />
-
-
-
+                    <TextBlock x:Name="ToolsTitleText" Text="Инструменты" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="2,0,0,6" />
                     <!-- Кнопка «Объясни буфер» -->
-
-                    <Button Style="{StaticResource AeroToolButton}" Click="OnExplainClipboardClick" Margin="0,0,0,5" ToolTip="Объяснить скопированный в Windows текст">
-
+                    <Button x:Name="ExplainClipboardButton" Style="{StaticResource AeroToolButton}" Click="OnExplainClipboardClick" Margin="0,0,0,5" ToolTip="Объяснить скопированный в Windows текст">
                         <Grid>
-
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
                                 <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,8,0" VerticalAlignment="Center" />
-
-                                <TextBlock Text="Объясни буфер" FontSize="11" FontWeight="SemiBold" />
-
+                                <TextBlock x:Name="ExplainClipboardText" Text="Объясни буфер" FontSize="11" FontWeight="SemiBold" />
                             </StackPanel>
-
                             <TextBlock Text="➔" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-
                         </Grid>
-
                     </Button>
-
-
-
                     <!-- Кнопка «Исправь текст» -->
-
-                    <Button Style="{StaticResource AeroToolButton}" Click="OnFixClipboardClick" Margin="0,0,0,5" ToolTip="Исправить ошибки и улучшить текст из буфера">
-
+                    <Button x:Name="FixClipboardButton" Style="{StaticResource AeroToolButton}" Click="OnFixClipboardClick" Margin="0,0,0,5" ToolTip="Исправить ошибки и улучшить текст из буфера">
                         <Grid>
-
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
                                 <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,8,0" VerticalAlignment="Center" />
-
-                                <TextBlock Text="Исправь текст" FontSize="11" FontWeight="SemiBold" />
-
+                                <TextBlock x:Name="FixClipboardText" Text="Исправь текст" FontSize="11" FontWeight="SemiBold" />
                             </StackPanel>
-
                             <TextBlock Text="➔" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-
                         </Grid>
-
                     </Button>
-
-
-
                     <!-- Кнопка «Модель / Ключ» -->
-
-                    <Button Style="{StaticResource AeroToolButton}" Click="OnApiKeyClick" ToolTip="Настройки модели и API-ключа">
-
+                    <Button x:Name="ApiKeyButton" Style="{StaticResource AeroToolButton}" Click="OnApiKeyClick" ToolTip="Настройки модели и API-ключа">
                         <Grid>
-
                             <TextBlock x:Name="ProviderModelBadge" Text="Gemini 2.5 Flash" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
-
                             <TextBlock Text="›" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-
                         </Grid>
-
                     </Button>
-
                 </StackPanel>
-
             </Grid>
-
         </Border>
-
-
-
         <!-- ==================== ПРАВАЯ ПАНЕЛЬ: ЧАТ С АЭРО ==================== -->
-
         <Border Grid.Column="2" Background="{StaticResource SurfaceBrush}" 
-
                 BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-
                 CornerRadius="20" Padding="16,12">
-
             <Grid>
-
                 <Grid.RowDefinitions>
-
                     <!-- Шапка чата -->
-
                     <RowDefinition Height="Auto" />
-
                     <!-- Сообщения -->
-
                     <RowDefinition Height="*" />
-
                     <!-- Ввод -->
-
                     <RowDefinition Height="Auto" />
-
                 </Grid.RowDefinitions>
-
-
-
                 <!-- 1. Верхняя панель заголовка чата -->
-
                 <Grid Grid.Row="0" Margin="0,0,0,10">
-
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-
                         <TextBlock Text="&#xE8BD;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
-
-                        <TextBlock Text="Диалог с Аэро" FontSize="13.5" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-
+                        <TextBlock x:Name="ChatHeaderTitleText" Text="Диалог с Аэро" FontSize="13.5" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
-
-
-
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-
-                        <Button Style="{StaticResource AiHeaderButton}" Margin="0,0,6,0" Click="OnNewChatClick" ToolTip="Начать новый диалог">
-
-                            <TextBlock Text="Новый чат" FontSize="10.5" />
-
+                        <Button x:Name="NewChatButton" Style="{StaticResource AiHeaderButton}" Margin="0,0,6,0" Click="OnNewChatClick" ToolTip="Начать новый диалог">
+                            <TextBlock x:Name="NewChatButtonText" Text="Новый чат" FontSize="10.5" />
                         </Button>
-
-                        <Button Style="{StaticResource AiHeaderButton}" Click="OnToggleHistoryClick" ToolTip="История переписки">
-
-                            <TextBlock Text="История" FontSize="10.5" />
-
+                        <Button x:Name="HistoryButton" Style="{StaticResource AiHeaderButton}" Click="OnToggleHistoryClick" ToolTip="История переписки">
+                            <TextBlock x:Name="HistoryButtonText" Text="История" FontSize="10.5" />
                         </Button>
-
                     </StackPanel>
-
                 </Grid>
-
-
-
                 <!-- 2. Центральная область чата и приветствия -->
-
                 <Grid Grid.Row="1" Margin="0,0,0,10">
-
                     <!-- Прокручиваемый список сообщений чата -->
-
                     <ScrollViewer x:Name="ChatScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-
                         <StackPanel x:Name="MessagesPanel" />
-
                     </ScrollViewer>
-
-
-
                     <!-- Приветственный экран, если сообщений нет -->
-
                     <StackPanel x:Name="WelcomePanel" VerticalAlignment="Center" HorizontalAlignment="Center">
-
                         <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="32" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,0,0,8" />
-
-                        <TextBlock Text="Чем могу помочь сегодня?" FontSize="15" FontWeight="SemiBold" 
-
+                        <TextBlock x:Name="WelcomeTitleText" Text="Чем могу помочь сегодня?" FontSize="15" FontWeight="SemiBold" 
                                    Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
-
-                        <TextBlock Text="Задайте любой вопрос или выберите быструю подсказку" FontSize="11" 
-
+                        <TextBlock x:Name="WelcomeSubtitleText" Text="Задайте любой вопрос или выберите быструю подсказку" FontSize="11" 
                                    Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,3,0,12" />
-
-
-
-                        <Button Style="{StaticResource PromptChipButton}" Click="OnPromptChipClick" 
-
+                        <Button x:Name="PromptChip1" Style="{StaticResource PromptChipButton}" Click="OnPromptChipClick" 
                                 Content="Объясни квантовые вычисления простыми словами" />
-
-                        <Button Style="{StaticResource PromptChipButton}" Click="OnPromptChipClick" 
-
+                        <Button x:Name="PromptChip2" Style="{StaticResource PromptChipButton}" Click="OnPromptChipClick" 
                                 Content="Напиши вежливый ответ коллеге на рабочее письмо" />
-
-                        <Button Style="{StaticResource PromptChipButton}" Click="OnPromptChipClick" 
-
+                        <Button x:Name="PromptChip3" Style="{StaticResource PromptChipButton}" Click="OnPromptChipClick" 
                                 Content="Напиши C# метод для подсчёта хэша SHA-256 файла" />
-
                     </StackPanel>
-
-
-
                     <!-- Боковая шторка истории диалогов -->
                     <Border x:Name="HistoryDrawer" Style="{StaticResource AppleGlassCardStyle}" 
                             Width="280" HorizontalAlignment="Right" 
@@ -706,134 +330,73 @@
                                 <RowDefinition Height="*" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-
                             <Grid Grid.Row="0" Margin="0,0,0,10">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="История бесед" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="HistoryTitleText" Text="История бесед" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                                 <Button Style="{StaticResource AiHeaderButton}" HorizontalAlignment="Right" Padding="6,2" Click="OnCloseHistoryClick">
                                     <TextBlock Text="✕" FontSize="10" />
                                 </Button>
                             </Grid>
-
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                                 <StackPanel x:Name="HistoryListPanel" />
                             </ScrollViewer>
-
                             <!-- Кнопка очистки всей истории -->
                             <Button Grid.Row="2" x:Name="ClearHistoryButton" Style="{StaticResource AiHeaderButton}" 
                                     HorizontalAlignment="Stretch" Margin="0,10,0,0" Padding="8,6" Click="OnClearAllHistoryClick">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource AccentHotBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="Очистить всю историю" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentHotBrush}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ClearHistoryText" Text="Очистить всю историю" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentHotBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </Grid>
                     </Border>
-
                 </Grid>
-
-
-
                 <!-- 3. Нижняя панель ввода вопроса -->
-
                 <Border Grid.Row="2" Background="{StaticResource Surface2Brush}" 
-
                         BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
-
                         CornerRadius="18" Padding="12,5">
-
                     <Grid>
-
                         <Grid.ColumnDefinitions>
-
                             <ColumnDefinition Width="*" />
-
                             <ColumnDefinition Width="Auto" />
-
                             <ColumnDefinition Width="6" />
-
                             <ColumnDefinition Width="Auto" />
-
                         </Grid.ColumnDefinitions>
-
-
-
                         <!-- Поле ввода текста -->
-
                         <TextBox Grid.Column="0" x:Name="PromptTextBox" Background="Transparent" BorderThickness="0" 
-
                                  Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" 
-
                                  VerticalAlignment="Center" TextWrapping="Wrap" MaxHeight="60" 
-
                                  PreviewKeyDown="OnPromptKeyDown" />
-
-
-
                         <!-- Текст-подсказка (Placeholder) -->
-
                         <TextBlock Grid.Column="0" x:Name="PromptPlaceholder" Text="Спросите Аэро о чём угодно... (Enter для отправки)" 
-
                                    FontSize="11.5" Foreground="{StaticResource TextSecondaryBrush}" 
-
                                    VerticalAlignment="Center" Margin="2,0,0,0" IsHitTestVisible="False" />
-
-
-
                         <!-- Кнопка Вставить из буфера -->
-
                         <Button Grid.Column="1" Style="{StaticResource AiHeaderButton}" Padding="7,3" 
-
                                 ToolTip="Вставить из буфера" Click="OnPasteClick">
-
                             <TextBlock Text="&#xE77F;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" />
-
                         </Button>
-
-
-
                         <!-- Кнопка Отправить -->
-
                         <Button Grid.Column="3" x:Name="SendButton" Width="30" Height="30" Cursor="Hand" Click="OnSendClick">
-
                             <Button.Template>
-
                                 <ControlTemplate TargetType="Button">
-
                                     <Border x:Name="b" Background="{StaticResource AccentBrush}" CornerRadius="15">
-
                                         <TextBlock Text="➔" FontSize="12" FontWeight="Bold" Foreground="White" 
-
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,0" />
-
                                     </Border>
-
                                     <ControlTemplate.Triggers>
-
                                         <Trigger Property="IsMouseOver" Value="True">
-
                                             <Setter TargetName="b" Property="Background" Value="#0077ED" />
-
                                         </Trigger>
-
                                     </ControlTemplate.Triggers>
-
                                 </ControlTemplate>
-
                             </Button.Template>
-
                         </Button>
-
                     </Grid>
-
                 </Border>
-
             </Grid>
-
         </Border>
-
     </Grid>
-
 </UserControl>

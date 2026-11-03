@@ -249,15 +249,6 @@ public static class AskDialog
             Padding = new Thickness(22, 18, 22, 20)
         };
 
-        // Window dragging on card
-        card.MouseLeftButtonDown += (_, e) =>
-        {
-            if (e.ButtonState == MouseButtonState.Pressed)
-            {
-                try { dlg.DragMove(); } catch { }
-            }
-        };
-
         // --- Header ---
         var headerGrid = new Grid();
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -329,7 +320,23 @@ public static class AskDialog
             closeBtn.Background = new SolidColorBrush(Color.FromArgb(15, 255, 255, 255));
             ((TextBlock)closeBtn.Child).Foreground = new SolidColorBrush(Color.FromArgb(160, 255, 255, 255));
         };
-        closeBtn.MouseLeftButtonUp += (_, _) => dlg.DialogResult = false;
+        void CloseCancel()
+        {
+            result = null;
+            try { dlg.DialogResult = false; } catch { }
+            try { dlg.Close(); } catch { }
+        }
+
+        closeBtn.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            CloseCancel();
+        };
+        closeBtn.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            CloseCancel();
+        };
         Grid.SetColumn(closeBtn, 2);
         headerGrid.Children.Add(closeBtn);
 
@@ -445,7 +452,16 @@ public static class AskDialog
         };
         cancelBtn.MouseEnter += (_, _) => cancelBtn.Background = new SolidColorBrush(Color.FromArgb(38, 255, 255, 255));
         cancelBtn.MouseLeave += (_, _) => cancelBtn.Background = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255));
-        cancelBtn.MouseLeftButtonUp += (_, _) => dlg.DialogResult = false;
+        cancelBtn.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            CloseCancel();
+        };
+        cancelBtn.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            CloseCancel();
+        };
         buttonsRow.Children.Add(cancelBtn);
 
         // Submit button
@@ -467,6 +483,16 @@ public static class AskDialog
         };
         submitBtn.MouseEnter += (_, _) => submitBrush.Color = Theme.AccentHot;
         submitBtn.MouseLeave += (_, _) => submitBrush.Color = Theme.Accent;
+        submitBtn.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            Submit();
+        };
+        submitBtn.MouseLeftButtonUp += (_, e) =>
+        {
+            e.Handled = true;
+            Submit();
+        };
         buttonsRow.Children.Add(submitBtn);
 
         Grid.SetColumn(buttonsRow, 1);
@@ -481,6 +507,23 @@ public static class AskDialog
         stack.Children.Add(footerGrid);
 
         card.Child = stack;
+
+        // Window dragging on card background only (ignore buttons and input well)
+        card.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.ButtonState == MouseButtonState.Pressed)
+            {
+                if (e.OriginalSource is DependencyObject dep)
+                {
+                    for (DependencyObject? cur = dep; cur != null && cur != card; cur = VisualTreeHelper.GetParent(cur))
+                    {
+                        if (cur == cancelBtn || cur == closeBtn || cur == submitBtn || cur == wellBorder || cur is TextBox || cur is Button)
+                            return;
+                    }
+                }
+                try { dlg.DragMove(); } catch { }
+            }
+        };
 
         // Wrap card in container with margin for DropShadowEffect
         var outerWrapper = new Border
@@ -501,20 +544,20 @@ public static class AskDialog
                 return;
             }
             result = value;
-            dlg.DialogResult = true;
+            try { dlg.DialogResult = true; } catch { }
+            try { dlg.Close(); } catch { }
         }
 
-        submitBtn.MouseLeftButtonUp += (_, _) => Submit();
         entry.KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Enter) Submit();
-            else if (e.Key == Key.Escape) dlg.DialogResult = false;
+            if (e.Key == Key.Enter) { e.Handled = true; Submit(); }
+            else if (e.Key == Key.Escape) { e.Handled = true; CloseCancel(); }
         };
 
         // Escape also on root window
         dlg.KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Escape) dlg.DialogResult = false;
+            if (e.Key == Key.Escape) { e.Handled = true; CloseCancel(); }
         };
 
         dlg.Loaded += (_, _) =>

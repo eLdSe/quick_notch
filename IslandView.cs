@@ -1123,6 +1123,13 @@ public sealed class IslandView : FrameworkElement
 			CalendarHost?.RefreshAll();
 			PomodoroHost?.RefreshAll();
 			NotchHost?.RefreshAll();
+			AiHost?.RefreshAll();
+			LinksHost?.RefreshAll();
+			SoundHost?.RefreshAll();
+			SystemHost?.RefreshAll();
+			ClipboardHost?.RefreshAll();
+			WeatherHost?.RefreshAll();
+			MediaHost?.RefreshAll();
 			Kick();
 		}
 	}
@@ -1995,6 +2002,10 @@ public sealed class IslandView : FrameworkElement
 			else if (host is CalendarView calendarView)
 			{
 				calendarView.RefreshAll();
+			}
+			else if (host is PomodoroView pomodoroView)
+			{
+				pomodoroView.RefreshAll();
 			}
 		}
 		void UpdateViewHost(UserControl? host, string toolKey)

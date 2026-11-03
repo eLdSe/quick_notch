@@ -83,8 +83,8 @@
     </UserControl.Resources>
 
     <!-- Основная капсула дока в стиле macOS / VisionOS -->
-    <Border Background="{StaticResource DockBgBrush}" 
-            BorderBrush="{StaticResource DockBorderBrush}" 
+    <Border Background="{DynamicResource DockBgBrush}" 
+            BorderBrush="{DynamicResource DockBorderBrush}" 
             BorderThickness="1" 
             CornerRadius="22" 
             Padding="6,4" 

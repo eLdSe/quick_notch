@@ -308,7 +308,7 @@
 
             <Button x:Name="BreadcrumbButton" Style="{StaticResource TopBarPillButton}" Click="OnBreadcrumbClick" Margin="6,0,0,0" Visibility="Collapsed">
 
-                <Border Background="#262629" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="14" Padding="10,3">
+                <Border Background="#262629" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="14" Padding="10,3">
 
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
@@ -393,7 +393,7 @@
 
             <!-- Чип батареи -->
 
-            <Border x:Name="BatteryChip" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="14" Height="28" Padding="10,0" Margin="0,0,10,0">
+            <Border x:Name="BatteryChip" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="14" Height="28" Padding="10,0" Margin="0,0,10,0">
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 

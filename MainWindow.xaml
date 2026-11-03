@@ -57,6 +57,7 @@
                     CornerRadius="0,0,32,32"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
+                    ClipToBounds="True"
                     SnapsToDevicePixels="True">
                 <Border.Background>
                     <SolidColorBrush Color="#000000" />
@@ -68,6 +69,19 @@
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.45" Color="#000000" RenderingBias="Performance" />
                 </Border.Effect>
+
+                <!-- Верхний стеклянный блик (Apple Liquid Glass Top Sheen) -->
+                <Border x:Name="GlassSheen"
+                        Height="140"
+                        VerticalAlignment="Top"
+                        IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                            <GradientStop Color="#18FFFFFF" Offset="0.0" />
+                            <GradientStop Color="#00FFFFFF" Offset="1.0" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
             </Border>
 
             <!-- 2. Содержимое острова: благородно проявляется без сплющивания текста -->

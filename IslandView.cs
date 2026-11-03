@@ -348,6 +348,8 @@ public sealed class IslandView : FrameworkElement
 
 	public Border? CapsuleBorder { get; set; }
 
+	public Border? GlassSheen { get; set; }
+
 	public FrameworkElement? ContentHost { get; set; }
 
 	public NotchView? NotchHost { get; set; }
@@ -940,6 +942,7 @@ public sealed class IslandView : FrameworkElement
 			bool darkTheme = SystemService.GetDarkTheme();
 			Theme.SetThemeMode(mode, darkTheme);
 			SaveState();
+			ApplyBackground();
 			Kick();
 		}
 	}
@@ -972,48 +975,83 @@ public sealed class IslandView : FrameworkElement
 	{
 		if (CapsuleBorder != null)
 		{
-			Brush brush = null;
-			try
+			Brush? brush = null;
+			if (!string.IsNullOrEmpty(S.BgImage) && File.Exists(S.BgImage))
 			{
-				brush = IslandBackground.Build(S.BgImage, S.BgDim, S.BgBlur);
+				try
+				{
+					brush = IslandBackground.Build(S.BgImage, S.BgDim, S.BgBlur);
+				}
+				catch (Exception ex)
+				{
+					App.LogCrash(ex, "IslandView.ApplyBackground");
+				}
 			}
-			catch (Exception ex)
+
+			if (brush != null)
 			{
-				App.LogCrash(ex, "IslandView.ApplyBackground");
+				CapsuleBorder.Background = brush;
+				CapsuleBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2C2C2E"));
+				if (GlassSheen != null) GlassSheen.Visibility = Visibility.Collapsed;
+				ApplyCardSurfaces(hasCustomBg: true, isGlass: false);
 			}
-			bool hasBackground = brush != null;
-			CapsuleBorder.Background = brush ?? new SolidColorBrush(Colors.Black);
-			ApplyCardSurfaces(hasBackground);
+			else if (S.GlassEnabled)
+			{
+				// Настоящее матовое стекло Apple Liquid Glass с градиентом глубины
+				CapsuleBorder.Background = Theme.GetGlassGradientBrush(S.GlassOpacity);
+				CapsuleBorder.BorderBrush = Theme.CreateGlassBorderBrush(1.0);
+				if (GlassSheen != null) GlassSheen.Visibility = Visibility.Visible;
+				ApplyCardSurfaces(hasCustomBg: false, isGlass: true);
+			}
+			else
+			{
+				// Классический непрозрачный глубокий черный (OLED Solid Black)
+				CapsuleBorder.Background = new SolidColorBrush(Colors.Black);
+				CapsuleBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1C1C1E"));
+				if (GlassSheen != null) GlassSheen.Visibility = Visibility.Collapsed;
+				ApplyCardSurfaces(hasCustomBg: false, isGlass: false);
+			}
 			Kick();
 		}
 	}
 
-	private void ApplyCardSurfaces(bool hasBackground)
+	private void ApplyCardSurfaces(bool hasCustomBg, bool isGlass)
 	{
-		FrameworkElement[] array = new FrameworkElement[10] { HomeHost, SoundHost, MediaHost, SystemHost, SettingsHost, ClipboardHost, AiHost, LinksHost, WeatherHost, CalendarHost };
-		foreach (FrameworkElement frameworkElement in array)
+		FrameworkElement?[] array = new FrameworkElement?[] { HomeHost, SoundHost, MediaHost, SystemHost, SettingsHost, ClipboardHost, AiHost, LinksHost, WeatherHost, CalendarHost, TopBarHost };
+		foreach (FrameworkElement host in array)
 		{
-			if (frameworkElement == null)
+			if (host == null) continue;
+			if (isGlass)
 			{
-				continue;
+				host.Resources["SurfaceBrush"] = new SolidColorBrush(Theme.IsLight 
+					? Color.FromArgb(130, 255, 255, 255) 
+					: Color.FromArgb(70, 26, 30, 42));
+				host.Resources["Surface2Brush"] = new SolidColorBrush(Theme.IsLight 
+					? Color.FromArgb(140, 241, 245, 249) 
+					: Color.FromArgb(85, 18, 22, 32));
 			}
-			(string, byte)[] array2 = new (string, byte)[2]
+			else if (hasCustomBg)
 			{
-				("SurfaceBrush", 168),
-				("Surface2Brush", 184)
-			};
-			for (int j = 0; j < array2.Length; j++)
-			{
-				var (key, a) = array2[j];
-				if (frameworkElement.Resources[key] is SolidColorBrush { IsFrozen: false } solidColorBrush)
-				{
-					if (!_surfaceOriginals.TryGetValue(solidColorBrush, out var value))
-					{
-						value = (_surfaceOriginals[solidColorBrush] = solidColorBrush.Color);
-					}
-					solidColorBrush.Color = (hasBackground ? Color.FromArgb(a, value.R, value.G, value.B) : value);
-				}
+				host.Resources["SurfaceBrush"] = new SolidColorBrush(Color.FromArgb(168, 22, 24, 34));
+				host.Resources["Surface2Brush"] = new SolidColorBrush(Color.FromArgb(184, 28, 32, 44));
 			}
+			else
+			{
+				host.Resources["SurfaceBrush"] = new SolidColorBrush(Theme.IsLight ? Colors.White : Color.FromRgb(24, 24, 28));
+				host.Resources["Surface2Brush"] = new SolidColorBrush(Theme.IsLight ? Color.FromRgb(240, 242, 246) : Color.FromRgb(34, 34, 38));
+			}
+		}
+
+		if (DockHost != null)
+		{
+			DockHost.Resources["DockBgBrush"] = isGlass 
+				? new SolidColorBrush(Color.FromArgb(120, 16, 18, 24))
+				: (hasCustomBg 
+					? new SolidColorBrush(Color.FromArgb(180, 24, 24, 28))
+					: new SolidColorBrush(Color.FromRgb(28, 28, 30)));
+			DockHost.Resources["DockBorderBrush"] = isGlass
+				? Theme.CreateGlassBorderBrush(1.0)
+				: new SolidColorBrush(Color.FromRgb(50, 50, 54));
 		}
 	}
 
@@ -1084,6 +1122,7 @@ public sealed class IslandView : FrameworkElement
 		Theme.SetGlass(S.GlassEnabled);
 		Nsp("opt:glass").Target = (S.GlassEnabled ? 1.0 : 0.0);
 		SaveState();
+		ApplyBackground();
 		Kick();
 	}
 
@@ -1092,6 +1131,7 @@ public sealed class IslandView : FrameworkElement
 		S.GlassOpacity = 0.95;
 		Theme.SetGlass(S.GlassEnabled);
 		SaveState();
+		ApplyBackground();
 		Kick();
 	}
 

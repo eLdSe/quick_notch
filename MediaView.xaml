@@ -351,7 +351,7 @@
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
 
-                        <Border x:Name="AppBadge" Background="{StaticResource Surface2Brush}" 
+                        <Border x:Name="AppBadge" Background="{DynamicResource Surface2Brush}" 
 
                                 BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1" 
 

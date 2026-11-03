@@ -17,20 +17,20 @@ public static class Theme
     public static bool IsLight { get; private set; } = false;
 
     public static Color Bg => IsLight
-        ? (GlassEnabled ? Color.FromArgb(215, 246, 248, 252) : Color.FromRgb(242, 244, 247))
-        : (GlassEnabled ? Color.FromArgb(200, 14, 16, 22) : Color.FromRgb(10, 10, 14));
+        ? (GlassEnabled ? Color.FromArgb(160, 246, 248, 252) : Color.FromRgb(242, 244, 247))
+        : (GlassEnabled ? Color.FromArgb(125, 14, 16, 22) : Color.FromRgb(10, 10, 14));
 
     public static Color Surface => IsLight
-        ? (GlassEnabled ? Color.FromArgb(205, 255, 255, 255) : Color.FromRgb(255, 255, 255))
-        : (GlassEnabled ? Color.FromArgb(190, 26, 28, 38) : Color.FromRgb(28, 28, 30));
+        ? (GlassEnabled ? Color.FromArgb(130, 255, 255, 255) : Color.FromRgb(255, 255, 255))
+        : (GlassEnabled ? Color.FromArgb(70, 26, 30, 42) : Color.FromRgb(28, 28, 30));
 
     public static Color Surface2 => IsLight
-        ? (GlassEnabled ? Color.FromArgb(215, 241, 245, 249) : Color.FromRgb(238, 241, 246))
-        : (GlassEnabled ? Color.FromArgb(205, 34, 38, 50) : Color.FromRgb(38, 38, 41));
+        ? (GlassEnabled ? Color.FromArgb(140, 241, 245, 249) : Color.FromRgb(238, 241, 246))
+        : (GlassEnabled ? Color.FromArgb(85, 18, 22, 32) : Color.FromRgb(38, 38, 41));
 
     public static Color Surface3 => IsLight
-        ? (GlassEnabled ? Color.FromArgb(225, 228, 234, 242) : Color.FromRgb(226, 230, 236))
-        : (GlassEnabled ? Color.FromArgb(215, 42, 46, 62) : Color.FromRgb(50, 50, 54));
+        ? (GlassEnabled ? Color.FromArgb(150, 228, 234, 242) : Color.FromRgb(226, 230, 236))
+        : (GlassEnabled ? Color.FromArgb(100, 24, 28, 40) : Color.FromRgb(50, 50, 54));
 
     public static Color Border => IsLight
         ? Color.FromArgb(90, 0, 0, 0)
@@ -195,12 +195,15 @@ public static class Theme
     public static void SetGlass(bool enabled, double opacity = GlassOpacity)
     {
         GlassEnabled = enabled;
+        _cachedGlassBgBrush = null;
+        _cachedGlassBorderPen = null;
+        _cachedSheenBrush = null;
         InvalidateTheme();
     }
 
     public static Brush GetGlassGradientBrush(double opacity = GlassOpacity)
     {
-        return _cachedGlassBgBrush ??= CreateGlassGradientBrush();
+        return _cachedGlassBgBrush ??= CreateGlassGradientBrush(opacity);
     }
 
     public static Pen GetGlassBorderPen(double width = 1.0) => _cachedGlassBorderPen ??= CreateGlassBorderPen(width);
@@ -209,7 +212,7 @@ public static class Theme
     {
         if (_cachedSheenBrush != null) return _cachedSheenBrush;
         var b = new LinearGradientBrush(
-            IsLight ? Color.FromArgb(45, 255, 255, 255) : Color.FromArgb(20, 255, 255, 255),
+            IsLight ? Color.FromArgb(45, 255, 255, 255) : Color.FromArgb(24, 255, 255, 255),
             Color.FromArgb(0, 255, 255, 255),
             new Point(0.5, 0),
             new Point(0.5, 1));
@@ -218,13 +221,16 @@ public static class Theme
         return b;
     }
 
-    public static Brush CreateGlassGradientBrush()
+    public static Brush CreateGlassGradientBrush(double opacity = GlassOpacity)
     {
+        double factor = Math.Clamp(opacity, 0.4, 1.0);
         if (IsLight)
         {
+            byte a1 = (byte)Math.Round(140 * factor);
+            byte a2 = (byte)Math.Round(175 * factor);
             var brush = new LinearGradientBrush(
-                Color.FromArgb(210, 255, 255, 255),
-                Color.FromArgb(232, 240, 244, 250),
+                Color.FromArgb(a1, 255, 255, 255),
+                Color.FromArgb(a2, 240, 244, 250),
                 new Point(0.5, 0),
                 new Point(0.5, 1));
             brush.Freeze();
@@ -232,9 +238,11 @@ public static class Theme
         }
         else
         {
+            byte a1 = (byte)Math.Round(115 * factor);
+            byte a2 = (byte)Math.Round(150 * factor);
             var brush = new LinearGradientBrush(
-                Color.FromArgb(195, 20, 24, 34),
-                Color.FromArgb(228, 11, 13, 19),
+                Color.FromArgb(a1, 18, 20, 28),
+                Color.FromArgb(a2, 10, 11, 16),
                 new Point(0.5, 0),
                 new Point(0.5, 1));
             brush.Freeze();

@@ -14,7 +14,7 @@ namespace QuickNotchCs;
 public static class IslandBackground
 {
     // Размер хоста раскрытого острова (MainWindow.xaml: ExpandedHost 864x532)
-    private const double W = 864, H = 532;
+    private const double W = 760, H = 470;
 
     public static ImageBrush? Build(string path, double dim, double blur)
     {

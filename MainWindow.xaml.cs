@@ -70,6 +70,7 @@ public partial class MainWindow : Window
             TopBarHost.Attach(Island);
             Island.CapsuleHost = ExpandedHost;
             Island.CapsuleBorder = IslandCapsule;
+            Island.GlassSheen = GlassSheen;
             Island.ContentHost = ExpandedContent;
             Island.NotchHost = NotchHost;
             NotchHost.Attach(Island);

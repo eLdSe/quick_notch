@@ -2738,6 +2738,21 @@ public sealed class IslandView : FrameworkElement
 	protected override void OnKeyDown(KeyEventArgs e)
 	{
 		base.OnKeyDown(e);
+		if (e.Key == Key.Escape)
+		{
+			if (CurrentTool != "home")
+			{
+				Select("home");
+				e.Handled = true;
+				return;
+			}
+			else
+			{
+				Collapse();
+				e.Handled = true;
+				return;
+			}
+		}
 		if (CurrentTool == "ai" && Target == 1.0)
 		{
 			Sections.Ai.OnKeyDown(this, e);

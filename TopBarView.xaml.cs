@@ -179,6 +179,12 @@ public partial class TopBarView : UserControl
         _island.Select(_island.CurrentTool == "calendar" ? "home" : "calendar");
     }
 
+    private void OnSettingsClick(object sender, RoutedEventArgs e)
+    {
+        if (_island == null) return;
+        _island.Select(_island.CurrentTool == "settings" ? "home" : "settings");
+    }
+
     private void OnBreadcrumbClick(object sender, RoutedEventArgs e)
     {
         _island?.Select("home");

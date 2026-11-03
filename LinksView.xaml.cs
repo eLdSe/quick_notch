@@ -114,7 +114,7 @@ public partial class LinksView : UserControl
             AddUrlButtonText.Text = Loc.T("Ссылка", "Link", "Bağlantı");
 
         if (AddFileButtonText != null)
-            AddFileButtonText.Text = Loc.T("Файл / Приложение", "File / App", "Dosya / Uygulama");
+            AddFileButtonText.Text = Loc.T("Файл", "File", "Dosya");
 
         if (EditModeButtonText != null)
             EditModeButtonText.Text = _isEditMode ? Loc.T("✓ Готово", "✓ Done", "✓ Tamam") : Loc.T("Изменить", "Edit", "Düzenle");

@@ -30,16 +30,16 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="17" Padding="4,0" SnapsToDevicePixels="True">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="17" Padding="2,0" SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="border" Property="Background" Value="#1AFFFFFF" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#33FFFFFF" />
+                                <Setter TargetName="border" Property="Background" Value="#2AFFFFFF" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -47,7 +47,7 @@
             </Setter>
         </Style>
 
-        <!-- Стиль кнопки "Назад" -->
+        <!-- Стиль кнопки "Назад" (для обратной совместимости, скрыта) -->
         <Style x:Key="AppleDockBackButtonStyle" TargetType="Button">
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Cursor" Value="Hand" />
@@ -55,27 +55,18 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="#3A3A3C" />
             <Setter Property="Foreground" Value="#FF9F0A" />
-            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Height" Value="34" />
-            <Setter Property="Margin" Value="2,0,6,0" />
+            <Setter Property="Margin" Value="1,0,4,0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="17" Padding="12,0" SnapsToDevicePixels="True">
+                                CornerRadius="16" Padding="10,0" SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#3A3A3C" />
-                                <Setter Property="Foreground" Value="#FFB340" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#48484A" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -86,81 +77,60 @@
     <Border Background="{DynamicResource DockBgBrush}" 
             BorderBrush="{DynamicResource DockBorderBrush}" 
             BorderThickness="1" 
-            CornerRadius="22" 
-            Padding="6,4" 
-            Height="44"
+            CornerRadius="21" 
+            Padding="5,3" 
+            Height="42"
             HorizontalAlignment="Center">
         <Border.Effect>
             <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.4" Color="#000000" RenderingBias="Performance" />
         </Border.Effect>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-            <!-- Кнопка "‹ Назад", если открыт подраздел -->
-            <Button x:Name="BackButton" Style="{StaticResource AppleDockBackButtonStyle}" Click="OnBackClick" Visibility="Collapsed">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="‹ " FontSize="14" FontWeight="Bold" Margin="0,-1,2,0" />
-                    <TextBlock Text="Назад" />
-                </StackPanel>
-            </Button>
-
-            <!-- Пилюля активного подраздела (если не один из основных) -->
-            <Border x:Name="SubToolBorder" Background="{DynamicResource AccentBrush}" CornerRadius="17" Height="34" Margin="2,0,8,0" Padding="14,0" Visibility="Collapsed">
-                <Border.Effect>
-                    <DropShadowEffect Color="#0A84FF" BlurRadius="10" Opacity="0.4" ShadowDepth="1" />
-                </Border.Effect>
-                <TextBlock x:Name="SubToolText" Text="Медиа" FontSize="12" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+            <!-- Кнопка "‹ Назад" и плашка подраздела (скрыты, навигация теперь в шапке) -->
+            <Button x:Name="BackButton" Style="{StaticResource AppleDockBackButtonStyle}" Click="OnBackClick" Visibility="Collapsed" />
+            <Border x:Name="SubToolBorder" Visibility="Collapsed">
+                <TextBlock x:Name="SubToolText" />
             </Border>
 
-            <!-- 1. Управление (Home) -->
-            <Button x:Name="HomeButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnHomeClick">
-                <Border x:Name="HomeBorder" CornerRadius="15" Padding="12,6">
+            <!-- 1. Главная (Home) -->
+            <Button x:Name="HomeButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnHomeClick" ToolTip="Главная">
+                <Border x:Name="HomeBorder" CornerRadius="15" Padding="10,6">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="HomeIcon" Text="⊞" FontSize="13" Margin="0,0,6,0" />
-                        <TextBlock x:Name="HomeText" Text="Управление" />
+                        <TextBlock x:Name="HomeIcon" Text="⊞" FontSize="13" />
+                        <TextBlock x:Name="HomeText" Text="Главная" FontSize="12" FontWeight="SemiBold" Margin="6,0,2,0" />
                     </StackPanel>
                 </Border>
             </Button>
 
-            <!-- 2. Буфер (Clipboard) -->
-            <Button x:Name="ClipboardButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnClipboardClick">
-                <Border x:Name="ClipboardBorder" CornerRadius="15" Padding="12,6">
+            <!-- 2. Аэро (AI) -->
+            <Button x:Name="AiButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnAiClick" ToolTip="Аэро (AI)">
+                <Border x:Name="AiBorder" CornerRadius="15" Padding="10,6">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="ClipboardIcon" Text="⎘" FontSize="13" Margin="0,0,6,0" />
-                        <TextBlock x:Name="ClipboardText" Text="Буфер" />
+                        <TextBlock x:Name="AiIcon" Text="🤖" FontSize="13" Foreground="#38BDF8" />
+                        <TextBlock x:Name="AiText" Text="Аэро" FontSize="12" FontWeight="SemiBold" Margin="6,0,2,0" />
                     </StackPanel>
                 </Border>
             </Button>
 
-            <!-- 3. Аэро (AI) -->
-            <Button x:Name="AiButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnAiClick">
-                <Border x:Name="AiBorder" CornerRadius="15" Padding="12,6">
+            <!-- 3. Ссылки (Links) -->
+            <Button x:Name="LinksButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnLinksClick" ToolTip="Ссылки">
+                <Border x:Name="LinksBorder" CornerRadius="15" Padding="10,6">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="AiIcon" Text="🤖" FontSize="13" Foreground="#38BDF8" Margin="0,0,6,0" />
-                        <TextBlock x:Name="AiText" Text="Аэро" />
+                        <TextBlock x:Name="LinksIcon" Text="↗" FontSize="13" />
+                        <TextBlock x:Name="LinksText" Text="Ссылки" FontSize="12" FontWeight="SemiBold" Margin="6,0,2,0" />
                     </StackPanel>
                 </Border>
             </Button>
 
-            <!-- 4. Ссылки (Links) -->
-            <Button x:Name="LinksButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnLinksClick">
-                <Border x:Name="LinksBorder" CornerRadius="15" Padding="12,6">
+            <!-- 4. Буфер (Clipboard) -->
+            <Button x:Name="ClipboardButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnClipboardClick" ToolTip="Буфер обмена">
+                <Border x:Name="ClipboardBorder" CornerRadius="15" Padding="10,6">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="LinksIcon" Text="↗" FontSize="13" Margin="0,0,6,0" />
-                        <TextBlock x:Name="LinksText" Text="Ссылки" />
-                    </StackPanel>
-                </Border>
-            </Button>
-
-            <!-- 5. Настройки (Settings) -->
-            <Button x:Name="SettingsButton" Style="{StaticResource AppleDockTabButtonStyle}" Click="OnSettingsClick">
-                <Border x:Name="SettingsBorder" CornerRadius="15" Padding="12,6">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="SettingsIcon" Text="⚙" FontSize="13" Margin="0,0,6,0" />
-                        <TextBlock x:Name="SettingsText" Text="Настройки" />
+                        <TextBlock x:Name="ClipboardIcon" Text="⎘" FontSize="13" />
+                        <TextBlock x:Name="ClipboardText" Text="Буфер" FontSize="12" FontWeight="SemiBold" Margin="6,0,2,0" />
                     </StackPanel>
                 </Border>
             </Button>
         </StackPanel>
     </Border>
 </UserControl>
-

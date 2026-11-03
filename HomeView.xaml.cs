@@ -192,10 +192,10 @@ public partial class HomeView : UserControl
     {
         QuickTitleText.Text = Loc.T("Быстрые действия", "Quick Actions", "Hızlı İşlemler");
         NowPlayingTitleText.Text = Loc.T("Сейчас играет", "Now Playing", "Şimdi Çalıyor");
-        VolumeTitleText.Text = Loc.T("Громкость и Яркость", "Volume and Display", "Ses ve Parlaklık");
+        VolumeTitleText.Text = Loc.T("Звук и аудио", "Sound and Audio", "Ses ve Ses Düzeyi");
         VolumeLabelText.Text = Loc.T("Динамики", "Speakers", "Hoparlörler");
         BrightnessLabelText.Text = Loc.T("Яркость дисплея", "Display brightness", "Ekran parlaklığı");
-        SystemTitleText.Text = Loc.T("Система", "System", "Sistem");
+        SystemTitleText.Text = Loc.T("Дисплей и Система", "Display and System", "Ekran ve Sistem");
         if (CpuLabelText != null) CpuLabelText.Text = "CPU";
         if (RamLabelText != null) RamLabelText.Text = "RAM";
     }
@@ -336,6 +336,8 @@ public partial class HomeView : UserControl
             {
                 VolumeIcon.Text = muted || volPct == 0 ? "\uE74F" : (volPct < 33 ? "\uE992" : (volPct < 66 ? "\uE994" : "\uE767"));
             }
+            if (MuteToggleIcon != null) MuteToggleIcon.Text = muted ? "\uE74F" : "\uE767";
+            if (MuteToggleText != null) MuteToggleText.Text = muted ? Loc.T("Включить звук", "Unmute", "Sesi Aç") : Loc.T("Звук включен", "Audio On", "Ses Açık");
 
             // Яркость
             if (_lastObservedBrightness >= 0)
@@ -394,8 +396,8 @@ public partial class HomeView : UserControl
             if (CpuPercentText != null) CpuPercentText.Text = $"{cpuVal}%";
             if (RamPercentText != null) RamPercentText.Text = $"{ramVal}%";
 
-            if (CpuRingPath != null) CpuRingPath.Data = CreateRingGeometry(52, 5, snap.CpuFraction);
-            if (RamRingPath != null) RamRingPath.Data = CreateRingGeometry(52, 5, snap.MemoryFraction);
+            if (CpuRingPath != null) CpuRingPath.Data = CreateRingGeometry(38, 3.5, snap.CpuFraction);
+            if (RamRingPath != null) RamRingPath.Data = CreateRingGeometry(38, 3.5, snap.MemoryFraction);
         }
 
         PollBrightnessIfIdle();
@@ -689,5 +691,12 @@ public partial class HomeView : UserControl
     {
         e.Handled = true;
         _island?.Select("sound");
+    }
+
+    private void OnMuteToggleClick(object sender, RoutedEventArgs e)
+    {
+        var (_, muted) = AudioService.GetVolume();
+        AudioService.SetMute(!muted);
+        RefreshSliders();
     }
 }

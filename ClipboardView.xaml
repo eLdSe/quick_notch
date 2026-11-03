@@ -140,31 +140,36 @@
 
                 <!-- Верхний заголовок предпросмотра: Бейдж типа + Кнопки действий -->
                 <Grid Grid.Row="0" Margin="0,0,0,12">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <Border x:Name="PreviewTypeBadge" Background="{DynamicResource Surface2Brush}"
-                                CornerRadius="6" Padding="8,3" Margin="0,0,10,0">
+                                CornerRadius="6" Padding="6,2" Margin="0,0,8,0">
                             <TextBlock x:Name="PreviewTypeBadgeText" Text="ТЕКСТ" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
                         </Border>
                         <TextBlock x:Name="PreviewMetaText" Text="сейчас" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button x:Name="PinButton" Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" Click="OnPinClick">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="PinButton" Style="{StaticResource ActionButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="OnPinClick">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock x:Name="PinIcon" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock x:Name="PinButtonText" Text="Закрепить" FontSize="11" VerticalAlignment="Center" />
+                                <TextBlock x:Name="PinIcon" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock x:Name="PinButtonText" Text="Закрепить" FontSize="10.5" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" Click="OnDeleteClick">
+                        <Button Style="{StaticResource ActionButtonStyle}" Padding="7,4" Margin="0,0,5,0" Click="OnDeleteClick">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="{DynamicResource AccentHotBrush}" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Удалить" FontSize="11" Foreground="{DynamicResource AccentHotBrush}" VerticalAlignment="Center" />
+                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{DynamicResource AccentHotBrush}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Удалить" FontSize="10.5" Foreground="{DynamicResource AccentHotBrush}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource ActionButtonStyle}" Background="{DynamicResource AccentBrush}" BorderThickness="0" Click="OnCopyClick">
+                        <Button Style="{StaticResource ActionButtonStyle}" Padding="8,4" Background="{DynamicResource AccentBrush}" BorderThickness="0" Click="OnCopyClick">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="White" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Копировать" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="White" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Копировать" FontSize="10.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                     </StackPanel>

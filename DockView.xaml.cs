@@ -15,13 +15,8 @@ public partial class DockView : UserControl
     private static readonly SolidColorBrush TextWhiteBrush = Brushes.White;
     private static readonly SolidColorBrush TextMutedBrush = new((Color)ColorConverter.ConvertFromString("#8E8E93"));
     private static readonly SolidColorBrush AeroCyanBrush = new((Color)ColorConverter.ConvertFromString("#38BDF8"));
-    private static readonly DropShadowEffect ActiveGlowEffect = new()
-    {
-        Color = (Color)ColorConverter.ConvertFromString("#0A84FF"),
-        BlurRadius = 10,
-        Opacity = 0.45,
-        ShadowDepth = 1
-    };
+    private static readonly Thickness SelectedPadding = new(13, 6, 15, 6);
+    private static readonly Thickness UnselectedPadding = new(9, 6, 9, 6);
 
     static DockView()
     {
@@ -51,11 +46,10 @@ public partial class DockView : UserControl
     public void RefreshLabels()
     {
         if (HomeText == null) return;
-        HomeText.Text = Loc.T("Управление", "Control", "Kontrol");
-        ClipboardText.Text = Loc.T("Буфер", "Clipboard", "Pano");
-        AiText.Text = Loc.T("Аэро", "Aero", "Aero");
-        LinksText.Text = Loc.T("Ссылки", "Links", "Bağlantılar");
-        SettingsText.Text = Loc.T("Настройки", "Settings", "Ayarlar");
+        HomeText.Text = Loc.T("Главная", "Home", "Ana Sayfa");
+        if (AiText != null) AiText.Text = Loc.T("Аэро", "Aero", "Aero");
+        if (LinksText != null) LinksText.Text = Loc.T("Ссылки", "Links", "Bağlantılar");
+        if (ClipboardText != null) ClipboardText.Text = Loc.T("Буфер", "Clipboard", "Pano");
     }
 
     public void RefreshSelected(string currentTool)
@@ -63,39 +57,20 @@ public partial class DockView : UserControl
         if (HomeBorder == null) return;
 
         SetTabState(HomeBorder, HomeIcon, HomeText, currentTool == "home");
-        SetTabState(ClipboardBorder, ClipboardIcon, ClipboardText, currentTool == "clipboard");
         SetTabState(AiBorder, AiIcon, AiText, currentTool == "ai");
         if (currentTool != "ai" && AiIcon != null)
         {
             AiIcon.Foreground = AeroCyanBrush;
         }
         SetTabState(LinksBorder, LinksIcon, LinksText, currentTool == "links");
-        SetTabState(SettingsBorder, SettingsIcon, SettingsText, currentTool == "settings");
+        SetTabState(ClipboardBorder, ClipboardIcon, ClipboardText, currentTool == "clipboard");
 
-        bool isSubTool = currentTool is "sound" or "media" or "system" or "weather" or "calendar" or "pomodoro";
-        if (BackButton != null)
-        {
-            BackButton.Visibility = isSubTool ? Visibility.Visible : Visibility.Collapsed;
-        }
-        if (SubToolBorder != null && SubToolText != null)
-        {
-            if (isSubTool)
-            {
-                var sec = Sections.ByKey(currentTool);
-                SubToolText.Text = $"{sec.Icon} {sec.Title}";
-                SubToolBorder.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                SubToolBorder.Visibility = Visibility.Collapsed;
-            }
-        }
+        if (BackButton != null) BackButton.Visibility = Visibility.Collapsed;
+        if (SubToolBorder != null) SubToolBorder.Visibility = Visibility.Collapsed;
     }
 
     public void ApplyAccent()
     {
-        ActiveGlowEffect.Color = Theme.Accent;
-        if (SubToolBorder != null) SubToolBorder.Background = Theme.AccentBrush;
         RefreshSelected(_island?.CurrentTool ?? "home");
     }
 
@@ -104,14 +79,18 @@ public partial class DockView : UserControl
         if (selected)
         {
             border.Background = Theme.AccentBrush;
+            border.Padding = SelectedPadding;
             icon.Foreground = TextWhiteBrush;
             text.Foreground = TextWhiteBrush;
+            text.Visibility = Visibility.Visible;
         }
         else
         {
             border.Background = TransparentBrush;
+            border.Padding = UnselectedPadding;
             icon.Foreground = Theme.MutedBrush;
             text.Foreground = Theme.MutedBrush;
+            text.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -129,9 +108,7 @@ public partial class DockView : UserControl
 
     private void OnBackClick(object sender, RoutedEventArgs e) => _island?.Select("home");
     private void OnHomeClick(object sender, RoutedEventArgs e) => _island?.Select("home");
-    private void OnClipboardClick(object sender, RoutedEventArgs e) => _island?.Select("clipboard");
     private void OnAiClick(object sender, RoutedEventArgs e) => _island?.Select("ai");
     private void OnLinksClick(object sender, RoutedEventArgs e) => _island?.Select("links");
-    private void OnSettingsClick(object sender, RoutedEventArgs e) => _island?.Select("settings");
+    private void OnClipboardClick(object sender, RoutedEventArgs e) => _island?.Select("clipboard");
 }
-

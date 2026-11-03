@@ -231,8 +231,8 @@
                 <!-- Карточка темы -->
                 <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,8">
                     <StackPanel>
-                        <TextBlock Text="Тема острова" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Светлый, тёмный или авто-режим" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
+                        <TextBlock x:Name="ThemeCardTitle" Text="Тема острова" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="ThemeCardDesc" Text="Светлый, тёмный или авто-режим" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -254,9 +254,9 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="Эффект стекла" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="Матовое стекло Liquid Glass" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
-                            <TextBlock Text="Apple Frosted Glass с глубиной" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
+                            <TextBlock x:Name="GlassCardTitle" Text="Эффект стекла" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="GlassCardSub" Text="Матовое стекло Liquid Glass" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock x:Name="GlassCardDesc" Text="Apple Frosted Glass с глубиной" FontSize="9" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
                         </StackPanel>
                         <CheckBox Grid.Column="1" x:Name="GlassCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnGlassToggleClick" />
                     </Grid>
@@ -267,8 +267,8 @@
             <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" 
                     BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="12,8" Margin="0,0,0,8">
                 <StackPanel>
-                    <TextBlock Text="Акцентный цвет" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                    <TextBlock Text="Цвета подсветки и активных элементов" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
+                    <TextBlock x:Name="AccentCardTitle" Text="Акцентный цвет" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <TextBlock x:Name="AccentCardDesc" Text="Цвета подсветки и активных элементов" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
                     <WrapPanel x:Name="AccentColorsPanel" HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
@@ -284,8 +284,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="🤖 Робот-компаньон Aero" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Интерактивный питомец: следит за курсором и может летать по рабочему столу" 
+                        <TextBlock x:Name="AeroCardTitle" Text="🤖 Робот-компаньон Aero" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="AeroCardDesc" Text="Интерактивный питомец: следит за курсором и может летать по рабочему столу" 
                                    FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
                     </StackPanel>
                     <Button Grid.Column="1" x:Name="RoamButton" Content="🚀 Выпустить на рабочий стол" 
@@ -313,7 +313,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Фоновое изображение острова" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="BgFileCardTitle" Text="Фоновое изображение острова" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
                         <TextBlock x:Name="BgFileText" Text="Фон не выбран" FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -333,8 +333,8 @@
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="Затемнение фонового рисунка" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="Регулировка яркости подложки под карточками" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock x:Name="BgDimCardTitle" Text="Затемнение фонового рисунка" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="BgDimCardDesc" Text="Регулировка яркости подложки под карточками" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                         </StackPanel>
                         <TextBlock x:Name="BgDimValueText" Text="55%" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
@@ -353,8 +353,8 @@
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="Размытие фона (Gaussian Blur)" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="Мягкое матовое размытие обоев острова" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock x:Name="BgBlurCardTitle" Text="Размытие фона (Gaussian Blur)" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="BgBlurCardDesc" Text="Мягкое матовое размытие обоев острова" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                         </StackPanel>
                         <TextBlock x:Name="BgBlurValueText" Text="0" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
@@ -381,11 +381,11 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Способ вызова острова" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Остров раскрывается исключительно по нажатию на чёлку экрана" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="SummonCardTitle" Text="Способ вызова острова" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="SummonCardDesc" Text="Остров раскрывается исключительно по нажатию на чёлку экрана" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Border Grid.Column="1" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="12" Padding="12,6">
-                        <TextBlock Text="💻 Только чёлка" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="SummonBadgeText" Text="💻 Только чёлка" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
                     </Border>
                 </Grid>
             </Border>
@@ -400,8 +400,8 @@
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,0,8">
                         <StackPanel>
-                            <TextBlock Text="Задержка скрытия (Auto-Collapse)" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="Время до сворачивания после ухода курсора" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock x:Name="DelayCardTitle" Text="Задержка скрытия (Auto-Collapse)" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="DelayCardDesc" Text="Время до сворачивания после ухода курсора" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                         </StackPanel>
                         <TextBlock x:Name="DelayValueText" Text="1.5 сек" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
@@ -435,8 +435,8 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="Запуск с Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="Автозагрузка при старте системы" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            <TextBlock x:Name="AutostartCardTitle" Text="Запуск с Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="AutostartCardDesc" Text="Автозагрузка при старте системы" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                         </StackPanel>
                         <CheckBox Grid.Column="1" x:Name="AutostartCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnAutostartClick" />
                     </Grid>
@@ -445,8 +445,8 @@
                 <!-- Язык интерфейса -->
                 <Border Grid.Column="2" Style="{StaticResource AppleGlassCardStyle}" Padding="12,8">
                     <StackPanel>
-                        <TextBlock Text="Язык интерфейса" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Русский, English, Türkçe" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
+                        <TextBlock x:Name="LangCardTitle" Text="Язык интерфейса" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="LangCardDesc" Text="Русский, English, Türkçe" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,8" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -470,8 +470,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Горячая клавиша активации" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Быстрое открытие и скрытие острова из любого приложения" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="HotkeyCardTitle" Text="Горячая клавиша активации" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="HotkeyCardDesc" Text="Быстрое открытие и скрытие острова из любого приложения" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Border Grid.Column="1" Background="{DynamicResource Surface2Brush}" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8" Padding="12,5">
                         <TextBlock Text="Ctrl + Alt + N" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
@@ -488,10 +488,10 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="QuickNotch v1.0.4  ·  macOS Dynamic Island для Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="Аппаратно-ускоренный движок WPF XAML (0% нагрузки на ЦП)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
+                        <TextBlock x:Name="AboutCardTitle" Text="QuickNotch v1.0.4  ·  macOS Dynamic Island для Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="AboutCardDesc" Text="Аппаратно-ускоренный движок WPF XAML (0% нагрузки на ЦП)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
                     </StackPanel>
-                    <Button Grid.Column="1" Content="🔔 Тест уведомления" Style="{StaticResource SettingsActionButton}" Padding="14,8" Click="OnTestNotificationClick" />
+                    <Button Grid.Column="1" x:Name="TestNotifyButton" Content="🔔 Тест уведомления" Style="{StaticResource SettingsActionButton}" Padding="14,8" Click="OnTestNotificationClick" />
                 </Grid>
             </Border>
         </Grid>

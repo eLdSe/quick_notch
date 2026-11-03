@@ -1116,6 +1116,13 @@ public sealed class IslandView : FrameworkElement
 			SpHide.X = (SpHide.Target = 0.0);
 			SnapPill();
 			SaveState();
+			DockHost?.RefreshAll();
+			TopBarHost?.RefreshAll();
+			HomeHost?.RefreshAll();
+			SettingsHost?.RefreshAll();
+			CalendarHost?.RefreshAll();
+			PomodoroHost?.RefreshAll();
+			NotchHost?.RefreshAll();
 			Kick();
 		}
 	}
@@ -2297,10 +2304,22 @@ public sealed class IslandView : FrameworkElement
 		if (!(key == CurrentTool))
 		{
 			List<string> list = Sections.All.Select((Section s) => s.Key).ToList();
-			_tabDir = ((list.IndexOf(key) > list.IndexOf(CurrentTool)) ? 1 : (-1));
-			_prevTab = CurrentTool;
-			CurrentTool = key;
-			SpTab.X = (SpTab.V = 0.0);
+			int newDir = ((list.IndexOf(key) > list.IndexOf(CurrentTool)) ? 1 : (-1));
+			if (_prevTab == key && !SpTab.Settled)
+			{
+				_prevTab = CurrentTool;
+				CurrentTool = key;
+				_tabDir = -_tabDir;
+				SpTab.X = Math.Clamp(1.0 - SpTab.X, 0.0, 1.0);
+				SpTab.V = -SpTab.V;
+			}
+			else
+			{
+				_tabDir = newDir;
+				_prevTab = CurrentTool;
+				CurrentTool = key;
+				SpTab.X = (SpTab.V = 0.0);
+			}
 			SpTab.Target = 1.0;
 			(SpPillX.Target, SpPillW.Target) = PillTarget(key);
 			DockHost?.RefreshSelected(key);

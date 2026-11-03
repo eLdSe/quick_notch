@@ -15,6 +15,11 @@ public partial class HomeView : UserControl
     private bool _isDraggingBrightness = false;
     private int _lastObservedBrightness = -1;
     private bool _volumeSubscribed = false;
+    private bool _pomodoroSubscribed = false;
+    private int _volumeAnimGen = 0;
+    private int _brightnessAnimGen = 0;
+    private DateTime _lastUserVolumeTime = DateTime.MinValue;
+    private DateTime _lastUserBrightnessTime = DateTime.MinValue;
 
     public HomeView()
     {
@@ -30,17 +35,23 @@ public partial class HomeView : UserControl
             AudioService.EnsureVolumeListener();
             AudioService.VolumeChanged += OnAudioVolumeChanged;
         }
-        PomodoroService.OnTick += () => Dispatcher.InvokeAsync(RefreshConnectivity);
-        PomodoroService.OnPhaseChanged += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+        if (!_pomodoroSubscribed)
+        {
+            _pomodoroSubscribed = true;
+            PomodoroService.OnTick += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+            PomodoroService.OnPhaseChanged += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+        }
         RefreshAll();
     }
 
     private void OnAudioVolumeChanged(float level, bool muted)
     {
         if (_isDraggingVolume) return;
+        if ((DateTime.UtcNow - _lastUserVolumeTime).TotalMilliseconds < 350) return;
         Dispatcher.InvokeAsync(() =>
         {
             if (_isDraggingVolume) return;
+            if ((DateTime.UtcNow - _lastUserVolumeTime).TotalMilliseconds < 350) return;
             int volPct = (int)Math.Round(level * 100);
             AnimateVolume(volPct, muted);
         });
@@ -60,22 +71,30 @@ public partial class HomeView : UserControl
 
             if (Math.Abs(VolumeSlider.Value - targetPct) < 0.5)
             {
+                _volumeAnimGen++;
+                VolumeSlider.BeginAnimation(Slider.ValueProperty, null);
                 VolumeSlider.Value = targetPct;
                 _updatingSliders = false;
                 return;
             }
 
-            var anim = new DoubleAnimation(VolumeSlider.Value, targetPct, TimeSpan.FromMilliseconds(130))
+            int curGen = ++_volumeAnimGen;
+            var anim = new DoubleAnimation
             {
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                To = targetPct,
+                Duration = TimeSpan.FromMilliseconds(120),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
             anim.Completed += (_, _) =>
             {
-                VolumeSlider.BeginAnimation(Slider.ValueProperty, null);
-                VolumeSlider.Value = targetPct;
-                _updatingSliders = false;
+                if (_volumeAnimGen == curGen)
+                {
+                    VolumeSlider.BeginAnimation(Slider.ValueProperty, null);
+                    VolumeSlider.Value = targetPct;
+                    _updatingSliders = false;
+                }
             };
-            VolumeSlider.BeginAnimation(Slider.ValueProperty, anim);
+            VolumeSlider.BeginAnimation(Slider.ValueProperty, anim, HandoffBehavior.SnapshotAndReplace);
         }
         catch
         {
@@ -92,17 +111,23 @@ public partial class HomeView : UserControl
         try
         {
             BrightnessPercentText.Text = $"{targetPct}%";
-            var anim = new DoubleAnimation(BrightnessSlider.Value, targetPct, TimeSpan.FromMilliseconds(140))
+            int curGen = ++_brightnessAnimGen;
+            var anim = new DoubleAnimation
             {
-                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+                To = targetPct,
+                Duration = TimeSpan.FromMilliseconds(130),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
             anim.Completed += (_, _) =>
             {
-                BrightnessSlider.BeginAnimation(Slider.ValueProperty, null);
-                BrightnessSlider.Value = targetPct;
-                _updatingSliders = false;
+                if (_brightnessAnimGen == curGen)
+                {
+                    BrightnessSlider.BeginAnimation(Slider.ValueProperty, null);
+                    BrightnessSlider.Value = targetPct;
+                    _updatingSliders = false;
+                }
             };
-            BrightnessSlider.BeginAnimation(Slider.ValueProperty, anim);
+            BrightnessSlider.BeginAnimation(Slider.ValueProperty, anim, HandoffBehavior.SnapshotAndReplace);
         }
         catch
         {
@@ -287,8 +312,12 @@ public partial class HomeView : UserControl
 
     public void ApplyAccent()
     {
-        PomodoroService.OnTick += () => Dispatcher.InvokeAsync(RefreshConnectivity);
-        PomodoroService.OnPhaseChanged += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+        if (!_pomodoroSubscribed)
+        {
+            _pomodoroSubscribed = true;
+            PomodoroService.OnTick += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+            PomodoroService.OnPhaseChanged += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+        }
         RefreshAll();
     }
 
@@ -437,6 +466,7 @@ public partial class HomeView : UserControl
     private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_updatingSliders || _island == null || VolumeSlider == null || VolumePercentText == null) return;
+        _lastUserVolumeTime = DateTime.UtcNow;
         float level = (float)(VolumeSlider.Value / 100.0);
         AudioService.SetVolume(level);
         int volPct = (int)Math.Round(VolumeSlider.Value);
@@ -450,6 +480,7 @@ public partial class HomeView : UserControl
     private void OnBrightnessSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_updatingSliders || _island == null || BrightnessSlider == null || BrightnessPercentText == null) return;
+        _lastUserBrightnessTime = DateTime.UtcNow;
         int level = (int)Math.Round(BrightnessSlider.Value);
         _lastObservedBrightness = level;
         _island.Nsp("brightness").Target = level / 100.0;
@@ -462,6 +493,7 @@ public partial class HomeView : UserControl
         if (sender is FrameworkElement fe && e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
         {
             _isDraggingVolume = true;
+            _lastUserVolumeTime = DateTime.UtcNow;
             _island?.StopLeaveTimer();
             fe.CaptureMouse();
             UpdateVolumeFromCapsule(fe, e.GetPosition(fe).X);
@@ -473,6 +505,7 @@ public partial class HomeView : UserControl
     {
         if (_isDraggingVolume && sender is FrameworkElement fe && e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
         {
+            _lastUserVolumeTime = DateTime.UtcNow;
             _island?.StopLeaveTimer();
             UpdateVolumeFromCapsule(fe, e.GetPosition(fe).X);
             e.Handled = true;
@@ -483,6 +516,7 @@ public partial class HomeView : UserControl
     {
         if (_isDraggingVolume && sender is FrameworkElement fe)
         {
+            _lastUserVolumeTime = DateTime.UtcNow;
             fe.ReleaseMouseCapture();
             _isDraggingVolume = false;
             e.Handled = true;
@@ -495,6 +529,10 @@ public partial class HomeView : UserControl
         if (width <= 0) return;
         double fraction = Math.Clamp(mouseX / width, 0.0, 1.0);
         int volPct = (int)Math.Round(fraction * 100);
+        _lastUserVolumeTime = DateTime.UtcNow;
+        _volumeAnimGen++;
+        _updatingSliders = false;
+        VolumeSlider.BeginAnimation(Slider.ValueProperty, null);
         VolumeSlider.Value = volPct;
     }
 
@@ -503,6 +541,7 @@ public partial class HomeView : UserControl
         if (sender is FrameworkElement fe && e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
         {
             _isDraggingBrightness = true;
+            _lastUserBrightnessTime = DateTime.UtcNow;
             _island?.StopLeaveTimer();
             fe.CaptureMouse();
             UpdateBrightnessFromCapsule(fe, e.GetPosition(fe).X);
@@ -514,6 +553,7 @@ public partial class HomeView : UserControl
     {
         if (_isDraggingBrightness && sender is FrameworkElement fe && e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
         {
+            _lastUserBrightnessTime = DateTime.UtcNow;
             _island?.StopLeaveTimer();
             UpdateBrightnessFromCapsule(fe, e.GetPosition(fe).X);
             e.Handled = true;
@@ -524,6 +564,7 @@ public partial class HomeView : UserControl
     {
         if (_isDraggingBrightness && sender is FrameworkElement fe)
         {
+            _lastUserBrightnessTime = DateTime.UtcNow;
             fe.ReleaseMouseCapture();
             _isDraggingBrightness = false;
             e.Handled = true;
@@ -536,6 +577,10 @@ public partial class HomeView : UserControl
         if (width <= 0) return;
         double fraction = Math.Clamp(mouseX / width, 0.0, 1.0);
         int brPct = (int)Math.Round(fraction * 100);
+        _lastUserBrightnessTime = DateTime.UtcNow;
+        _brightnessAnimGen++;
+        _updatingSliders = false;
+        BrightnessSlider.BeginAnimation(Slider.ValueProperty, null);
         BrightnessSlider.Value = brPct;
     }
 

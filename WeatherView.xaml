@@ -1,203 +1,203 @@
-<UserControl x:Class="QuickNotchCs.WeatherView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" 
-             d:DesignHeight="416" d:DesignWidth="808"
-             TextOptions.TextFormattingMode="Display"
-             TextOptions.TextRenderingMode="ClearType"
-             FontFamily="Segoe UI Variable Display, Segoe UI">
-
-    <UserControl.Resources>
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
-        <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
-        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
-        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
-        <SolidColorBrush x:Key="CyanBrush" Color="#38BDF8" />
-
-        <!-- Стиль мини-карточки параметра -->
-        <Style x:Key="MetricCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="#262629" />
-            <Setter Property="BorderBrush" Value="#28282B" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="12,8" />
-        </Style>
-
-        <!-- Стиль кнопки смены города -->
-        <Style x:Key="CityChangeButtonStyle" TargetType="Button">
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Background" Value="#262629" />
-            <Setter Property="BorderBrush" Value="#28282B" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="8,4" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#323236" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
-
-    <!-- Сетка Bento из 2 колонок -->
-    <Grid Margin="0">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="340" />
-            <ColumnDefinition Width="10" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-
-        <!-- ==================== ЛЕВАЯ КОЛОНКА: ТЕКУЩАЯ ПОГОДА ==================== -->
-        <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <!-- Заголовок и выбор города -->
-                <Grid Grid.Row="0">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE707;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                        <TextBlock x:Name="CityNameText" Text="Москва" FontSize="15" FontWeight="Bold" 
-                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <Button Style="{StaticResource CityChangeButtonStyle}" HorizontalAlignment="Right" Click="OnChangeCityClick">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Сменить город" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" /></StackPanel>
-                    </Button>
-                </Grid>
-
-                <!-- Температура и большая иконка -->
-                <Grid Grid.Row="1" Margin="0,10,0,4">
-                    <TextBlock x:Name="CurrentTempText" Text="+18°" FontSize="38" FontWeight="Bold" 
-                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                    <TextBlock x:Name="WeatherIconText" Text="🌤️" FontSize="34" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                </Grid>
-
-                <!-- Описание и ощущаемая температура -->
-                <StackPanel Grid.Row="2" Margin="0,0,0,6">
-                    <TextBlock x:Name="WeatherDescText" Text="Переменная облачность" FontSize="14" FontWeight="SemiBold" 
-                               Foreground="{StaticResource AccentHotBrush}" />
-                    <TextBlock x:Name="FeelsLikeText" Text="Ощущается как +17°  ·  Мин +12°  Макс +20°" FontSize="11" 
-                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0" />
-                </StackPanel>
-
-                <!-- Метрики (Ветер, Влажность, Давление, Осадки) -->
-                <Grid Grid.Row="3" VerticalAlignment="Center">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="8" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="8" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Ветер -->
-                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource AppleGlassWellStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Ветер" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock x:Name="WindSpeedText" Text="3.4 м/с" FontSize="13" FontWeight="SemiBold" 
-                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,3,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Влажность -->
-                    <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource AppleGlassWellStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Влажность" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock x:Name="HumidityText" Text="62%" FontSize="13" FontWeight="SemiBold" 
-                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,3,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Давление -->
-                    <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource AppleGlassWellStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Давление" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock x:Name="PressureText" Text="752 мм" FontSize="13" FontWeight="SemiBold" 
-                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,3,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Осадки -->
-                    <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource AppleGlassWellStyle}">
-                        <StackPanel>
-                            <TextBlock Text="Осадки" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
-                            <TextBlock x:Name="PrecipitationText" Text="10%" FontSize="13" FontWeight="SemiBold" 
-                                       Foreground="{StaticResource CyanBrush}" Margin="0,3,0,0" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-
-                <!-- Восход и закат -->
-                <Border Grid.Row="4" Style="{StaticResource AppleGlassWellStyle}" Padding="12,7" Margin="0,10,0,0">
-                    <Grid>
-                        <TextBlock x:Name="SunriseText" Text="🌅 Восход: 06:15" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                        <TextBlock x:Name="SunsetText" Text="🌇 Закат: 19:45" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
-                    </Grid>
-                </Border>
-            </Grid>
-        </Border>
-
-        <!-- ==================== ПРАВАЯ КОЛОНКА: ПОЧАСОВОЙ И 7 ДНЕЙ ==================== -->
-        <Grid Grid.Column="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="104" />
-                <RowDefinition Height="12" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
-            <!-- 1. Почасовой прогноз на сегодня -->
-            <Border Grid.Row="0" Style="{StaticResource AppleGlassCardStyle}" Padding="14,10">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Почасовой прогноз" FontSize="10" FontWeight="SemiBold" 
-                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" />
-                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
-                                  PreviewMouseWheel="OnHourlyForecastMouseWheel">
-                        <StackPanel x:Name="HourlyForecastPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,2" />
-                    </ScrollViewer>
-                </Grid>
-            </Border>
-
-            <!-- 2. Прогноз на 7 дней -->
-            <Border Grid.Row="2" Style="{StaticResource AppleGlassCardStyle}" Padding="16,10">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Прогноз на 7 дней" FontSize="10" FontWeight="SemiBold" 
-                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8" />
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel x:Name="DailyForecastPanel" Margin="0,0,6,0" />
-                    </ScrollViewer>
-                </Grid>
-            </Border>
-        </Grid>
-    </Grid>
-</UserControl>
+<UserControl x:Class="QuickNotchCs.WeatherView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="416" d:DesignWidth="808"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType"
+             FontFamily="Segoe UI Variable Display, Segoe UI">
+
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#1C1C1E" />
+        <SolidColorBrush x:Key="Surface2Brush" Color="#262629" />
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#28282B" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8E8E93" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#0A84FF" />
+        <SolidColorBrush x:Key="AccentHotBrush" Color="#FF375F" />
+        <SolidColorBrush x:Key="CyanBrush" Color="#38BDF8" />
+
+        <!-- Стиль мини-карточки параметра -->
+        <Style x:Key="MetricCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#262629" />
+            <Setter Property="BorderBrush" Value="#28282B" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="12,8" />
+        </Style>
+
+        <!-- Стиль кнопки смены города -->
+        <Style x:Key="CityChangeButtonStyle" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="#262629" />
+            <Setter Property="BorderBrush" Value="#28282B" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#323236" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Сетка Bento из 2 колонок -->
+    <Grid Margin="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="340" />
+            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ==================== ЛЕВАЯ КОЛОНКА: ТЕКУЩАЯ ПОГОДА ==================== -->
+        <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Заголовок и выбор города -->
+                <Grid Grid.Row="0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="&#xE707;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="CityNameText" Text="Москва" FontSize="15" FontWeight="Bold" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Style="{StaticResource CityChangeButtonStyle}" HorizontalAlignment="Right" Click="OnChangeCityClick">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="0,0,5,0" VerticalAlignment="Center" /><TextBlock Text="Сменить город" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
+                </Grid>
+
+                <!-- Температура и большая иконка -->
+                <Grid Grid.Row="1" Margin="0,10,0,4">
+                    <TextBlock x:Name="CurrentTempText" Text="+18°" FontSize="38" FontWeight="Bold" 
+                               Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    <TextBlock x:Name="WeatherIconText" Text="🌤️" FontSize="34" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+
+                <!-- Описание и ощущаемая температура -->
+                <StackPanel Grid.Row="2" Margin="0,0,0,6">
+                    <TextBlock x:Name="WeatherDescText" Text="Переменная облачность" FontSize="14" FontWeight="SemiBold" 
+                               Foreground="{StaticResource AccentHotBrush}" />
+                    <TextBlock x:Name="FeelsLikeText" Text="Ощущается как +17°  ·  Мин +12°  Макс +20°" FontSize="11" 
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0" />
+                </StackPanel>
+
+                <!-- Метрики (Ветер, Влажность, Давление, Осадки) -->
+                <Grid Grid.Row="3" VerticalAlignment="Center">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Ветер -->
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource AppleGlassWellStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Ветер" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock x:Name="WindSpeedText" Text="3.4 м/с" FontSize="13" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Влажность -->
+                    <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource AppleGlassWellStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Влажность" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock x:Name="HumidityText" Text="62%" FontSize="13" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Давление -->
+                    <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource AppleGlassWellStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Давление" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock x:Name="PressureText" Text="752 мм" FontSize="13" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource TextPrimaryBrush}" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Осадки -->
+                    <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource AppleGlassWellStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Осадки" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock x:Name="PrecipitationText" Text="10%" FontSize="13" FontWeight="SemiBold" 
+                                       Foreground="{StaticResource CyanBrush}" Margin="0,3,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Восход и закат -->
+                <Border Grid.Row="4" Style="{StaticResource AppleGlassWellStyle}" Padding="12,7" Margin="0,10,0,0">
+                    <Grid>
+                        <TextBlock x:Name="SunriseText" Text="🌅 Восход: 06:15" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock x:Name="SunsetText" Text="🌇 Закат: 19:45" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ==================== ПРАВАЯ КОЛОНКА: ПОЧАСОВОЙ И 7 ДНЕЙ ==================== -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="104" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 1. Почасовой прогноз на сегодня -->
+            <Border Grid.Row="0" Style="{StaticResource AppleGlassCardStyle}" Padding="14,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Почасовой прогноз" FontSize="10" FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6" />
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  PreviewMouseWheel="OnHourlyForecastMouseWheel">
+                        <StackPanel x:Name="HourlyForecastPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,2" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- 2. Прогноз на 7 дней -->
+            <Border Grid.Row="2" Style="{StaticResource AppleGlassCardStyle}" Padding="16,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Прогноз на 7 дней" FontSize="10" FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8" />
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="DailyForecastPanel" Margin="0,0,6,0" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

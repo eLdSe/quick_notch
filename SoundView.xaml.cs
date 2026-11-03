@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace QuickNotchCs;
 
@@ -11,6 +14,10 @@ public partial class SoundView : UserControl
     private IslandView? _island;
     private bool _updatingMaster = false;
     private bool _isMuted = false;
+    private bool _volumeSubscribed = false;
+    private int _masterAnimGen = 0;
+    private DateTime _lastUserMasterVolumeTime = DateTime.MinValue;
+    private string _currentDefaultDeviceId = "";
 
     public SoundView()
     {
@@ -20,7 +27,70 @@ public partial class SoundView : UserControl
     public void Attach(IslandView island)
     {
         _island = island;
+        if (!_volumeSubscribed)
+        {
+            _volumeSubscribed = true;
+            AudioService.EnsureVolumeListener();
+            AudioService.VolumeChanged += OnAudioVolumeChanged;
+        }
         RefreshAll();
+    }
+
+    private void OnAudioVolumeChanged(float level, bool muted)
+    {
+        if ((DateTime.UtcNow - _lastUserMasterVolumeTime).TotalMilliseconds < 350) return;
+        Dispatcher.InvokeAsync(() =>
+        {
+            if ((DateTime.UtcNow - _lastUserMasterVolumeTime).TotalMilliseconds < 350) return;
+            int volPct = (int)Math.Round(level * 100);
+            AnimateMasterVolume(volPct, muted);
+        });
+    }
+
+    private void AnimateMasterVolume(int targetPct, bool muted)
+    {
+        if (MasterVolumeSlider == null || MasterVolumePercentText == null) return;
+        _updatingMaster = true;
+        try
+        {
+            _isMuted = muted;
+            MasterVolumePercentText.Text = muted ? Loc.T("Без звука", "Muted", "Sessiz") : $"{targetPct}%";
+            if (MuteIcon != null) MuteIcon.Text = muted ? "\uE74F" : "\uE767";
+            if (MuteButtonText != null)
+                MuteButtonText.Text = muted ? Loc.T("Звук выключен", "Muted", "Sessiz") : Loc.T("Звук включен", "Audio On", "Ses Açık");
+
+            if (Math.Abs(MasterVolumeSlider.Value - targetPct) < 0.5)
+            {
+                _masterAnimGen++;
+                MasterVolumeSlider.BeginAnimation(Slider.ValueProperty, null);
+                MasterVolumeSlider.Value = targetPct;
+                _updatingMaster = false;
+                return;
+            }
+
+            int curGen = ++_masterAnimGen;
+            var anim = new DoubleAnimation
+            {
+                To = targetPct,
+                Duration = TimeSpan.FromMilliseconds(120),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            anim.Completed += (_, _) =>
+            {
+                if (_masterAnimGen == curGen)
+                {
+                    MasterVolumeSlider.BeginAnimation(Slider.ValueProperty, null);
+                    MasterVolumeSlider.Value = targetPct;
+                    _updatingMaster = false;
+                }
+            };
+            MasterVolumeSlider.BeginAnimation(Slider.ValueProperty, anim, HandoffBehavior.SnapshotAndReplace);
+        }
+        catch
+        {
+            MasterVolumeSlider.Value = targetPct;
+            _updatingMaster = false;
+        }
     }
 
     protected override void OnMouseEnter(System.Windows.Input.MouseEventArgs e)
@@ -56,6 +126,7 @@ public partial class SoundView : UserControl
         {
             var (volLevel, muted) = AudioService.GetVolume();
             int volPct = (int)Math.Round(volLevel * 100);
+            MasterVolumeSlider.BeginAnimation(Slider.ValueProperty, null);
             MasterVolumeSlider.Value = volPct;
             _isMuted = muted;
             MasterVolumePercentText.Text = muted ? Loc.T("Без звука", "Muted", "Sessiz") : $"{volPct}%";
@@ -71,7 +142,58 @@ public partial class SoundView : UserControl
 
     public void ApplyAccent()
     {
-        RefreshDevices();
+        UpdateDevicesVisualState(_currentDefaultDeviceId);
+    }
+
+    private void SelectDevice(string devId)
+    {
+        if (_currentDefaultDeviceId == devId) return;
+        _currentDefaultDeviceId = devId;
+
+        // Мгновенное тактильное переключение в интерфейсе без задержек и без пересоздания кнопок
+        UpdateDevicesVisualState(devId);
+
+        // Переключение аудиоустройства в Windows выполняем в фоновом потоке, не замораживая UI
+        Task.Run(() =>
+        {
+            try
+            {
+                AudioService.SetDefaultDevice(devId);
+                Dispatcher.InvokeAsync(() =>
+                {
+                    RefreshMasterVolume();
+                });
+            }
+            catch { }
+        });
+    }
+
+    private void UpdateDevicesVisualState(string? defaultId)
+    {
+        string targetId = defaultId ?? "";
+        foreach (var child in DevicesPanel.Children)
+        {
+            if (child is Button btn && btn.Tag is string id && btn.Content is Grid grid)
+            {
+                bool isSelected = id == targetId;
+                btn.Background = isSelected
+                    ? new SolidColorBrush(Color.FromArgb(40, 10, 132, 255))
+                    : new SolidColorBrush(Color.FromArgb(20, 255, 255, 255));
+                btn.BorderBrush = isSelected ? Theme.AccentBrush : new SolidColorBrush(Color.FromArgb(24, 255, 255, 255));
+
+                if (grid.Children.Count >= 2 && grid.Children[0] is TextBlock icon && grid.Children[1] is TextBlock nameText)
+                {
+                    icon.Foreground = isSelected ? Theme.AccentBrush : (Brush)FindResource("TextSecondaryBrush");
+                    nameText.FontWeight = isSelected ? FontWeights.SemiBold : FontWeights.Normal;
+                    nameText.Foreground = isSelected ? (Brush)FindResource("TextPrimaryBrush") : (Brush)FindResource("TextSecondaryBrush");
+                }
+                if (grid.Children.Count >= 3 && grid.Children[2] is TextBlock check)
+                {
+                    check.Visibility = isSelected ? Visibility.Visible : Visibility.Collapsed;
+                    check.Foreground = Theme.AccentBrush;
+                }
+            }
+        }
     }
 
     public void RefreshDevices()
@@ -79,8 +201,29 @@ public partial class SoundView : UserControl
         Bg.Run(AudioService.ListOutputDevices, (res, err) =>
         {
             if (err != null || res.Devices == null) return;
-            DevicesPanel.Children.Clear();
             var (devices, defaultId) = res;
+            _currentDefaultDeviceId = defaultId ?? "";
+
+            // Если список устройств совпадает — плавно обновляем выделение без рывка и очистки UI
+            if (DevicesPanel.Children.Count == devices.Count)
+            {
+                bool match = true;
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    if (DevicesPanel.Children[i] is not Button btn || (string?)btn.Tag != devices[i].Id)
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match)
+                {
+                    UpdateDevicesVisualState(defaultId);
+                    return;
+                }
+            }
+
+            DevicesPanel.Children.Clear();
             for (int i = 0; i < devices.Count; i++)
             {
                 var dev = devices[i];
@@ -92,11 +235,10 @@ public partial class SoundView : UserControl
                     Tag = dev.Id
                 };
 
-                if (isSelected)
-                {
-                    btn.Background = new SolidColorBrush(Color.FromArgb(40, 10, 132, 255));
-                    btn.BorderBrush = Theme.AccentBrush;
-                }
+                btn.Background = isSelected
+                    ? new SolidColorBrush(Color.FromArgb(40, 10, 132, 255))
+                    : new SolidColorBrush(Color.FromArgb(20, 255, 255, 255));
+                btn.BorderBrush = isSelected ? Theme.AccentBrush : new SolidColorBrush(Color.FromArgb(24, 255, 255, 255));
 
                 var grid = new Grid();
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
@@ -129,28 +271,22 @@ public partial class SoundView : UserControl
                 Grid.SetColumn(nameText, 1);
                 grid.Children.Add(nameText);
 
-                if (isSelected)
+                var check = new TextBlock
                 {
-                    var check = new TextBlock
-                    {
-                        Text = "\uE73E",
-                        FontFamily = new FontFamily("Segoe MDL2 Assets"),
-                        FontSize = 12,
-                        FontWeight = FontWeights.Bold,
-                        Foreground = Theme.AccentBrush,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        HorizontalAlignment = HorizontalAlignment.Right
-                    };
-                    Grid.SetColumn(check, 2);
-                    grid.Children.Add(check);
-                }
+                    Text = "\uE73E",
+                    FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                    FontSize = 12,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Theme.AccentBrush,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Visibility = isSelected ? Visibility.Visible : Visibility.Collapsed
+                };
+                Grid.SetColumn(check, 2);
+                grid.Children.Add(check);
 
                 btn.Content = grid;
-                btn.Click += (_, _) =>
-                {
-                    AudioService.SetDefaultDevice(dev.Id);
-                    RefreshDevices();
-                };
+                btn.Click += (_, _) => SelectDevice(dev.Id);
 
                 DevicesPanel.Children.Add(btn);
             }
@@ -162,19 +298,57 @@ public partial class SoundView : UserControl
         Bg.Run(AudioService.ListAppVolumes, (apps, err) =>
         {
             if (err != null || apps == null) return;
-            AppsPanel.Children.Clear();
             if (apps.Count == 0)
             {
+                AppsPanel.Children.Clear();
                 NoAppsPanel.Visibility = Visibility.Visible;
                 return;
             }
 
             NoAppsPanel.Visibility = Visibility.Collapsed;
+
+            // Если список приложений не изменился по количеству и составу — обновляем ползунки на месте
+            if (AppsPanel.Children.Count == apps.Count)
+            {
+                bool match = true;
+                for (int i = 0; i < apps.Count; i++)
+                {
+                    if (AppsPanel.Children[i] is Border card && card.Tag is string name && name == apps[i].Name)
+                    {
+                        continue;
+                    }
+                    match = false;
+                    break;
+                }
+                if (match)
+                {
+                    for (int i = 0; i < apps.Count; i++)
+                    {
+                        var app = apps[i];
+                        if (AppsPanel.Children[i] is Border card && card.Child is StackPanel sp && sp.Children.Count >= 2)
+                        {
+                            if (sp.Children[0] is Grid hGrid && hGrid.Children.Count >= 2 && hGrid.Children[1] is TextBlock pct)
+                            {
+                                pct.Text = $"{(int)Math.Round(app.Level * 100)}%";
+                            }
+                            if (sp.Children[1] is Slider s && !s.IsMouseCaptureWithin)
+                            {
+                                s.Tag = app;
+                                s.Value = (int)Math.Round(app.Level * 100);
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
+
+            AppsPanel.Children.Clear();
             for (int i = 0; i < apps.Count; i++)
             {
                 var app = apps[i];
                 var appCard = new Border
                 {
+                    Tag = app.Name,
                     Background = (Brush)FindResource("Surface2Brush"),
                     BorderBrush = (Brush)FindResource("BorderSubtleBrush"),
                     BorderThickness = new Thickness(1),
@@ -233,9 +407,18 @@ public partial class SoundView : UserControl
         });
     }
 
+    private void OnMasterVolumeSliderPreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        _lastUserMasterVolumeTime = DateTime.UtcNow;
+        _masterAnimGen++;
+        _updatingMaster = false;
+        MasterVolumeSlider.BeginAnimation(Slider.ValueProperty, null);
+    }
+
     private void OnMasterVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_updatingMaster || MasterVolumePercentText == null || MasterVolumeSlider == null || _island == null) return;
+        _lastUserMasterVolumeTime = DateTime.UtcNow;
         float level = (float)(MasterVolumeSlider.Value / 100.0);
         AudioService.SetVolume(level);
         MasterVolumePercentText.Text = $"{(int)Math.Round(MasterVolumeSlider.Value)}%";
@@ -248,4 +431,3 @@ public partial class SoundView : UserControl
         RefreshMasterVolume();
     }
 }
-

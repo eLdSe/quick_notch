@@ -56,12 +56,12 @@ public partial class TopBarView : UserControl
         var now = DateTime.Now;
         TimeText.Text = now.ToString("HH:mm");
 
-        string dayOfWeek = now.ToString("dddd", System.Globalization.CultureInfo.CurrentUICulture);
+        string dayOfWeek = now.ToString("dddd", Loc.Culture);
         if (!string.IsNullOrEmpty(dayOfWeek))
         {
             dayOfWeek = char.ToUpper(dayOfWeek[0]) + dayOfWeek[1..];
         }
-        string datePart = now.ToString("d MMMM", System.Globalization.CultureInfo.CurrentUICulture);
+        string datePart = now.ToString("d MMMM", Loc.Culture);
         DateText.Text = $" •  {dayOfWeek}, {datePart}";
     }
 

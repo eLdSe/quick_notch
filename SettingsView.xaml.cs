@@ -66,7 +66,7 @@ public partial class SettingsView : UserControl
 
             // 5. Задержка скрытия
             if (DelaySlider != null) DelaySlider.Value = s.LeaveDelay;
-            if (DelayValueText != null) DelayValueText.Text = $"{s.LeaveDelay:F1} сек";
+            if (DelayValueText != null) DelayValueText.Text = $"{s.LeaveDelay:F1} {Loc.T("сек", "sec", "sn")}";
 
             // 6. Автозапуск и язык
             if (AutostartCheckBox != null) AutostartCheckBox.IsChecked = _island.Autostart;
@@ -76,6 +76,9 @@ public partial class SettingsView : UserControl
 
             // 7. Фон острова
             RefreshBackgroundCard();
+
+            // 8. Локализация всех надписей
+            RefreshLabels();
         }
         finally
         {
@@ -276,7 +279,7 @@ public partial class SettingsView : UserControl
         double val = Math.Round(DelaySlider.Value, 1);
         _island.S.LeaveDelay = val;
         _island.SaveState();
-        DelayValueText.Text = $"{val:F1} сек";
+        DelayValueText.Text = $"{val:F1} {Loc.T("сек", "sec", "sn")}";
     }
 
     private void OnAutostartClick(object sender, RoutedEventArgs e) => _island?.ToggleAutostart();
@@ -289,5 +292,67 @@ public partial class SettingsView : UserControl
     {
         _island?.Collapse();
         NotificationService.TriggerTest();
+    }
+
+    public void RefreshLabels()
+    {
+        // Вкладки сегментов вверху
+        if (TabAppearanceRadio != null) TabAppearanceRadio.Content = Loc.T("Оформление", "Appearance", "Görünüm");
+        if (TabBackgroundRadio != null) TabBackgroundRadio.Content = Loc.T("Фон", "Background", "Arka Plan");
+        if (TabBehaviorRadio != null) TabBehaviorRadio.Content = Loc.T("Поведение", "Behavior", "Davranış");
+        if (TabSystemRadio != null) TabSystemRadio.Content = Loc.T("Система", "System", "Sistem");
+
+        // Вкладка 1: Оформление
+        if (ThemeCardTitle != null) ThemeCardTitle.Text = Loc.T("Тема острова", "Island Theme", "Ada Teması");
+        if (ThemeCardDesc != null) ThemeCardDesc.Text = Loc.T("Светлый, тёмный или авто-режим", "Light, dark or auto mode", "Açık, koyu veya otomatik mod");
+        if (ThemeDarkRadio != null) ThemeDarkRadio.Content = Loc.T("Тёмная", "Dark", "Koyu");
+        if (ThemeLightRadio != null) ThemeLightRadio.Content = Loc.T("Светлая", "Light", "Açık");
+        if (ThemeAutoRadio != null) ThemeAutoRadio.Content = Loc.T("Авто", "Auto", "Otomatik");
+
+        if (GlassCardTitle != null) GlassCardTitle.Text = Loc.T("Эффект стекла", "Glass Effect", "Cam Efekti");
+        if (GlassCardSub != null) GlassCardSub.Text = Loc.T("Матовое стекло Liquid Glass", "Liquid Glass Frosted Surface", "Liquid Glass Mat Cam");
+        if (GlassCardDesc != null) GlassCardDesc.Text = Loc.T("Apple Frosted Glass с глубиной", "Apple Frosted Glass with depth", "Derinlikli Apple Mat Cam");
+
+        if (AccentCardTitle != null) AccentCardTitle.Text = Loc.T("Акцентный цвет", "Accent Color", "Vurgu Rengi");
+        if (AccentCardDesc != null) AccentCardDesc.Text = Loc.T("Цвета подсветки и активных элементов", "Highlight and active elements colors", "Vurgu ve aktif öğe renkleri");
+
+        if (AeroCardTitle != null) AeroCardTitle.Text = Loc.T("🤖 Робот-компаньон Aero", "🤖 Aero Companion Robot", "🤖 Aero Robot Arkadaşı");
+        if (AeroCardDesc != null) AeroCardDesc.Text = Loc.T("Интерактивный питомец: следит за курсором и может летать по рабочему столу", "Interactive pet: follows cursor and roams your desktop", "Etkileşimli evcil hayvan: imleci takip eder ve masaüstünde dolaşır");
+        if (RoamButton != null) RoamButton.Content = (_island?.S.RobotRoaming ?? false) 
+            ? Loc.T("🏠 Вернуть в островок", "🏠 Return to Island", "🏠 Adaya Geri Dön")
+            : Loc.T("🚀 Выпустить на рабочий стол", "🚀 Roam Desktop", "🚀 Masaüstüne Bırak");
+
+        // Вкладка 2: Фон
+        if (BgFileCardTitle != null) BgFileCardTitle.Text = Loc.T("Фоновое изображение острова", "Island Background Image", "Ada Arka Plan Resmi");
+        if (BgClearButton != null) BgClearButton.Content = Loc.T("Сбросить", "Reset", "Sıfırla");
+        if (BgPickButton != null) BgPickButton.Content = Loc.T("📁 Выбрать файл...", "📁 Choose File...", "📁 Dosya Seç...");
+
+        if (BgDimCardTitle != null) BgDimCardTitle.Text = Loc.T("Затемнение фонового рисунка", "Background Dimming", "Arka Plan Karartma");
+        if (BgDimCardDesc != null) BgDimCardDesc.Text = Loc.T("Регулировка яркости подложки под карточками", "Adjust brightness under cards", "Kartların altındaki parlaklığı ayarla");
+
+        if (BgBlurCardTitle != null) BgBlurCardTitle.Text = Loc.T("Размытие фона (Gaussian Blur)", "Background Blur (Gaussian Blur)", "Arka Plan Bulanıklığı");
+        if (BgBlurCardDesc != null) BgBlurCardDesc.Text = Loc.T("Мягкое матовое размытие обоев острова", "Soft frosted blur for wallpaper", "Duvar kağıdı için yumuşak mat bulanıklık");
+
+        // Вкладка 3: Поведение
+        if (SummonCardTitle != null) SummonCardTitle.Text = Loc.T("Способ вызова острова", "Summon Method", "Adayı Açma Yöntemi");
+        if (SummonCardDesc != null) SummonCardDesc.Text = Loc.T("Остров раскрывается исключительно по нажатию на чёлку экрана", "Expands strictly when clicking screen notch", "Yalnızca ekran çentiğine tıklandığında açılır");
+        if (SummonBadgeText != null) SummonBadgeText.Text = Loc.T("💻 Только чёлка", "💻 Notch Only", "💻 Yalnızca Çentik");
+
+        if (DelayCardTitle != null) DelayCardTitle.Text = Loc.T("Задержка скрытия (Auto-Collapse)", "Auto-Collapse Delay", "Otomatik Kapanma Gecikmesi");
+        if (DelayCardDesc != null) DelayCardDesc.Text = Loc.T("Время до сворачивания после ухода курсора", "Time before collapsing after cursor leaves", "İmleç ayrıldıktan sonra kapanma süresi");
+
+        // Вкладка 4: Система
+        if (AutostartCardTitle != null) AutostartCardTitle.Text = Loc.T("Запуск с Windows", "Launch on Windows Startup", "Windows ile Başlat");
+        if (AutostartCardDesc != null) AutostartCardDesc.Text = Loc.T("Автозагрузка при старте системы", "Auto-start when system boots", "Sistem başladığında otomatik başlat");
+
+        if (LangCardTitle != null) LangCardTitle.Text = Loc.T("Язык интерфейса", "Interface Language", "Arayüz Dili");
+        if (LangCardDesc != null) LangCardDesc.Text = Loc.T("Русский, English, Türkçe", "Russian, English, Turkish", "Rusça, İngilizce, Türkçe");
+
+        if (HotkeyCardTitle != null) HotkeyCardTitle.Text = Loc.T("Горячая клавиша активации", "Global Activation Hotkey", "Global Etkinleştirme Kısayolu");
+        if (HotkeyCardDesc != null) HotkeyCardDesc.Text = Loc.T("Быстрое открытие и скрытие острова из любого приложения", "Quick toggle island from any application", "Herhangi bir uygulamadan adayı hızlıca aç/kapat");
+
+        if (AboutCardTitle != null) AboutCardTitle.Text = Loc.T("QuickNotch v1.0.4  ·  macOS Dynamic Island для Windows", "QuickNotch v1.0.4  ·  macOS Dynamic Island for Windows", "QuickNotch v1.0.4  ·  Windows için macOS Dynamic Island");
+        if (AboutCardDesc != null) AboutCardDesc.Text = Loc.T("Аппаратно-ускоренный движок WPF XAML (0% нагрузки на ЦП)", "Hardware-accelerated WPF XAML engine (0% idle CPU)", "Donanım hızlandırmalı WPF XAML motoru (%0 boşta CPU)");
+        if (TestNotifyButton != null) TestNotifyButton.Content = Loc.T("🔔 Тест уведомления", "🔔 Test Notification", "🔔 Bildirim Testi");
     }
 }

@@ -112,18 +112,22 @@ public partial class MediaView : UserControl
             QuickVolumeSlider.Value = volPct;
             QuickVolumeText.Text = muted ? Loc.T("Mute", "Mute", "Mute") : $"{volPct}%";
 
-            var (devices, defaultId) = AudioService.ListOutputDevices();
-            var active = devices.FirstOrDefault(d => d.Id == defaultId);
-            if (active != null)
+            Bg.Run(AudioService.ListOutputDevices, (res, err) =>
             {
-                string devName = active.Name;
-                if (devName.Length > 28) devName = devName[..26] + "…";
-                ActiveDeviceText.Text = devName;
-            }
-            else
-            {
-                ActiveDeviceText.Text = Loc.T("Динамики", "Speakers", "Hoparlör");
-            }
+                if (err != null || res.Devices == null) return;
+                var (devices, defaultId) = res;
+                var active = devices.FirstOrDefault(d => d.Id == defaultId);
+                if (active != null)
+                {
+                    string devName = active.Name;
+                    if (devName.Length > 28) devName = devName[..26] + "…";
+                    ActiveDeviceText.Text = devName;
+                }
+                else
+                {
+                    ActiveDeviceText.Text = Loc.T("Динамики", "Speakers", "Hoparlör");
+                }
+            });
         }
         catch { }
         finally

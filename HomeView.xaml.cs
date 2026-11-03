@@ -342,8 +342,8 @@ public partial class HomeView : UserControl
             if (CpuPercentText != null) CpuPercentText.Text = $"{cpuVal}%";
             if (RamPercentText != null) RamPercentText.Text = $"{ramVal}%";
 
-            if (CpuRingPath != null) CpuRingPath.Data = CreateRingGeometry(40, 4, snap.CpuFraction);
-            if (RamRingPath != null) RamRingPath.Data = CreateRingGeometry(40, 4, snap.MemoryFraction);
+            if (CpuRingPath != null) CpuRingPath.Data = CreateRingGeometry(52, 5, snap.CpuFraction);
+            if (RamRingPath != null) RamRingPath.Data = CreateRingGeometry(52, 5, snap.MemoryFraction);
         }
 
         PollBrightnessIfIdle();
@@ -378,10 +378,6 @@ public partial class HomeView : UserControl
         });
 
         var geo = new PathGeometry();
-        // Опорные якоря (0,0) и (size,size) гарантируют, что PathGeometry сохраняет точные внешние габариты
-        // и начало дуги никогда не сдвигается ни на пиксель от центра фонового Ellipse
-        geo.Figures.Add(new PathFigure { StartPoint = new Point(0, 0), IsFilled = false, IsClosed = false });
-        geo.Figures.Add(new PathFigure { StartPoint = new Point(size, size), IsFilled = false, IsClosed = false });
         geo.Figures.Add(fig);
         geo.Freeze();
         return geo;

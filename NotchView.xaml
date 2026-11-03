@@ -17,10 +17,10 @@
         <SolidColorBrush x:Key="GreenBrush" Color="#30D158" />
     </UserControl.Resources>
 
-    <!-- Внешний контейнер с мягкой красной тенью-свечением по фото: объединяет капсулу и ушки MacBook Notch в единый силуэт -->
+    <!-- Внешний контейнер с благородной мягкой тенью Apple: глубокий естественный силуэт без красного света -->
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top">
         <Grid.Effect>
-            <DropShadowEffect x:Name="NotchShadow" BlurRadius="22" ShadowDepth="2" Direction="270" Opacity="0.55" Color="#FF2B3C" RenderingBias="Performance" />
+            <DropShadowEffect x:Name="NotchShadow" BlurRadius="18" ShadowDepth="4" Direction="270" Opacity="0.4" Color="#000000" RenderingBias="Performance" />
         </Grid.Effect>
 
         <!-- Левое вогнутое ушко (MacBook Notch Fillet) -->
@@ -60,7 +60,11 @@
 
             <Grid VerticalAlignment="Center">
                 <!-- 1. РЕЖИМ ПЛЕЕРА (когда играет музыка: двухстрочная компоновка строго по фото) -->
-                <Grid x:Name="MediaModeGrid" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="OnMediaNotchClick" ToolTip="Открыть плеер" Margin="2,0">
+                <Grid x:Name="MediaModeGrid" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="OnMediaNotchClick" ToolTip="Открыть плеер" Margin="2,0"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="MediaModeScale" ScaleX="1" ScaleY="1" />
+                    </Grid.RenderTransform>
                     <Grid.ColumnDefinitions>
                         <!-- 0: Обложка альбома -->
                         <ColumnDefinition Width="Auto" />
@@ -114,14 +118,16 @@
                                     <Path x:Name="MiniPauseIcon" Fill="#FFFFFF" 
                                           Data="M 0,0 L 2.4,0 L 2.4,9 L 0,9 Z M 5.2,0 L 7.6,0 L 7.6,9 L 5.2,9 Z" 
                                           Width="8" Height="9" Stretch="Uniform" Visibility="Visible" SnapsToDevicePixels="True"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
                                           RenderTransformOrigin="0.5,0.5">
                                         <Path.RenderTransform>
                                             <ScaleTransform x:Name="MiniPauseScale" ScaleX="1" ScaleY="1" />
                                         </Path.RenderTransform>
                                     </Path>
                                     <Path x:Name="MiniPlayIcon" Fill="#FFFFFF" 
-                                          Data="M 0.5,0 L 8.5,4.5 L 0.5,9 Z" 
-                                          Width="8" Height="9" Stretch="Uniform" Margin="0.7,0,0,0" Visibility="Collapsed" SnapsToDevicePixels="True"
+                                          Data="M 0,0 L 8,4.5 L 0,9 Z" 
+                                          Width="8" Height="9" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
                                           RenderTransformOrigin="0.5,0.5">
                                         <Path.RenderTransform>
                                             <ScaleTransform x:Name="MiniPlayScale" ScaleX="1" ScaleY="1" />
@@ -165,7 +171,10 @@
                 </Grid>
 
                 <!-- 2. СТАНДАРТНЫЙ РЕЖИМ ЧЁЛКИ: Погода слева, Время по центру, Батарея справа (по фото) -->
-                <Grid x:Name="IdleModeGrid" Visibility="Visible">
+                <Grid x:Name="IdleModeGrid" Visibility="Visible" RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="IdleModeScale" ScaleX="1" ScaleY="1" />
+                    </Grid.RenderTransform>
                     <Grid.ColumnDefinitions>
                         <!-- 0: Погода слева -->
                         <ColumnDefinition Width="*" />
@@ -212,20 +221,36 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- 3. ДЕЛИКАТНАЯ ПОЛОСКА-ИНДИКАТОР В СЖАТОМ РЕЖИМЕ (NOTCH BAR) -->
-                <Border x:Name="NotchBarIndicator"
-                        Width="50" Height="2.5"
-                        CornerRadius="1.25"
-                        Background="#FFFFFF"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Opacity="0"
-                        Visibility="Collapsed"
-                        IsHitTestVisible="False">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="5" ShadowDepth="0" Color="#FFFFFF" Opacity="0.8" />
-                    </Border.Effect>
-                </Border>
+                <!-- 3. ПРЕМИАЛЬНАЯ КАПСУЛА-ИНДИКАТОР ПРИ ОТКРЫТЫХ ОКНАХ (Apple Home Bar / Dynamic Luminous Pill) -->
+                <Grid x:Name="NotchBarContainer" 
+                      HorizontalAlignment="Center" 
+                      VerticalAlignment="Center"
+                      Opacity="0"
+                      Visibility="Collapsed"
+                      IsHitTestVisible="False">
+                    <!-- Мягкий рассеянный ореол свечения -->
+                    <Border x:Name="NotchBarGlow"
+                            Width="46" Height="3.2"
+                            CornerRadius="1.6"
+                            Background="#FFFFFF"
+                            Opacity="0.45">
+                        <Border.Effect>
+                            <DropShadowEffect x:Name="NotchBarShadow" BlurRadius="8" ShadowDepth="0" Color="#FFFFFF" Opacity="0.55" RenderingBias="Performance" />
+                        </Border.Effect>
+                    </Border>
+                    <!-- Основная световая полоска со сглаженными краями -->
+                    <Border x:Name="NotchBarIndicator"
+                            Width="46" Height="3.2"
+                            CornerRadius="1.6">
+                        <Border.Background>
+                            <LinearGradientBrush x:Name="NotchBarBrush" StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#90FFFFFF" Offset="0.0" />
+                                <GradientStop Color="#FFFFFF" Offset="0.5" />
+                                <GradientStop Color="#90FFFFFF" Offset="1.0" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </Grid>
             </Grid>
         </Border>
     </Grid>

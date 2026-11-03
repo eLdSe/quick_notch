@@ -229,6 +229,7 @@ public sealed class IslandView : FrameworkElement
 	public MediaState Media = new MediaState();
 
 	private bool _mediaBusy;
+	private double _playToggleCooldown = 0.0;
 
 	private double _lastMediaPoll = -1000000000.0;
 
@@ -372,6 +373,8 @@ public sealed class IslandView : FrameworkElement
 			return false;
 		}
 	}
+
+	public bool IsFullscreenActive => _fullscreen;
 
 	public bool IsCoveredHidden
 	{
@@ -1296,6 +1299,10 @@ public sealed class IslandView : FrameworkElement
 				_mediaBusy = false;
 				if (err == null && res != null)
 				{
+					if (Clock.Now < _playToggleCooldown)
+					{
+						res.Playing = Media.Playing;
+					}
 					bool flag = SetCover(res.Cover);
 					res.Cover = null;
 					bool num = Media.Active != res.Active || Media.Playing != res.Playing || Media.Title != res.Title || Media.Artist != res.Artist || Media.App != res.App || Media.Dur != res.Dur || Media.CanSeek != res.CanSeek;
@@ -1328,8 +1335,7 @@ public sealed class IslandView : FrameworkElement
 	{
 		Bg.RunAsync(MediaService.NextAsync, (bool _, Exception? _) =>
 		{
-			RefreshMedia(150);
-			RefreshMedia(600);
+			RefreshMedia(400);
 		});
 	}
 
@@ -1337,17 +1343,16 @@ public sealed class IslandView : FrameworkElement
 	{
 		Bg.RunAsync(MediaService.PreviousAsync, (bool _, Exception? _) =>
 		{
-			RefreshMedia(150);
-			RefreshMedia(600);
+			RefreshMedia(400);
 		});
 	}
 
 	public void TogglePlay()
 	{
+		_playToggleCooldown = Clock.Now + 0.75;
 		SetPlaying(!Media.Playing);
 		Bg.RunAsync(MediaService.TogglePlayPauseAsync, (bool _, Exception? _) =>
 		{
-			RefreshMedia(150);
 			RefreshMedia(600);
 		});
 	}
@@ -1464,10 +1469,6 @@ public sealed class IslandView : FrameworkElement
 			TopBarHost?.RefreshAll();
 			DockHost?.RefreshSelected(CurrentTool);
 		}
-		if (NotchHost != null && NotchHost.Visibility != Visibility.Collapsed)
-		{
-			NotchHost.Visibility = Visibility.Collapsed;
-		}
 		SetTarget(1.0);
 	}
 
@@ -1542,14 +1543,16 @@ public sealed class IslandView : FrameworkElement
 		_lastFrameTs = now;
 		if (Target != 0.0)
 		{
-			SpW.Step(dt, 220.0, 26.0);
-			SpH.Step(dt, 220.0, 26.0);
+			// Органичная сбалансированная физика раскрытия Apple Dynamic Island
+			SpW.Step(dt, 270.0, 25.5);
+			SpH.Step(dt, 270.0, 25.5);
 			SpHide.Step(dt, 240.0, 28.0);
 		}
 		else
 		{
-			SpW.Step(dt, 240.0, 31.0);
-			SpH.Step(dt, 240.0, 31.0);
+			// Четкое и быстрое закрытие назад в вырез без лишних колебаний
+			SpW.Step(dt, 340.0, 32.0);
+			SpH.Step(dt, 340.0, 32.0);
 			SpHide.Step(dt, 240.0, 28.0);
 		}
 		SpHover.Step(dt, 320.0, 22.0);
@@ -1718,21 +1721,51 @@ public sealed class IslandView : FrameworkElement
 				CapsuleHost.Visibility = Visibility.Collapsed;
 			}
 		}
-		double a = (IsMediaActive ? 384 : 246);
-		double a2 = ((!(S.IslandStyle == "notch")) ? ((S.IslandStyle == "compact") ? 30 : 34) : (IsMediaActive ? 34 : 32));
-		double num2 = Ui.Lerp(a, ExpandedW, t);
-		double height = Ui.Lerp(a2, ExpandedH, num);
-		double num3 = Ui.Lerp(15.0, 32.0, num);
+		// Непрерывные размеры выреза для бесшовного морфинга из любого состояния
+		double live = Ui.Clamp(SpLive.X);
+		double a = Ui.Lerp(215.0, 365.0, live);
+		double a2 = Ui.Lerp(38.0, 66.0, live);
+		double initRadius = Ui.Lerp(18.0, 22.0, live);
+
+		double hideVal = Ui.Clamp(SpHide.X);
+		double startW = Ui.Lerp(a, 80.0, hideVal);
+		double startH = Ui.Lerp(a2, 5.0, hideVal);
+		double startR = Ui.Lerp(initRadius, 2.5, hideVal);
+
+		double num2 = Ui.Lerp(startW, ExpandedW, t);
+		double height = Ui.Lerp(startH, ExpandedH, num);
+		double num3 = Ui.Lerp(startR, 32.0, num);
 		if (CapsuleBorder != null)
 		{
 			CapsuleBorder.RenderTransform = null;
 			CapsuleBorder.Width = num2;
 			CapsuleBorder.Height = height;
 			CapsuleBorder.CornerRadius = new CornerRadius(0.0, 0.0, num3, num3);
-			CapsuleBorder.Opacity = ((num <= 0.12) ? Ui.Clamp(num / 0.12) : 1.0);
+			CapsuleBorder.Opacity = 1.0;
 		}
 		if (ContentHost != null)
 		{
+			// Плавное проявление контента с мягким микромасштабированием Apple Bloom
+			double contentT = Ui.Clamp((num - 0.15) / 0.75);
+			double smoothContent = contentT * contentT * (3.0 - 2.0 * contentT);
+			ContentHost.Opacity = smoothContent;
+			ContentHost.IsHitTestVisible = num > 0.70;
+
+			double scale = Ui.Lerp(0.94, 1.0, smoothContent);
+			double translateY = Ui.Lerp(-6.0, 0.0, smoothContent);
+
+			if (ContentHost.RenderTransform is not System.Windows.Media.TransformGroup tg || tg.Children.Count < 2)
+			{
+				tg = new System.Windows.Media.TransformGroup();
+				tg.Children.Add(new System.Windows.Media.ScaleTransform(1.0, 1.0));
+				tg.Children.Add(new System.Windows.Media.TranslateTransform(0.0, 0.0));
+				ContentHost.RenderTransform = tg;
+				ContentHost.RenderTransformOrigin = new Point(0.5, 0.1);
+			}
+			((System.Windows.Media.ScaleTransform)tg.Children[0]).ScaleX = scale;
+			((System.Windows.Media.ScaleTransform)tg.Children[0]).ScaleY = scale;
+			((System.Windows.Media.TranslateTransform)tg.Children[1]).Y = translateY;
+
 			if (num >= 0.995 || num <= 0.01)
 			{
 				if (ContentHost.Clip != null)
@@ -1754,8 +1787,6 @@ public sealed class IslandView : FrameworkElement
 					ContentHost.Clip = new RectangleGeometry(new Rect(x, 0.0, num2, height), num3, num3);
 				}
 			}
-			ContentHost.Opacity = Ui.Clamp((num - 0.2) / 0.7);
-			ContentHost.IsHitTestVisible = num > 0.6;
 		}
 		double num4 = Ui.Clamp(SpNotify.X);
 		if (ToastHost != null && (ActiveNotification != null || num4 > 0.01))
@@ -1810,7 +1841,7 @@ public sealed class IslandView : FrameworkElement
 			}
 			if (NotchHost != null)
 			{
-				if (num > 0.15)
+				if (num > 0.02)
 				{
 					if (NotchHost.Visibility != Visibility.Collapsed)
 					{
@@ -1827,7 +1858,7 @@ public sealed class IslandView : FrameworkElement
 					double hide3 = Ui.Clamp(SpHide.X);
 					double notchHv3 = Hv("summon:notch_bar");
 					NotchHost.UpdateMorph(hide3, notchHv3);
-					NotchHost.Opacity = Ui.Clamp((0.15 - num) / 0.15);
+					NotchHost.Opacity = Ui.Clamp(1.0 - num / 0.02);
 				}
 			}
 		}
@@ -2119,11 +2150,19 @@ public sealed class IslandView : FrameworkElement
 			}
 			return;
 		}
+		try
+		{
+			_fullscreen = WinApi.FullscreenAppActive(Host.Handle);
+		}
+		catch
+		{
+			_fullscreen = false;
+		}
 		double dpiScaleX = VisualTreeHelper.GetDpi(this).DpiScaleX;
 		double num = SystemParameters.PrimaryScreenWidth * dpiScaleX;
 		double num2 = 370.0 * dpiScaleX;
 		int num3 = (int)(num / 2.0 - num2 / 2.0);
-		bool flag = WinApi.WindowCoversArea((uint)Environment.ProcessId, num3, 0, num3 + (int)num2, (int)(36.0 * dpiScaleX));
+		bool flag = _fullscreen || WinApi.WindowCoversArea((uint)Environment.ProcessId, num3, 0, num3 + (int)num2, (int)(36.0 * dpiScaleX));
 		if (flag != _covered)
 		{
 			_covered = flag;

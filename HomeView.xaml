@@ -166,6 +166,7 @@
         </Style>
 
         <!-- Стиль тактильного слайдера-капсулы в стиле macOS Control Center -->
+        <!-- Стиль тактильного слайдера в стиле macOS Control Center -->
         <Style x:Key="AppleCapsuleSliderStyle"
                 TargetType="Slider">
             <Setter Property="FocusVisualStyle"
@@ -173,76 +174,60 @@
             <Setter Property="Cursor"
                     Value="Hand"/>
             <Setter Property="Height"
-                    Value="42"/>
+                    Value="18"/>
             <Setter Property="IsMoveToPointEnabled"
                     Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
-                        <Border x:Name="CapsuleBorder"
-                                CornerRadius="14"
-                                Background="#18FFFFFF"
-                                BorderBrush="#20FFFFFF"
-                                BorderThickness="1"
-                                ClipToBounds="True">
-                            <Grid>
-                                <!-- Заполненная часть дорожки слева до бегунка -->
-                                <Track x:Name="PART_Track">
-                                    <Track.DecreaseRepeatButton>
-                                        <RepeatButton Command="Slider.DecreaseLarge">
-                                            <RepeatButton.Template>
-                                                <ControlTemplate>
-                                                    <Border Background="{DynamicResource AccentBrush}"
-                                                            CornerRadius="13,0,0,13"/>
-                                                </ControlTemplate>
-                                            </RepeatButton.Template>
-                                        </RepeatButton>
-                                    </Track.DecreaseRepeatButton>
-                                    <Track.Thumb>
-                                        <Thumb Width="14"
-                                                Height="42"
-                                                Cursor="Hand">
-                                            <Thumb.Template>
-                                                <ControlTemplate>
-                                                    <!-- Белый округлый разделитель-ручка в стиле Apple Control Center -->
-                                                    <Border Width="5"
-                                                            Height="24"
-                                                            Background="White"
-                                                            CornerRadius="2.5"
-                                                            VerticalAlignment="Center"
-                                                            HorizontalAlignment="Center">
-                                                        <Border.Effect>
-                                                            <DropShadowEffect BlurRadius="4"
-                                                                    ShadowDepth="1"
-                                                                    Opacity="0.45"
-                                                                    Color="Black"
-                                                                    RenderingBias="Performance"/>
-                                                        </Border.Effect>
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Thumb.Template>
-                                        </Thumb>
-                                    </Track.Thumb>
-                                    <Track.IncreaseRepeatButton>
-                                        <RepeatButton Command="Slider.IncreaseLarge">
-                                            <RepeatButton.Template>
-                                                <ControlTemplate>
-                                                    <Border Background="Transparent"/>
-                                                </ControlTemplate>
-                                            </RepeatButton.Template>
-                                        </RepeatButton>
-                                    </Track.IncreaseRepeatButton>
-                                </Track>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver"
-                                    Value="True">
-                                <Setter TargetName="CapsuleBorder"
-                                        Property="BorderBrush"
-                                        Value="#38FFFFFF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
+                        <Grid VerticalAlignment="Center" Height="18" Background="Transparent">
+                            <!-- Фоновая дорожка -->
+                            <Border Height="7"
+                                    CornerRadius="3.5"
+                                    Background="#22FFFFFF"/>
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate>
+                                                <Border Background="{DynamicResource AccentBrush}"
+                                                        CornerRadius="3.5,0,0,3.5"
+                                                        Height="7"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Cursor="Hand">
+                                        <Thumb.Template>
+                                            <ControlTemplate>
+                                                <Border Width="14"
+                                                        Height="14"
+                                                        Background="White"
+                                                        CornerRadius="7">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect BlurRadius="4"
+                                                                ShadowDepth="1"
+                                                                Opacity="0.4"
+                                                                Color="Black"
+                                                                RenderingBias="Performance"/>
+                                                    </Border.Effect>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate>
+                                                <Border Background="Transparent"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -698,145 +683,107 @@
                             VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <StackPanel Grid.Row="1"
+                                <StackPanel Grid.Row="1"
                         VerticalAlignment="Center">
-                    <!-- 1. Капсула Громкости: перетаскивание и клик в любое место капсулы -->
-                    <Grid x:Name="VolumeCapsuleContainer"
-                            Height="42"
-                            Margin="0,0,0,10"
-                            Background="Transparent"
-                            Cursor="Hand"
-                          PreviewMouseDown="OnVolumeCapsuleMouseDown"
-                          PreviewMouseMove="OnVolumeCapsuleMouseMove"
-                          PreviewMouseUp="OnVolumeCapsuleMouseUp">
-                        <Slider x:Name="VolumeSlider"
-                                Minimum="0"
-                                Maximum="100"
-                                Value="70"
-                                IsMoveToPointEnabled="True"
-                                Focusable="False"
-                                IsHitTestVisible="False"
-                                Style="{StaticResource AppleCapsuleSliderStyle}"
-                                ValueChanged="OnVolumeSliderChanged"/>
-                        <Grid IsHitTestVisible="False"
-                                Margin="14,0,14,0">
-                            <StackPanel Orientation="Horizontal"
-                                    VerticalAlignment="Center">
+                    <!-- 1. Громкость: Иконка и подпись сверху, слайдер снизу (без наложения) -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="2,0,2,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock x:Name="VolumeIcon"
                                         Text="&#xE767;"
                                         FontFamily="Segoe MDL2 Assets"
-                                        FontSize="16"
-                                        Foreground="White"
+                                        FontSize="13.5"
+                                        Foreground="{DynamicResource AccentBrush}"
                                         VerticalAlignment="Center"
-                                        Margin="0,0,10,0">
-                                    <TextBlock.Effect>
-                                        <DropShadowEffect BlurRadius="4"
-                                                ShadowDepth="1"
-                                                Opacity="0.5"
-                                                Color="Black"
-                                                RenderingBias="Performance"/>
-                                    </TextBlock.Effect>
-                                </TextBlock>
+                                        Margin="0,0,7,0"/>
                                 <TextBlock x:Name="VolumeLabelText"
                                         Text="Динамики"
-                                        FontSize="12.5"
+                                        FontSize="12"
                                         FontWeight="SemiBold"
-                                        Foreground="White"
-                                        VerticalAlignment="Center">
-                                    <TextBlock.Effect>
-                                        <DropShadowEffect BlurRadius="4"
-                                                ShadowDepth="1"
-                                                Opacity="0.5"
-                                                Color="Black"
-                                                RenderingBias="Performance"/>
-                                    </TextBlock.Effect>
-                                </TextBlock>
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock x:Name="VolumePercentText"
                                     Text="70%"
-                                    FontSize="12"
+                                    FontSize="11.5"
                                     FontWeight="Bold"
-                                       Foreground="White"
+                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                     HorizontalAlignment="Right"
-                                    VerticalAlignment="Center">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect BlurRadius="4"
-                                            ShadowDepth="1"
-                                            Opacity="0.5"
-                                            Color="Black"
-                                            RenderingBias="Performance"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
+                                    VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="1" x:Name="VolumeCapsuleContainer"
+                                Height="20"
+                                Background="Transparent"
+                                Cursor="Hand"
+                                PreviewMouseDown="OnVolumeCapsuleMouseDown"
+                                PreviewMouseMove="OnVolumeCapsuleMouseMove"
+                                PreviewMouseUp="OnVolumeCapsuleMouseUp">
+                            <Slider x:Name="VolumeSlider"
+                                    Minimum="0"
+                                    Maximum="100"
+                                    Value="70"
+                                    IsMoveToPointEnabled="True"
+                                    Focusable="False"
+                                    IsHitTestVisible="False"
+                                    Style="{StaticResource AppleCapsuleSliderStyle}"
+                                    ValueChanged="OnVolumeSliderChanged"/>
                         </Grid>
                     </Grid>
 
-                    <!-- 2. Капсула Яркости: перетаскивание и клик в любое место капсулы -->
-                    <Grid x:Name="BrightnessCapsuleContainer"
-                            Height="42"
-                            Margin="0,0,0,0"
-                            Background="Transparent"
-                            Cursor="Hand"
-                          PreviewMouseDown="OnBrightnessCapsuleMouseDown"
-                          PreviewMouseMove="OnBrightnessCapsuleMouseMove"
-                          PreviewMouseUp="OnBrightnessCapsuleMouseUp">
-                        <Slider x:Name="BrightnessSlider"
-                                Minimum="0"
-                                Maximum="100"
-                                Value="100"
-                                IsMoveToPointEnabled="True"
-                                Focusable="False"
-                                IsHitTestVisible="False"
-                                Style="{StaticResource AppleCapsuleSliderStyle}"
-                                ValueChanged="OnBrightnessSliderChanged"/>
-                        <Grid IsHitTestVisible="False"
-                                Margin="14,0,14,0">
-                            <StackPanel Orientation="Horizontal"
-                                    VerticalAlignment="Center">
+                    <!-- 2. Яркость дисплея: Иконка и подпись сверху, слайдер снизу (без наложения) -->
+                    <Grid Margin="0,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="2,0,2,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock x:Name="BrightnessIcon"
                                         Text="&#xE706;"
                                         FontFamily="Segoe MDL2 Assets"
-                                        FontSize="16"
-                                        Foreground="White"
+                                        FontSize="13.5"
+                                        Foreground="{DynamicResource AccentBrush}"
                                         VerticalAlignment="Center"
-                                        Margin="0,0,10,0">
-                                    <TextBlock.Effect>
-                                        <DropShadowEffect BlurRadius="4"
-                                                ShadowDepth="1"
-                                                Opacity="0.5"
-                                                Color="Black"
-                                                RenderingBias="Performance"/>
-                                    </TextBlock.Effect>
-                                </TextBlock>
+                                        Margin="0,0,7,0"/>
                                 <TextBlock x:Name="BrightnessLabelText"
                                         Text="Яркость дисплея"
-                                        FontSize="12.5"
+                                        FontSize="12"
                                         FontWeight="SemiBold"
-                                        Foreground="White"
-                                        VerticalAlignment="Center">
-                                    <TextBlock.Effect>
-                                        <DropShadowEffect BlurRadius="4"
-                                                ShadowDepth="1"
-                                                Opacity="0.5"
-                                                Color="Black"
-                                                RenderingBias="Performance"/>
-                                    </TextBlock.Effect>
-                                </TextBlock>
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock x:Name="BrightnessPercentText"
                                     Text="100%"
-                                    FontSize="12"
+                                    FontSize="11.5"
                                     FontWeight="Bold"
-                                       Foreground="White"
+                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                     HorizontalAlignment="Right"
-                                    VerticalAlignment="Center">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect BlurRadius="4"
-                                            ShadowDepth="1"
-                                            Opacity="0.5"
-                                            Color="Black"
-                                            RenderingBias="Performance"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
+                                    VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Grid.Row="1" x:Name="BrightnessCapsuleContainer"
+                                Height="20"
+                                Background="Transparent"
+                                Cursor="Hand"
+                                PreviewMouseDown="OnBrightnessCapsuleMouseDown"
+                                PreviewMouseMove="OnBrightnessCapsuleMouseMove"
+                                PreviewMouseUp="OnBrightnessCapsuleMouseUp">
+                            <Slider x:Name="BrightnessSlider"
+                                    Minimum="0"
+                                    Maximum="100"
+                                    Value="100"
+                                    IsMoveToPointEnabled="True"
+                                    Focusable="False"
+                                    IsHitTestVisible="False"
+                                    Style="{StaticResource AppleCapsuleSliderStyle}"
+                                    ValueChanged="OnBrightnessSliderChanged"/>
                         </Grid>
                     </Grid>
                 </StackPanel>
@@ -941,6 +888,11 @@
                                         Height="52"/>
                                 <!-- Активная дуга CPU -->
                                 <Path x:Name="CpuRingPath"
+                                        Width="52"
+                                        Height="52"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Stretch="None"
                                         Stroke="{DynamicResource AccentBrush}"
                                         StrokeThickness="5"
                                       StrokeStartLineCap="Round"
@@ -980,6 +932,11 @@
                                         Height="52"/>
                                 <!-- Активная дуга RAM -->
                                 <Path x:Name="RamRingPath"
+                                        Width="52"
+                                        Height="52"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Stretch="None"
                                         Stroke="{DynamicResource AccentHotBrush}"
                                         StrokeThickness="5"
                                       StrokeStartLineCap="Round"

@@ -28,6 +28,7 @@ public abstract class Section
             "weather" => Loc.T("Погода", "Weather", "Hava Durumu"),
             "ai" => Loc.T("Аэро", "Aero", "Aero"),
             "calendar" => Loc.T("Календарь", "Calendar", "Takvim"),
+            "pomodoro" => Loc.T("Помодоро", "Pomodoro", "Pomodoro"),
             _ => !string.IsNullOrEmpty(_title) ? _title : Key
         };
         set => _title = value;
@@ -45,6 +46,7 @@ public abstract class Section
         "weather" => "☼",
         "ai" => "🤖",
         "calendar" => "🗓",
+        "pomodoro" => "⏱",
         _ => ""
     };
 
@@ -94,10 +96,11 @@ public static class Sections
     public static readonly WeatherSection Weather = new();
     public static readonly AiSection Ai = new();
     public static readonly CalendarSection Calendar = new();
+    public static readonly PomodoroSection Pomodoro = new();
 
     // Основные вкладки для лаконичной навигации в стиле Apple
     public static readonly Section[] Primary = { Home, Clipboard, Ai, Links, Settings };
-    public static readonly Section[] All = { Home, Clipboard, Ai, Links, Settings, Media, Sound, System, Weather, Calendar };
+    public static readonly Section[] All = { Home, Clipboard, Ai, Links, Settings, Media, Sound, System, Weather, Calendar, Pomodoro };
     public static Section ByKey(string key) => All.FirstOrDefault(s => s.Key == key) ?? Home;
 }
 
@@ -1132,3 +1135,12 @@ public sealed class SystemSection : Section
     }
 }
 
+
+public sealed class PomodoroSection : Section
+{
+    public PomodoroSection()
+    {
+        Key = "pomodoro";
+        Title = "Помодоро";
+    }
+}

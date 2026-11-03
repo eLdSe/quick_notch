@@ -429,31 +429,32 @@
                         </Border>
                     </Button>
 
-                    <!-- Бодрствование -->
+                    <!-- Помодоро -->
                     <Button Grid.Column="6"
                             Style="{StaticResource QuickTileButtonStyle}"
-                            Click="OnKeepAwakeClick">
-                        <Border x:Name="AwakeIndicator"
+                            Click="OnPomodoroTileClick"
+                            ToolTip="Открыть таймер Помодоро">
+                        <Border x:Name="PomodoroIndicator"
                                 CornerRadius="14"
                                 BorderThickness="1.2"
                                 BorderBrush="Transparent"
                                 Background="#14FFFFFF">
                             <StackPanel VerticalAlignment="Center"
                                     HorizontalAlignment="Center">
-                                <TextBlock x:Name="AwakeIcon"
-                                        Text="&#xE7E8;"
+                                <TextBlock x:Name="PomodoroIcon"
+                                        Text="&#xE916;"
                                         FontFamily="Segoe MDL2 Assets"
                                         FontSize="22"
                                         Foreground="White"
                                         HorizontalAlignment="Center"/>
-                                <TextBlock Text="Бодрствование"
+                                <TextBlock Text="Помодоро"
                                         FontSize="11"
                                         FontWeight="SemiBold"
                                         Foreground="{DynamicResource TextPrimaryBrush}"
                                         HorizontalAlignment="Center"
                                         Margin="0,9,0,0"/>
-                                <TextBlock x:Name="AwakeStatusText"
-                                        Text="Выкл"
+                                <TextBlock x:Name="PomodoroStatusText"
+                                        Text="25:00"
                                         FontSize="10.5"
                                         Foreground="{DynamicResource TextSecondaryBrush}"
                                         HorizontalAlignment="Center"

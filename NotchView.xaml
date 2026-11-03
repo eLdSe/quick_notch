@@ -193,6 +193,14 @@
                                    Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
 
+                    <!-- Помодоро слева (Live Activity): 🎯 / ☕ + таймер -->
+                    <StackPanel x:Name="NotchPomoPanel" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="4,0,0,0"
+                                Cursor="Hand" MouseLeftButtonUp="OnPomoNotchClick" ToolTip="Открыть Помодоро" Visibility="Collapsed">
+                        <TextBlock x:Name="NotchPomoIcon" Text="🎯" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,3,0" />
+                        <TextBlock x:Name="NotchPomoTimer" Text="24:50" FontSize="11.5" FontWeight="Bold" 
+                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+
                     <!-- Время по центру: Крупное 01:12, Bold White (16.5px) -->
                     <TextBlock x:Name="NotchTimeText" Grid.Column="1" Text="01:12" FontSize="16.5" FontWeight="Bold" 
                                Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"

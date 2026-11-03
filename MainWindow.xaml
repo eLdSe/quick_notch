@@ -156,6 +156,12 @@
                                     HorizontalAlignment="Center" 
                                     VerticalAlignment="Top" 
                                     Visibility="Collapsed" />
+                <local:PomodoroView x:Name="PomodoroHost" 
+                                    Width="710" Height="320"
+                                    Margin="0,66,0,0" 
+                                    HorizontalAlignment="Center" 
+                                    VerticalAlignment="Top" 
+                                    Visibility="Collapsed" />
 
                 <!-- Нижний док переключения вкладок -->
                 <local:DockView x:Name="DockHost" 

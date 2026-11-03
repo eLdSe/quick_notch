@@ -55,6 +55,8 @@ public partial class NotchView : UserControl
 	public void Attach(IslandView island)
 	{
 		_island = island;
+		PomodoroService.OnTick += () => Dispatcher.InvokeAsync(RefreshAll);
+		PomodoroService.OnPhaseChanged += () => Dispatcher.InvokeAsync(RefreshAll);
 		RefreshAll();
 	}
 
@@ -180,6 +182,28 @@ public partial class NotchView : UserControl
 		else if (NotchWeatherPanel != null)
 		{
 			NotchWeatherPanel.Visibility = Visibility.Collapsed;
+		}
+
+		bool pomoActive = PomodoroService.CurrentState != PomodoroState.Idle;
+		if (pomoActive)
+		{
+			if (NotchWeatherPanel != null) NotchWeatherPanel.Visibility = Visibility.Collapsed;
+			if (NotchPomoPanel != null)
+			{
+				NotchPomoPanel.Visibility = Visibility.Visible;
+				if (NotchPomoIcon != null) NotchPomoIcon.Text = PomodoroService.PhaseIcon;
+				if (NotchPomoTimer != null)
+				{
+					NotchPomoTimer.Text = PomodoroService.FormattedTime;
+					NotchPomoTimer.Foreground = PomodoroService.CurrentState == PomodoroState.Running 
+						? Theme.AccentBrush 
+						: Theme.MutedBrush;
+				}
+			}
+		}
+		else if (NotchPomoPanel != null)
+		{
+			NotchPomoPanel.Visibility = Visibility.Collapsed;
 		}
 		MediaState media = _island.Media;
 		if (MiniTrackTitle != null) MiniTrackTitle.Text = media.Title;
@@ -552,6 +576,13 @@ public partial class NotchView : UserControl
 	{
 		e.Handled = true;
 		_island?.Select("weather");
+		_island?.Expand();
+	}
+
+	private void OnPomoNotchClick(object sender, MouseButtonEventArgs e)
+	{
+		e.Handled = true;
+		_island?.Select("pomodoro");
 		_island?.Expand();
 	}
 

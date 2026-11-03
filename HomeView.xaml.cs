@@ -30,6 +30,8 @@ public partial class HomeView : UserControl
             AudioService.EnsureVolumeListener();
             AudioService.VolumeChanged += OnAudioVolumeChanged;
         }
+        PomodoroService.OnTick += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+        PomodoroService.OnPhaseChanged += () => Dispatcher.InvokeAsync(RefreshConnectivity);
         RefreshAll();
     }
 
@@ -262,10 +264,31 @@ public partial class HomeView : UserControl
         ThemeIcon.Text = isDark ? "\uE708" : "\uE706";
         StyleTile(ThemeIndicator, ThemeIcon, isDark);
 
+        // Помодоро
+        bool pomoActive = PomodoroService.CurrentState == PomodoroState.Running;
+        bool pomoPaused = PomodoroService.CurrentState == PomodoroState.Paused;
+        if (PomodoroStatusText != null)
+        {
+            if (pomoActive)
+            {
+                PomodoroStatusText.Text = PomodoroService.FormattedTime;
+            }
+            else if (pomoPaused)
+            {
+                PomodoroStatusText.Text = $"{PomodoroService.FormattedTime} ⏸";
+            }
+            else
+            {
+                PomodoroStatusText.Text = $"{(_island?.S.PomodoroFocus ?? 25)}:00";
+            }
+        }
+        StyleTile(PomodoroIndicator, PomodoroIcon, pomoActive || pomoPaused);
     }
 
     public void ApplyAccent()
     {
+        PomodoroService.OnTick += () => Dispatcher.InvokeAsync(RefreshConnectivity);
+        PomodoroService.OnPhaseChanged += () => Dispatcher.InvokeAsync(RefreshConnectivity);
         RefreshAll();
     }
 
@@ -405,11 +428,10 @@ public partial class HomeView : UserControl
         RefreshConnectivity();
     }
 
-    private void OnKeepAwakeClick(object sender, RoutedEventArgs e)
+    private void OnPomodoroTileClick(object sender, RoutedEventArgs e)
     {
         if (_island == null) return;
-        _island.SetKeepAwake(!_island.S.KeepAwake);
-        RefreshConnectivity();
+        _island.Select("pomodoro");
     }
 
     private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

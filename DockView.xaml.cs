@@ -72,7 +72,7 @@ public partial class DockView : UserControl
         SetTabState(LinksBorder, LinksIcon, LinksText, currentTool == "links");
         SetTabState(SettingsBorder, SettingsIcon, SettingsText, currentTool == "settings");
 
-        bool isSubTool = currentTool is "sound" or "media" or "system" or "weather" or "calendar";
+        bool isSubTool = currentTool is "sound" or "media" or "system" or "weather" or "calendar" or "pomodoro";
         if (BackButton != null)
         {
             BackButton.Visibility = isSubTool ? Visibility.Visible : Visibility.Collapsed;

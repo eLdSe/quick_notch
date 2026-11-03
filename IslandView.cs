@@ -340,6 +340,8 @@ public sealed class IslandView : FrameworkElement
 
 	public CalendarView? CalendarHost { get; set; }
 
+	public PomodoroView? PomodoroHost { get; set; }
+
 	public DockView? DockHost { get; set; }
 
 	public TopBarView? TopBarHost { get; set; }
@@ -691,6 +693,9 @@ public sealed class IslandView : FrameworkElement
 			case "calendar":
 				CalendarHost?.RefreshAll();
 				break;
+			case "pomodoro":
+				PomodoroHost?.RefreshAll();
+				break;
 			}
 			TopBarHost?.RefreshAll();
 		}
@@ -1017,7 +1022,7 @@ public sealed class IslandView : FrameworkElement
 
 	private void ApplyCardSurfaces(bool hasCustomBg, bool isGlass)
 	{
-		FrameworkElement?[] array = new FrameworkElement?[] { HomeHost, SoundHost, MediaHost, SystemHost, SettingsHost, ClipboardHost, AiHost, LinksHost, WeatherHost, CalendarHost, TopBarHost };
+		FrameworkElement?[] array = new FrameworkElement?[] { HomeHost, SoundHost, MediaHost, SystemHost, SettingsHost, ClipboardHost, AiHost, LinksHost, WeatherHost, CalendarHost, PomodoroHost, TopBarHost };
 		foreach (FrameworkElement host in array)
 		{
 			if (host == null) continue;
@@ -1747,6 +1752,7 @@ public sealed class IslandView : FrameworkElement
 		UpdateViewHost(LinksHost, "links");
 		UpdateViewHost(WeatherHost, "weather");
 		UpdateViewHost(CalendarHost, "calendar");
+		UpdateViewHost(PomodoroHost, "pomodoro");
 		if (CapsuleHost != null)
 		{
 			if (num > 0.002)

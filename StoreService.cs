@@ -62,6 +62,13 @@ public sealed class AppSettings
     [JsonPropertyName("ai_mode")] public string AiMode { get; set; } = "fast";
     [JsonPropertyName("ai_model")] public string AiModel { get; set; } = "gemini-3.5-flash-lite";
 
+    // Настройки таймера Помодоро
+    [JsonPropertyName("pomodoro_focus")] public int PomodoroFocus { get; set; } = 25;
+    [JsonPropertyName("pomodoro_short")] public int PomodoroShort { get; set; } = 5;
+    [JsonPropertyName("pomodoro_long")] public int PomodoroLong { get; set; } = 15;
+    [JsonPropertyName("pomodoro_rounds")] public int PomodoroRounds { get; set; } = 4;
+    [JsonPropertyName("pomodoro_sound")] public bool PomodoroSound { get; set; } = true;
+
     public string GetEffectiveAiModel()
     {
         bool isPro = AiMode == "pro";

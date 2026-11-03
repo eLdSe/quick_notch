@@ -64,6 +64,8 @@ public partial class MainWindow : Window
             WeatherHost.Attach(Island);
             Island.CalendarHost = CalendarHost;
             CalendarHost.Attach(Island);
+            Island.PomodoroHost = PomodoroHost;
+            PomodoroHost.Attach(Island);
             Island.DockHost = DockHost;
             DockHost.Attach(Island);
             Island.TopBarHost = TopBarHost;

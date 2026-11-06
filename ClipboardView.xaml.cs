@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace QuickNotchCs;
@@ -15,6 +17,7 @@ public partial class ClipboardView : UserControl
 {
     private IslandView? _island;
     private string _filter = "all";
+    private string _searchQuery = "";
     private int _selectedIndex = 0;
     private ClipItem? _selectedItem;
     private int _displayLimit = 35;
@@ -49,9 +52,14 @@ public partial class ClipboardView : UserControl
         _island?.StopLeaveTimer();
     }
 
-    private static (string Key, string Tag, Color BgCol, Color FgCol) DetectClipType(string text)
+    private static (string Key, string Tag, Color BgCol, Color FgCol) DetectClipType(ClipItem item)
     {
-        string trimmed = text.Trim();
+        if (item.IsImage)
+        {
+            return ("IMG", Loc.T("ФОТО", "IMG", "FOTO"), Color.FromRgb(0x3D, 0x26, 0x12), Color.FromRgb(0xFB, 0xBF, 0x24));
+        }
+
+        string trimmed = item.Text.Trim();
         if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
             trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
             trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
@@ -76,11 +84,32 @@ public partial class ClipboardView : UserControl
 
     private bool MatchesFilter(ClipItem item)
     {
-        if (_filter == "all") return true;
-        var (key, _, _, _) = DetectClipType(item.Text);
-        if (_filter == "code") return key == "CODE";
-        if (_filter == "url") return key == "URL";
-        if (_filter == "text") return key == "TEXT" || key == "HEX";
+        if (_filter != "all")
+        {
+            var (key, _, _, _) = DetectClipType(item);
+            if (_filter == "img" && key != "IMG") return false;
+            if (_filter == "code" && key != "CODE") return false;
+            if (_filter == "url" && key != "URL") return false;
+            if (_filter == "text" && key != "TEXT" && key != "HEX") return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            string q = _searchQuery.Trim();
+            if (item.IsImage)
+            {
+                string imgTitle = Loc.T(
+                    $"Изображение Скриншот Фото {item.ImageWidth}x{item.ImageHeight} {item.ImageWidth}×{item.ImageHeight}",
+                    $"Image Screenshot Photo {item.ImageWidth}x{item.ImageHeight} {item.ImageWidth}×{item.ImageHeight}",
+                    $"Görsel Foto Ekran {item.ImageWidth}x{item.ImageHeight} {item.ImageWidth}×{item.ImageHeight}");
+                if (!imgTitle.Contains(q, StringComparison.OrdinalIgnoreCase)) return false;
+            }
+            else if (!item.Text.Contains(q, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -100,16 +129,30 @@ public partial class ClipboardView : UserControl
         if (_island == null) return;
 
         // Локализация статичных элементов интерфейса
+        if (SearchPlaceholderText != null) SearchPlaceholderText.Text = Loc.T("Поиск в буфере…", "Search clipboard…", "Panoda ara…");
         if (FilterAllRadio != null) FilterAllRadio.Content = Loc.T("Все", "All", "Tümü");
+        if (FilterImgRadio != null) FilterImgRadio.Content = Loc.T("Фото", "Img", "Foto");
         if (FilterCodeRadio != null) FilterCodeRadio.Content = Loc.T("Код", "Code", "Kod");
-        if (FilterUrlRadio != null) FilterUrlRadio.Content = Loc.T("Ссылки", "Links", "Linkler");
+        if (FilterUrlRadio != null) FilterUrlRadio.Content = Loc.T("Ссылки", "Links", "Link");
         if (FilterTextRadio != null) FilterTextRadio.Content = Loc.T("Текст", "Text", "Metin");
         if (ClearAllButton != null) ClearAllButton.ToolTip = Loc.T("Очистить незакреплённые", "Clear unpinned", "Sabitlenmemişleri temizle");
-        if (EmptyTitleText != null) EmptyTitleText.Text = Loc.T("Буфер обмена пуст", "Clipboard is empty", "Pano boş");
-        if (EmptySubText != null) EmptySubText.Text = Loc.T("Скопируйте текст или ссылку", "Copy some text or a link", "Bir metin veya bağlantı kopyalayın");
+        if (EmptyTitleText != null)
+        {
+            EmptyTitleText.Text = string.IsNullOrWhiteSpace(_searchQuery)
+                ? Loc.T("Буфер обмена пуст", "Clipboard is empty", "Pano boş")
+                : Loc.T("Ничего не найдено", "No matches found", "Sonuç bulunamadı");
+        }
+        if (EmptySubText != null)
+        {
+            EmptySubText.Text = string.IsNullOrWhiteSpace(_searchQuery)
+                ? Loc.T("Скопируйте текст, ссылку или скриншот", "Copy text, a link, or a screenshot", "Metin, bağlantı veya ekran görüntüsü kopyalayın")
+                : Loc.T("Попробуйте изменить поисковый запрос", "Try a different search query", "Farklı bir arama terimi deneyin");
+        }
         if (PinButtonText != null) PinButtonText.Text = Loc.T("Закрепить", "Pin", "Sabitle");
         if (DeleteButtonText != null) DeleteButtonText.Text = Loc.T("Удалить", "Delete", "Sil");
         if (OpenUrlButtonText != null) OpenUrlButtonText.Text = Loc.T("Открыть ссылку в браузере", "Open link in browser", "Bağlantıyı tarayıcıda aç");
+        if (SaveImageButtonText != null) SaveImageButtonText.Text = Loc.T("Сохранить PNG", "Save PNG", "PNG Kaydet");
+        if (OpenImageFolderButtonText != null) OpenImageFolderButtonText.Text = Loc.T("Показать в папке", "Show in Folder", "Klasörde Göster");
         if (CopyButtonText != null && (_copiedFeedbackTimer == null || !_copiedFeedbackTimer.IsEnabled))
         {
             CopyButtonText.Text = Loc.T("Копировать", "Copy", "Kopyala");
@@ -156,19 +199,20 @@ public partial class ClipboardView : UserControl
                 BorderBrush = isSelected ? (Brush)FindResource("AccentBrush") : (Brush)FindResource("BorderSubtleBrush"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(12),
-                Padding = new Thickness(12, 8, 12, 8),
+                Padding = new Thickness(10, 7, 10, 7),
                 Margin = new Thickness(0, 0, 0, 6),
                 Cursor = Cursors.Hand,
                 Tag = i
             };
 
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             // Бейдж типа
-            var (_, tag, tagBg, tagFg) = DetectClipType(item.Text);
+            var (_, tag, tagBg, tagFg) = DetectClipType(item);
             var badge = new Border
             {
                 Background = new SolidColorBrush(tagBg),
@@ -189,9 +233,27 @@ public partial class ClipboardView : UserControl
 
             // Текст и метаданные
             var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 4, 0) };
-            string firstLine = item.Text.ReplaceLineEndings("\n").Trim().Split('\n')[0].Trim();
-            if (firstLine.Length == 0) firstLine = "…";
-            if (firstLine.Length > 45) firstLine = firstLine[..42] + "…";
+            string firstLine;
+            string metaStr;
+
+            if (item.IsImage)
+            {
+                firstLine = Loc.T(
+                    $"Скриншот ({item.ImageWidth}×{item.ImageHeight})",
+                    $"Screenshot ({item.ImageWidth}×{item.ImageHeight})",
+                    $"Ekran Görüntüsü ({item.ImageWidth}×{item.ImageHeight})");
+                metaStr = $"{FormatAgo(item.Time)}  ·  PNG";
+            }
+            else
+            {
+                firstLine = item.Text.ReplaceLineEndings("\n").Trim().Split('\n')[0].Trim();
+                if (firstLine.Length == 0) firstLine = "…";
+                if (firstLine.Length > 45) firstLine = firstLine[..42] + "…";
+                metaStr = Loc.T(
+                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} симв.",
+                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} chars",
+                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} krkt");
+            }
 
             var titleText = new TextBlock
             {
@@ -203,10 +265,7 @@ public partial class ClipboardView : UserControl
             };
             var metaText = new TextBlock
             {
-                Text = Loc.T(
-                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} симв.",
-                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} chars",
-                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} krkt"),
+                Text = metaStr,
                 FontSize = 9.5,
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 2, 0, 0)
@@ -215,6 +274,24 @@ public partial class ClipboardView : UserControl
             sp.Children.Add(metaText);
             Grid.SetColumn(sp, 1);
             grid.Children.Add(sp);
+
+            // Миниатюра для картинок
+            if (item.IsImage && item.Image != null)
+            {
+                var thumb = new Border
+                {
+                    Width = 34,
+                    Height = 26,
+                    CornerRadius = new CornerRadius(5),
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
+                    BorderThickness = new Thickness(1),
+                    Margin = new Thickness(4, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Background = new ImageBrush(item.Image) { Stretch = Stretch.UniformToFill }
+                };
+                Grid.SetColumn(thumb, 2);
+                grid.Children.Add(thumb);
+            }
 
             // Иконка пина
             if (item.Pinned)
@@ -226,9 +303,9 @@ public partial class ClipboardView : UserControl
                     FontSize = 11,
                     Foreground = Theme.AccentBrush,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(4, 0, 0, 0)
+                    Margin = new Thickness(5, 0, 0, 0)
                 };
-                Grid.SetColumn(pin, 2);
+                Grid.SetColumn(pin, 3);
                 grid.Children.Add(pin);
             }
 
@@ -286,6 +363,7 @@ public partial class ClipboardView : UserControl
         {
             UrlPreviewPanel.Visibility = Visibility.Collapsed;
             HexPreviewPanel.Visibility = Visibility.Collapsed;
+            ImagePreviewPanel.Visibility = Visibility.Collapsed;
             TextPreviewScroll.Visibility = Visibility.Collapsed;
             PreviewStatsText.Text = Loc.T("0 симв.  ·  0 стр.", "0 chars  ·  0 lines", "0 krkt  ·  0 satır");
             PreviewTypeBadge.Visibility = Visibility.Collapsed;
@@ -296,7 +374,7 @@ public partial class ClipboardView : UserControl
         }
 
         PreviewTypeBadge.Visibility = Visibility.Visible;
-        var (key, tag, tagBg, tagFg) = DetectClipType(item.Text);
+        var (key, tag, tagBg, tagFg) = DetectClipType(item);
         PreviewTypeBadge.Background = new SolidColorBrush(tagBg);
         PreviewTypeBadgeText.Text = tag;
         PreviewTypeBadgeText.Foreground = new SolidColorBrush(tagFg);
@@ -306,6 +384,25 @@ public partial class ClipboardView : UserControl
             ? Loc.T("Открепить", "Unpin", "Kaldır")
             : Loc.T("Закрепить", "Pin", "Sabitle");
         PinIcon.Text = item.Pinned ? "\uE77A" : "\uE718";
+
+        if (item.IsImage && item.Image != null)
+        {
+            UrlPreviewPanel.Visibility = Visibility.Collapsed;
+            HexPreviewPanel.Visibility = Visibility.Collapsed;
+            TextPreviewScroll.Visibility = Visibility.Collapsed;
+            ImagePreviewPanel.Visibility = Visibility.Visible;
+            PreviewImage.Source = item.Image;
+            if (OpenImageFolderButton != null)
+            {
+                OpenImageFolderButton.Visibility = !string.IsNullOrEmpty(item.ImagePath) && File.Exists(item.ImagePath)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+            PreviewStatsText.Text = $"{item.ImageWidth} × {item.ImageHeight} px  ·  PNG";
+            return;
+        }
+
+        ImagePreviewPanel.Visibility = Visibility.Collapsed;
 
         int lineCount = item.Text.Count(c => c == '\n') + 1;
         PreviewStatsText.Text = Loc.T(
@@ -344,15 +441,78 @@ public partial class ClipboardView : UserControl
         }
     }
 
-    private void OnFilterChanged(object sender, RoutedEventArgs e)
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
-        if (FilterAllRadio.IsChecked == true) _filter = "all";
-        else if (FilterCodeRadio.IsChecked == true) _filter = "code";
-        else if (FilterUrlRadio.IsChecked == true) _filter = "url";
-        else if (FilterTextRadio.IsChecked == true) _filter = "text";
+        _island?.StopLeaveTimer();
+        _searchQuery = SearchTextBox?.Text ?? "";
+        if (SearchPlaceholderText != null)
+        {
+            SearchPlaceholderText.Visibility = string.IsNullOrEmpty(_searchQuery) ? Visibility.Visible : Visibility.Collapsed;
+        }
+        if (ClearSearchButton != null)
+        {
+            ClearSearchButton.Visibility = string.IsNullOrEmpty(_searchQuery) ? Visibility.Collapsed : Visibility.Visible;
+        }
         _selectedIndex = 0;
+        _selectedItem = null;
         _displayLimit = 35;
         RefreshAll();
+    }
+
+    private void OnClearSearchClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        if (SearchTextBox != null)
+        {
+            SearchTextBox.Text = "";
+            SearchTextBox.Focus();
+        }
+    }
+
+    private void OnFilterChanged(object sender, RoutedEventArgs e)
+    {
+        if (FilterAllRadio?.IsChecked == true) _filter = "all";
+        else if (FilterImgRadio?.IsChecked == true) _filter = "img";
+        else if (FilterCodeRadio?.IsChecked == true) _filter = "code";
+        else if (FilterUrlRadio?.IsChecked == true) _filter = "url";
+        else if (FilterTextRadio?.IsChecked == true) _filter = "text";
+        _selectedIndex = 0;
+        _selectedItem = null;
+        _displayLimit = 35;
+        RefreshAll();
+    }
+
+    private void OnSaveImageClick(object sender, RoutedEventArgs e)
+    {
+        if (_selectedItem == null || !_selectedItem.IsImage || _selectedItem.Image == null) return;
+        _island?.StopLeaveTimer();
+        try
+        {
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = Loc.T("Сохранить изображение", "Save Image", "Görseli Kaydet"),
+                Filter = "PNG Image (*.png)|*.png",
+                FileName = $"Screenshot_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.png"
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(_selectedItem.Image));
+                using var fs = new FileStream(dlg.FileName, FileMode.Create, FileAccess.Write);
+                encoder.Save(fs);
+            }
+        }
+        catch { }
+    }
+
+    private void OnOpenImageFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (_selectedItem == null || string.IsNullOrEmpty(_selectedItem.ImagePath) || !File.Exists(_selectedItem.ImagePath)) return;
+        try
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{_selectedItem.ImagePath}\"") { UseShellExecute = true });
+        }
+        catch { }
     }
 
     private void OnClearAllClick(object sender, RoutedEventArgs e)

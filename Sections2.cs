@@ -1014,6 +1014,12 @@ public sealed class ClipItem
     public string Text = "";
     public DateTime? Time;
     public bool Pinned;
+    public bool IsImage;
+    public System.Windows.Media.Imaging.BitmapSource? Image;
+    public string? ImagePath;
+    public int ImageWidth;
+    public int ImageHeight;
+    public string? ImageHash;
 }
 
 public sealed class ClipboardSection : Section
@@ -1022,6 +1028,10 @@ public sealed class ClipboardSection : Section
     private const int MaxItems = 40;
     private const int MaxText = 100_000;
     private const string PrivateFormat = "ExcludeClipboardContentFromMonitorProcessing";
+    private const string PinnedImgPrefix = "__IMG__:";
+
+    private static readonly string ClipsDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "QuickNotch", "clips");
 
     private readonly List<ClipItem> _items = new();
     public List<ClipItem> Items => _items;
@@ -1041,15 +1051,27 @@ public sealed class ClipboardSection : Section
     public void DeleteItem(IslandView isl, ClipItem item)
     {
         _items.Remove(item);
+        if (item.IsImage && !string.IsNullOrEmpty(item.ImagePath))
+        {
+            try { if (File.Exists(item.ImagePath)) File.Delete(item.ImagePath); } catch { }
+        }
         if (item.Pinned) Save(isl);
         isl.Kick();
     }
     public void ClearAll(IslandView isl)
     {
+        foreach (var item in _items.Where(i => !i.Pinned && i.IsImage).ToList())
+        {
+            if (!string.IsNullOrEmpty(item.ImagePath))
+            {
+                try { if (File.Exists(item.ImagePath)) File.Delete(item.ImagePath); } catch { }
+            }
+        }
         _items.RemoveAll(i => !i.Pinned);
         isl.Kick();
     }
     private string? _own;
+    private string? _ownImageHash;
     private string? _flashText;
     private double _flashUntil;
     private int _selectedIndex = 0;
@@ -1073,9 +1095,99 @@ public sealed class ClipboardSection : Section
 
     public override void Attach(IslandView isl)
     {
-        foreach (string text in isl.S.ClipPinned)
-            _items.Add(new ClipItem { Text = text, Time = null, Pinned = true });
+        try { Directory.CreateDirectory(ClipsDir); } catch { }
+        foreach (string entry in isl.S.ClipPinned)
+        {
+            if (entry.StartsWith(PinnedImgPrefix, StringComparison.Ordinal))
+            {
+                string path = entry[PinnedImgPrefix.Length..];
+                if (File.Exists(path))
+                {
+                    try
+                    {
+                        var bmp = LoadBitmapFromFile(path);
+                        if (bmp != null)
+                        {
+                            _items.Add(new ClipItem
+                            {
+                                IsImage = true,
+                                Image = bmp,
+                                ImagePath = path,
+                                ImageWidth = bmp.PixelWidth,
+                                ImageHeight = bmp.PixelHeight,
+                                ImageHash = ComputeBitmapHash(bmp),
+                                Text = $"[IMG {bmp.PixelWidth}×{bmp.PixelHeight}]",
+                                Time = null,
+                                Pinned = true
+                            });
+                        }
+                    }
+                    catch { }
+                }
+            }
+            else
+            {
+                _items.Add(new ClipItem { Text = entry, Time = null, Pinned = true });
+            }
+        }
         isl.RunLater(300, () => Capture(isl, notify: false));
+    }
+
+    private static System.Windows.Media.Imaging.BitmapSource? LoadBitmapFromFile(string path)
+    {
+        var bi = new System.Windows.Media.Imaging.BitmapImage();
+        bi.BeginInit();
+        bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+        bi.UriSource = new Uri(path, UriKind.Absolute);
+        bi.EndInit();
+        bi.Freeze();
+        return bi;
+    }
+
+    private static string ComputeBitmapHash(System.Windows.Media.Imaging.BitmapSource bmp)
+    {
+        try
+        {
+            int w = bmp.PixelWidth;
+            int h = bmp.PixelHeight;
+            var conv = new System.Windows.Media.Imaging.FormatConvertedBitmap(bmp, PixelFormats.Bgra32, null, 0);
+            int stride = w * 4;
+            byte[] row = new byte[stride];
+            ulong hash = 14695981039346656037UL ^ (ulong)w ^ ((ulong)h << 32);
+            int[] sampleRows = { 0, h / 4, h / 2, (h * 3) / 4, Math.Max(0, h - 1) };
+            foreach (int r in sampleRows)
+            {
+                conv.CopyPixels(new Int32Rect(0, r, w, 1), row, stride, 0);
+                for (int i = 0; i < row.Length; i += 16)
+                {
+                    hash ^= row[i];
+                    hash *= 1099511628211UL;
+                }
+            }
+            return $"{w}x{h}_{hash:X16}";
+        }
+        catch
+        {
+            return $"{bmp.PixelWidth}x{bmp.PixelHeight}";
+        }
+    }
+
+    private static string? SaveBitmapToClipsDir(System.Windows.Media.Imaging.BitmapSource bmp)
+    {
+        try
+        {
+            Directory.CreateDirectory(ClipsDir);
+            string filePath = Path.Combine(ClipsDir, $"clip_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png");
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+            using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+            encoder.Save(fs);
+            return filePath;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public void OnClipboardChanged(IslandView isl) => isl.RunLater(50, () => Capture(isl, notify: true, attempt: 0));
@@ -1083,21 +1195,45 @@ public sealed class ClipboardSection : Section
     public void Capture(IslandView isl, bool notify = true, int attempt = 0)
     {
         string? text = null;
+        System.Windows.Media.Imaging.BitmapSource? image = null;
         bool locked = false;
 
         try
         {
-            if (System.Windows.Clipboard.ContainsText())
+            var data = System.Windows.Clipboard.GetDataObject();
+            if (data != null && data.GetDataPresent(PrivateFormat)) return;
+
+            if (System.Windows.Clipboard.ContainsImage())
             {
-                var data = System.Windows.Clipboard.GetDataObject();
-                if (data != null && data.GetDataPresent(PrivateFormat)) return;
+                var raw = System.Windows.Clipboard.GetImage();
+                if (raw != null && raw.PixelWidth > 0 && raw.PixelHeight > 0)
+                {
+                    var converted = new System.Windows.Media.Imaging.FormatConvertedBitmap(raw, PixelFormats.Bgra32, null, 0);
+                    converted.Freeze();
+                    image = converted;
+                }
+            }
+            else if (System.Windows.Clipboard.ContainsText())
+            {
                 text = System.Windows.Clipboard.GetText();
             }
             else if (System.Windows.Clipboard.ContainsFileDropList())
             {
                 var files = System.Windows.Clipboard.GetFileDropList();
-                if (files.Count == 1) text = files[0];
-                else if (files.Count > 1) text = $"{files.Count} files: {System.IO.Path.GetFileName(files[0])}…";
+                if (files.Count == 1 && !string.IsNullOrEmpty(files[0]))
+                {
+                    string f = files[0]!;
+                    string ext = Path.GetExtension(f).ToLowerInvariant();
+                    if ((ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".webp") && File.Exists(f))
+                    {
+                        try { image = LoadBitmapFromFile(f); } catch { }
+                    }
+                    if (image == null) text = f;
+                }
+                else if (files.Count > 1)
+                {
+                    text = $"{files.Count} files: {System.IO.Path.GetFileName(files[0])}…";
+                }
             }
         }
         catch (Exception ex) when (ex is COMException or ExternalException or IOException)
@@ -1113,6 +1249,68 @@ public sealed class ClipboardSection : Section
             return;
         }
 
+        if (image != null)
+        {
+            string imgHash = ComputeBitmapHash(image);
+            if (imgHash == _ownImageHash)
+            {
+                _ownImageHash = null;
+                return;
+            }
+            _ownImageHash = null;
+
+            var existingImg = _items.FirstOrDefault(i => i.IsImage && i.ImageHash == imgHash);
+            if (existingImg != null)
+            {
+                if (!existingImg.Pinned)
+                {
+                    _items.Remove(existingImg);
+                    existingImg.Time = DateTime.Now;
+                    _items.Insert(PinnedCount(), existingImg);
+                }
+            }
+            else
+            {
+                string? savedPath = SaveBitmapToClipsDir(image);
+                var newItem = new ClipItem
+                {
+                    IsImage = true,
+                    Image = image,
+                    ImagePath = savedPath,
+                    ImageWidth = image.PixelWidth,
+                    ImageHeight = image.PixelHeight,
+                    ImageHash = imgHash,
+                    Text = $"[IMG {image.PixelWidth}×{image.PixelHeight}]",
+                    Time = DateTime.Now,
+                    Pinned = false
+                };
+                _items.Insert(PinnedCount(), newItem);
+                Trim();
+            }
+
+            _selectedIndex = 0;
+            isl.Kick();
+            isl.ClipboardHost?.RefreshAll();
+
+            if (notify)
+            {
+                isl.ShowNotification(new NotificationItem
+                {
+                    App = Loc.T("БУФЕР ОБМЕНА", "CLIPBOARD", "PANO"),
+                    Title = Loc.T("Скриншот скопирован", "Image Copied", "Görsel Kopyalandı"),
+                    Body = $"🖼 {image.PixelWidth} × {image.PixelHeight} px",
+                    IconSymbol = "🖼",
+                    AccentColor = Theme.Accent,
+                    OnClick = () =>
+                    {
+                        isl.Select("clipboard");
+                        isl.Expand();
+                    }
+                }, durationSec: 2.8);
+            }
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(text) || text.Length > MaxText) return;
         if (text == _own)
         {
@@ -1121,7 +1319,7 @@ public sealed class ClipboardSection : Section
         }
         _own = null;
 
-        var existing = _items.FirstOrDefault(i => i.Text == text);
+        var existing = _items.FirstOrDefault(i => !i.IsImage && i.Text == text);
         if (existing != null)
         {
             if (!existing.Pinned)
@@ -1173,13 +1371,37 @@ public sealed class ClipboardSection : Section
         {
             int idx = _items.FindLastIndex(i => !i.Pinned);
             if (idx < 0) return;
+            var removed = _items[idx];
+            if (removed.IsImage && !string.IsNullOrEmpty(removed.ImagePath))
+            {
+                try { if (File.Exists(removed.ImagePath)) File.Delete(removed.ImagePath); } catch { }
+            }
             _items.RemoveAt(idx);
         }
     }
 
     private void Save(IslandView isl)
     {
-        isl.S.ClipPinned = _items.Where(i => i.Pinned).Select(i => i.Text).ToList();
+        var list = new List<string>();
+        foreach (var i in _items.Where(x => x.Pinned))
+        {
+            if (i.IsImage)
+            {
+                if (string.IsNullOrEmpty(i.ImagePath) && i.Image != null)
+                {
+                    i.ImagePath = SaveBitmapToClipsDir(i.Image);
+                }
+                if (!string.IsNullOrEmpty(i.ImagePath))
+                {
+                    list.Add(PinnedImgPrefix + i.ImagePath);
+                }
+            }
+            else
+            {
+                list.Add(i.Text);
+            }
+        }
+        isl.S.ClipPinned = list;
         isl.SaveState();
     }
 
@@ -1637,11 +1859,23 @@ public sealed class ClipboardSection : Section
 
     private void Copy(IslandView isl, ClipItem item)
     {
-        _own = item.Text;
-        try { System.Windows.Clipboard.SetText(item.Text); }
-        catch
+        if (item.IsImage && item.Image != null)
         {
-            isl.RunLater(25, () => { try { System.Windows.Clipboard.SetText(item.Text); } catch { } });
+            _ownImageHash = item.ImageHash;
+            try { System.Windows.Clipboard.SetImage(item.Image); }
+            catch
+            {
+                isl.RunLater(25, () => { try { System.Windows.Clipboard.SetImage(item.Image); } catch { } });
+            }
+        }
+        else
+        {
+            _own = item.Text;
+            try { System.Windows.Clipboard.SetText(item.Text); }
+            catch
+            {
+                isl.RunLater(25, () => { try { System.Windows.Clipboard.SetText(item.Text); } catch { } });
+            }
         }
         _flashText = item.Text;
         _flashUntil = Clock.Now + 1.1;

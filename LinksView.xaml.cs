@@ -108,10 +108,10 @@ public partial class LinksView : UserControl
             FilterFolderRadio.Content = Loc.T("Папки", "Folders", "Klasörler");
 
         if (FilterAppRadio != null)
-            FilterAppRadio.Content = Loc.T("Программы", "Apps", "Uygulamalar");
+            FilterAppRadio.Content = Loc.T("Программы", "Apps", "Uygulama");
 
         if (AddUrlButtonText != null)
-            AddUrlButtonText.Text = Loc.T("Ссылка", "Link", "Bağlantı");
+            AddUrlButtonText.Text = Loc.T("Ссылка", "Link", "Link");
 
         if (AddFileButtonText != null)
             AddFileButtonText.Text = Loc.T("Файл", "File", "Dosya");

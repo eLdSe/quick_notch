@@ -16,6 +16,7 @@ public sealed class MediaState
     public string App { get; set; } = "";
     public double Pos { get; set; }
     public double Dur { get; set; }
+    public bool HasTimeline { get; set; }
     public bool CanSeek { get; set; }
     public DateTime Stamp { get; set; } = DateTime.UtcNow;
     public byte[]? Cover { get; set; }
@@ -185,19 +186,46 @@ public static class MediaService
                 if (_manager == null) return null;
 
                 var cur = _manager.GetCurrentSession();
+                var sessions = _manager.GetSessions();
+
+                // Ищем сессию, которая сейчас реально воспроизводит аудио
+                GlobalSystemMediaTransportControlsSession? best = null;
                 if (cur != null)
                 {
-                    UpdateSessionSubscriptionLocked(cur);
-                    return cur;
+                    try
+                    {
+                        var info = cur.GetPlaybackInfo();
+                        if (info != null && info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                        {
+                            best = cur;
+                        }
+                    }
+                    catch { }
                 }
 
-                // Fallback: если GetCurrentSession() пуст, проверяем список сессий
-                var sessions = _manager.GetSessions();
-                if (sessions != null && sessions.Count > 0)
+                if (best == null && sessions != null)
                 {
-                    var chosen = sessions[0];
-                    UpdateSessionSubscriptionLocked(chosen);
-                    return chosen;
+                    foreach (var s in sessions)
+                    {
+                        try
+                        {
+                            var info = s.GetPlaybackInfo();
+                            if (info != null && info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                            {
+                                best = s;
+                                break;
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                best ??= cur ?? (sessions != null && sessions.Count > 0 ? sessions[0] : null);
+
+                if (best != null)
+                {
+                    UpdateSessionSubscriptionLocked(best);
+                    return best;
                 }
 
                 UpdateSessionSubscriptionLocked(null);
@@ -267,6 +295,7 @@ public static class MediaService
         }
         catch { }
 
+        state.HasTimeline = state.Dur > 0;
         if (state.Dur <= 0 && !string.IsNullOrEmpty(state.Title))
         {
             state.Dur = Math.Max(210.0, state.Pos + 30.0);
@@ -310,33 +339,47 @@ public static class MediaService
 
     public static async Task<bool> NextAsync()
     {
+        bool handled = false;
         try
         {
             var session = await GetSessionAsync();
             if (session != null)
             {
-                bool ok = await session.TrySkipNextAsync();
-                if (ok) return true;
+                var task = session.TrySkipNextAsync().AsTask();
+                if (await Task.WhenAny(task, Task.Delay(350)) == task)
+                {
+                    handled = await task;
+                }
             }
         }
         catch { }
-        WinApi.MediaKey("next");
+        if (!handled)
+        {
+            WinApi.MediaKey("next");
+        }
         return true;
     }
 
     public static async Task<bool> PreviousAsync()
     {
+        bool handled = false;
         try
         {
             var session = await GetSessionAsync();
             if (session != null)
             {
-                bool ok = await session.TrySkipPreviousAsync();
-                if (ok) return true;
+                var task = session.TrySkipPreviousAsync().AsTask();
+                if (await Task.WhenAny(task, Task.Delay(350)) == task)
+                {
+                    handled = await task;
+                }
             }
         }
         catch { }
-        WinApi.MediaKey("previous");
+        if (!handled)
+        {
+            WinApi.MediaKey("previous");
+        }
         return true;
     }
 
@@ -347,8 +390,12 @@ public static class MediaService
             var session = await GetSessionAsync();
             if (session != null)
             {
-                bool ok = await session.TryTogglePlayPauseAsync();
-                if (ok) return true;
+                var task = session.TryTogglePlayPauseAsync().AsTask();
+                if (await Task.WhenAny(task, Task.Delay(350)) == task)
+                {
+                    bool ok = await task;
+                    if (ok) return true;
+                }
             }
         }
         catch { }
@@ -363,8 +410,20 @@ public static class MediaService
             var session = await GetSessionAsync();
             if (session != null)
             {
-                long ticks = (long)(Math.Max(0, seconds) * 10_000_000);
-                await session.TryChangePlaybackPositionAsync(ticks);
+                double start = 0.0;
+                try
+                {
+                    var tl = session.GetTimelineProperties();
+                    if (tl != null) start = tl.StartTime.TotalSeconds;
+                }
+                catch { }
+
+                long ticks = (long)(Math.Max(0, seconds + start) * 10_000_000);
+                var task = session.TryChangePlaybackPositionAsync(ticks).AsTask();
+                if (await Task.WhenAny(task, Task.Delay(350)) == task)
+                {
+                    await task;
+                }
             }
         }
         catch { }

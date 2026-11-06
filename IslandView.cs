@@ -230,6 +230,7 @@ public sealed class IslandView : FrameworkElement
 
 	private bool _mediaBusy;
 	private double _playToggleCooldown = 0.0;
+	private double _seekCooldown = 0.0;
 
 	private double _lastMediaPoll = -1000000000.0;
 
@@ -1362,6 +1363,15 @@ public sealed class IslandView : FrameworkElement
 					{
 						res.Playing = Media.Playing;
 					}
+					if (!string.IsNullOrEmpty(res.Title) && res.Title == Media.Title && (Clock.Now < _seekCooldown || !res.HasTimeline))
+					{
+						res.Pos = Media.CurrentPos();
+						res.Stamp = DateTime.UtcNow;
+						if (!res.HasTimeline && Media.Dur > 0)
+						{
+							res.Dur = Math.Max(Media.Dur, res.Pos + 30.0);
+						}
+					}
 					bool flag = SetCover(res.Cover);
 					res.Cover = null;
 					bool num = Media.Active != res.Active || Media.Playing != res.Playing || Media.Title != res.Title || Media.Artist != res.Artist || Media.App != res.App || Media.Dur != res.Dur || Media.CanSeek != res.CanSeek;
@@ -1390,11 +1400,25 @@ public sealed class IslandView : FrameworkElement
 		return Media.CurrentPos();
 	}
 
+	public void SeekTo(double seconds)
+	{
+		double dur = Media.Dur > 0 ? Media.Dur : 210.0;
+		double target = Math.Clamp(seconds, 0.0, dur);
+		_seekCooldown = Clock.Now + 2.0;
+		Media.Pos = target;
+		Media.Stamp = DateTime.UtcNow;
+		HomeHost?.RefreshMedia();
+		MediaHost?.RefreshAll();
+		_ = MediaService.SeekAsync(target);
+	}
+
 	public void NextTrack()
 	{
 		Bg.RunAsync(MediaService.NextAsync, (bool _, Exception? _) =>
 		{
-			RefreshMedia(400);
+			RefreshMedia(250);
+			RefreshMedia(750);
+			RefreshMedia(1500);
 		});
 	}
 
@@ -1402,7 +1426,9 @@ public sealed class IslandView : FrameworkElement
 	{
 		Bg.RunAsync(MediaService.PreviousAsync, (bool _, Exception? _) =>
 		{
-			RefreshMedia(400);
+			RefreshMedia(250);
+			RefreshMedia(750);
+			RefreshMedia(1500);
 		});
 	}
 
@@ -1501,6 +1527,8 @@ public sealed class IslandView : FrameworkElement
 		UpdateEq();
 		PetWindow?.RefreshMusicState();
 		NotchHost?.RefreshAll();
+		HomeHost?.RefreshMedia();
+		MediaHost?.RefreshAll();
 		StartFrames();
 		Kick();
 	}

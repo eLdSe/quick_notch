@@ -88,6 +88,8 @@ public static class WinApi
     [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
     [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO info);
     [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+    [DllImport("user32.dll")] static extern uint MapVirtualKey(uint uCode, uint uMapType);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool SendNotifyMessage(IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, UIntPtr wParam, string lParam,
         uint flags, uint timeout, out UIntPtr result);
@@ -238,9 +240,31 @@ public static class WinApi
             "next" => 0xB0,
             _ => 0
         };
-        if (key == 0) return;
-        keybd_event(key, 0, 0, UIntPtr.Zero);
-        keybd_event(key, 0, 2, UIntPtr.Zero);
+        int appCmd = action switch
+        {
+            "mute" => 8,       // APPCOMMAND_VOLUME_MUTE
+            "down" => 9,       // APPCOMMAND_VOLUME_DOWN
+            "up" => 10,        // APPCOMMAND_VOLUME_UP
+            "next" => 11,      // APPCOMMAND_MEDIA_NEXTTRACK
+            "previous" => 12,  // APPCOMMAND_MEDIA_PREVIOUSTRACK
+            "play_pause" => 14,// APPCOMMAND_MEDIA_PLAY_PAUSE
+            _ => 0
+        };
+
+        if (key != 0)
+        {
+            const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+            const uint KEYEVENTF_KEYUP = 0x0002;
+            byte scan = (byte)MapVirtualKey(key, 0);
+            keybd_event(key, scan, KEYEVENTF_EXTENDEDKEY, UIntPtr.Zero);
+            keybd_event(key, scan, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, UIntPtr.Zero);
+        }
+
+        if (appCmd != 0)
+        {
+            // Отправляем WM_APPCOMMAND (0x0319) всем окнам системы без блокировки потока
+            SendNotifyMessage(new IntPtr(0xFFFF), 0x0319, UIntPtr.Zero, new IntPtr(appCmd << 16));
+        }
     }
 
     /// <summary>Сообщает программам о смене темы. Может ждать зависшие окна: вызывать в потоке.</summary>

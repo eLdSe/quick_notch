@@ -1,5 +1,5 @@
 #define MyAppName "QuickNotch"
-#define MyAppVersion "1.0.3"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "QuickNotch"
 #define MyAppExeName "QuickNotch.exe"
 

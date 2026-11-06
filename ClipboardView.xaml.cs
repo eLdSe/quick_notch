@@ -6,6 +6,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace QuickNotchCs;
 
@@ -16,6 +18,7 @@ public partial class ClipboardView : UserControl
     private int _selectedIndex = 0;
     private ClipItem? _selectedItem;
     private int _displayLimit = 35;
+    private DispatcherTimer? _copiedFeedbackTimer;
 
     public ClipboardView()
     {
@@ -46,19 +49,19 @@ public partial class ClipboardView : UserControl
         _island?.StopLeaveTimer();
     }
 
-    private static (string Tag, Color BgCol, Color FgCol) DetectClipType(string text)
+    private static (string Key, string Tag, Color BgCol, Color FgCol) DetectClipType(string text)
     {
         string trimmed = text.Trim();
         if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
             trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
             trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
         {
-            return ("URL", Color.FromRgb(0x1E, 0x3A, 0x5F), Color.FromRgb(0x60, 0xA5, 0xFA));
+            return ("URL", "URL", Color.FromRgb(0x1E, 0x3A, 0x5F), Color.FromRgb(0x60, 0xA5, 0xFA));
         }
         if (trimmed.StartsWith("#") && (trimmed.Length == 4 || trimmed.Length == 7 || trimmed.Length == 9) &&
             System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^#[0-9a-fA-F]+$"))
         {
-            return ("HEX", Color.FromRgb(0x1B, 0x3D, 0x2B), Color.FromRgb(0x4A, 0xDE, 0x80));
+            return ("HEX", "HEX", Color.FromRgb(0x1B, 0x3D, 0x2B), Color.FromRgb(0x4A, 0xDE, 0x80));
         }
         if (trimmed.Contains('{') && trimmed.Contains('}') ||
             trimmed.Contains("();") ||
@@ -66,35 +69,52 @@ public partial class ClipboardView : UserControl
             trimmed.StartsWith("const ") || trimmed.StartsWith("import ") ||
             trimmed.StartsWith("SELECT ") || trimmed.StartsWith("def "))
         {
-            return ("КОД", Color.FromRgb(0x38, 0x23, 0x52), Color.FromRgb(0xC0, 0x84, 0xFC));
+            return ("CODE", Loc.T("КОД", "CODE", "KOD"), Color.FromRgb(0x38, 0x23, 0x52), Color.FromRgb(0xC0, 0x84, 0xFC));
         }
-        return ("ТЕКСТ", Color.FromRgb(0x26, 0x26, 0x29), Color.FromRgb(0x8E, 0x8E, 0x93));
+        return ("TEXT", Loc.T("ТЕКСТ", "TEXT", "METİN"), Color.FromRgb(0x26, 0x26, 0x29), Color.FromRgb(0x8E, 0x8E, 0x93));
     }
 
     private bool MatchesFilter(ClipItem item)
     {
         if (_filter == "all") return true;
-        var (tag, _, _) = DetectClipType(item.Text);
-        if (_filter == "code") return tag == "КОД";
-        if (_filter == "url") return tag == "URL";
-        if (_filter == "text") return tag == "ТЕКСТ" || tag == "HEX";
+        var (key, _, _, _) = DetectClipType(item.Text);
+        if (_filter == "code") return key == "CODE";
+        if (_filter == "url") return key == "URL";
+        if (_filter == "text") return key == "TEXT" || key == "HEX";
         return true;
     }
 
     private static string FormatAgo(DateTime? ts)
     {
-        if (ts == null) return "закреплено";
+        if (ts == null) return Loc.T("закреплено", "pinned", "sabitlendi");
         int s = (int)(DateTime.Now - ts.Value).TotalSeconds;
-        if (s < 10) return "сейчас";
-        if (s < 60) return $"{s} с назад";
-        if (s < 3600) return $"{s / 60} мин назад";
-        if (s < 86400) return $"{s / 3600} ч назад";
-        return $"{s / 86400} д назад";
+        if (s < 10) return Loc.T("сейчас", "just now", "şimdi");
+        if (s < 60) return Loc.T($"{s} с назад", $"{s}s ago", $"{s} sn önce");
+        if (s < 3600) return Loc.T($"{s / 60} мин назад", $"{s / 60}m ago", $"{s / 60} dk önce");
+        if (s < 86400) return Loc.T($"{s / 3600} ч назад", $"{s / 3600}h ago", $"{s / 3600} sa önce");
+        return Loc.T($"{s / 86400} д назад", $"{s / 86400}d ago", $"{s / 86400} g önce");
     }
 
     public void RefreshAll()
     {
         if (_island == null) return;
+
+        // Локализация статичных элементов интерфейса
+        if (FilterAllRadio != null) FilterAllRadio.Content = Loc.T("Все", "All", "Tümü");
+        if (FilterCodeRadio != null) FilterCodeRadio.Content = Loc.T("Код", "Code", "Kod");
+        if (FilterUrlRadio != null) FilterUrlRadio.Content = Loc.T("Ссылки", "Links", "Linkler");
+        if (FilterTextRadio != null) FilterTextRadio.Content = Loc.T("Текст", "Text", "Metin");
+        if (ClearAllButton != null) ClearAllButton.ToolTip = Loc.T("Очистить незакреплённые", "Clear unpinned", "Sabitlenmemişleri temizle");
+        if (EmptyTitleText != null) EmptyTitleText.Text = Loc.T("Буфер обмена пуст", "Clipboard is empty", "Pano boş");
+        if (EmptySubText != null) EmptySubText.Text = Loc.T("Скопируйте текст или ссылку", "Copy some text or a link", "Bir metin veya bağlantı kopyalayın");
+        if (PinButtonText != null) PinButtonText.Text = Loc.T("Закрепить", "Pin", "Sabitle");
+        if (DeleteButtonText != null) DeleteButtonText.Text = Loc.T("Удалить", "Delete", "Sil");
+        if (OpenUrlButtonText != null) OpenUrlButtonText.Text = Loc.T("Открыть ссылку в браузере", "Open link in browser", "Bağlantıyı tarayıcıda aç");
+        if (CopyButtonText != null && (_copiedFeedbackTimer == null || !_copiedFeedbackTimer.IsEnabled))
+        {
+            CopyButtonText.Text = Loc.T("Копировать", "Copy", "Kopyala");
+        }
+        if (CopiedToastText != null) CopiedToastText.Text = Loc.T("Скопировано в буфер", "Copied to clipboard", "Panoya kopyalandı");
 
         var allItems = Sections.Clipboard.Items;
         var filtered = allItems.Where(MatchesFilter).ToList();
@@ -148,7 +168,7 @@ public partial class ClipboardView : UserControl
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             // Бейдж типа
-            var (tag, tagBg, tagFg) = DetectClipType(item.Text);
+            var (_, tag, tagBg, tagFg) = DetectClipType(item.Text);
             var badge = new Border
             {
                 Background = new SolidColorBrush(tagBg),
@@ -183,7 +203,10 @@ public partial class ClipboardView : UserControl
             };
             var metaText = new TextBlock
             {
-                Text = $"{FormatAgo(item.Time)}  ·  {item.Text.Length} симв.",
+                Text = Loc.T(
+                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} симв.",
+                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} chars",
+                    $"{FormatAgo(item.Time)}  ·  {item.Text.Length} krkt"),
                 FontSize = 9.5,
                 Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Margin = new Thickness(0, 2, 0, 0)
@@ -218,6 +241,7 @@ public partial class ClipboardView : UserControl
                 _selectedItem = item;
                 if (_island != null) Sections.Clipboard.CopyItem(_island, item);
                 RefreshAll();
+                ShowCopiedFeedback();
             };
 
             ClipsPanel.Children.Add(card);
@@ -236,9 +260,10 @@ public partial class ClipboardView : UserControl
                 Cursor = Cursors.Hand,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
+            int rem = filtered.Count - renderLimit;
             var moreText = new TextBlock
             {
-                Text = $"Показать ещё ({filtered.Count - renderLimit})",
+                Text = Loc.T($"Показать ещё ({rem})", $"Show more ({rem})", $"Daha fazla göster ({rem})"),
                 FontSize = 11,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)FindResource("AccentBrush")
@@ -262,33 +287,40 @@ public partial class ClipboardView : UserControl
             UrlPreviewPanel.Visibility = Visibility.Collapsed;
             HexPreviewPanel.Visibility = Visibility.Collapsed;
             TextPreviewScroll.Visibility = Visibility.Collapsed;
-            PreviewStatsText.Text = "0 симв.  ·  0 стр.";
+            PreviewStatsText.Text = Loc.T("0 симв.  ·  0 стр.", "0 chars  ·  0 lines", "0 krkt  ·  0 satır");
             PreviewTypeBadge.Visibility = Visibility.Collapsed;
             PreviewMetaText.Text = "";
+            if (PinButtonText != null) PinButtonText.Text = Loc.T("Закрепить", "Pin", "Sabitle");
+            if (PinIcon != null) PinIcon.Text = "\uE718";
             return;
         }
 
         PreviewTypeBadge.Visibility = Visibility.Visible;
-        var (tag, tagBg, tagFg) = DetectClipType(item.Text);
+        var (key, tag, tagBg, tagFg) = DetectClipType(item.Text);
         PreviewTypeBadge.Background = new SolidColorBrush(tagBg);
         PreviewTypeBadgeText.Text = tag;
         PreviewTypeBadgeText.Foreground = new SolidColorBrush(tagFg);
         PreviewMetaText.Text = FormatAgo(item.Time);
 
-        PinButtonText.Text = item.Pinned ? "Открепить" : "Закрепить";
+        PinButtonText.Text = item.Pinned
+            ? Loc.T("Открепить", "Unpin", "Kaldır")
+            : Loc.T("Закрепить", "Pin", "Sabitle");
         PinIcon.Text = item.Pinned ? "\uE77A" : "\uE718";
 
         int lineCount = item.Text.Count(c => c == '\n') + 1;
-        PreviewStatsText.Text = $"{item.Text.Length} симв.  ·  {lineCount} стр.";
+        PreviewStatsText.Text = Loc.T(
+            $"{item.Text.Length} симв.  ·  {lineCount} стр.",
+            $"{item.Text.Length} chars  ·  {lineCount} lines",
+            $"{item.Text.Length} krkt  ·  {lineCount} satır");
 
-        if (tag == "URL")
+        if (key == "URL")
         {
             UrlPreviewPanel.Visibility = Visibility.Visible;
             HexPreviewPanel.Visibility = Visibility.Collapsed;
             TextPreviewScroll.Visibility = Visibility.Collapsed;
             UrlText.Text = item.Text.Trim();
         }
-        else if (tag == "HEX")
+        else if (key == "HEX")
         {
             UrlPreviewPanel.Visibility = Visibility.Collapsed;
             HexPreviewPanel.Visibility = Visibility.Visible;
@@ -355,7 +387,52 @@ public partial class ClipboardView : UserControl
         if (_island != null && _selectedItem != null)
         {
             Sections.Clipboard.CopyItem(_island, _selectedItem);
+            ShowCopiedFeedback();
         }
+    }
+
+    private void ShowCopiedFeedback()
+    {
+        if (CopyButtonText == null || CopyIcon == null || CopyButton == null) return;
+
+        // 1. Анимация кнопки Copy
+        CopyButtonText.Text = Loc.T("Скопировано!", "Copied!", "Kopyalandı!");
+        CopyIcon.Text = "\uE73E";
+        CopyButton.Background = new SolidColorBrush(Color.FromRgb(0x28, 0xC8, 0x40));
+
+        // 2. Всплывающий тост над предпросмотром
+        if (CopiedToastPill != null && CopiedToastText != null)
+        {
+            CopiedToastText.Text = Loc.T("Скопировано в буфер", "Copied to clipboard", "Panoya kopyalandı");
+            CopiedToastPill.Visibility = Visibility.Visible;
+            var fadeIn = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(160));
+            CopiedToastPill.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+        }
+
+        // 3. Таймер восстановления
+        _copiedFeedbackTimer?.Stop();
+        _copiedFeedbackTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(1600)
+        };
+        _copiedFeedbackTimer.Tick += (_, _) =>
+        {
+            _copiedFeedbackTimer?.Stop();
+            CopyButtonText.Text = Loc.T("Копировать", "Copy", "Kopyala");
+            CopyIcon.Text = "\uE8C8";
+            CopyButton.Background = (Brush)FindResource("AccentBrush");
+
+            if (CopiedToastPill != null)
+            {
+                var fadeOut = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(220));
+                fadeOut.Completed += (_, _) =>
+                {
+                    CopiedToastPill.Visibility = Visibility.Collapsed;
+                };
+                CopiedToastPill.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            }
+        };
+        _copiedFeedbackTimer.Start();
     }
 
     private void OnOpenUrlClick(object sender, RoutedEventArgs e)

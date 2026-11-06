@@ -54,6 +54,24 @@ public partial class App : Application
             LogCrash(ev.Exception, "TaskScheduler.UnobservedTaskException");
         };
 
+        // Фоновая очистка временных файлов обновлений
+        Task.Run(() =>
+        {
+            try
+            {
+                string baseDir = AppContext.BaseDirectory;
+                foreach (var f in Directory.GetFiles(baseDir, "*delete_on_exit*"))
+                {
+                    try { File.Delete(f); } catch { }
+                }
+                foreach (var f in Directory.GetFiles(baseDir, "*.old*"))
+                {
+                    try { File.Delete(f); } catch { }
+                }
+            }
+            catch { }
+        });
+
         base.OnStartup(e);
     }
 

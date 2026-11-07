@@ -71,6 +71,7 @@ public sealed class AppSettings
 
     // Настройки конвертера файлов (Shift Convert)
     [JsonPropertyName("shift_convert_enabled")] public bool ShiftConvertEnabled { get; set; } = true;
+    [JsonPropertyName("shift_convert_context_menu")] public bool ShiftConvertContextMenu { get; set; } = true;
     [JsonPropertyName("shift_convert_auto_copy")] public bool ShiftConvertAutoCopy { get; set; } = true;
     [JsonPropertyName("shift_convert_auto_reveal")] public bool ShiftConvertAutoReveal { get; set; } = false;
 

@@ -63,6 +63,53 @@ public static class ShiftConvertService
     public static bool IsTextFile(string path) => TextExts.Contains(Path.GetExtension(path));
     public static bool IsZipFile(string path) => string.Equals(Path.GetExtension(path), ".zip", StringComparison.OrdinalIgnoreCase);
 
+    private const string FileShellKeyPath = @"Software\Classes\*\shell\QuickNotchConvert";
+    private const string DirShellKeyPath = @"Software\Classes\Directory\shell\QuickNotchConvert";
+
+    public static bool IsContextMenuEnabled()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(FileShellKeyPath, false);
+            return key != null;
+        }
+        catch { return false; }
+    }
+
+    public static void SetContextMenu(bool enable)
+    {
+        try
+        {
+            if (enable)
+            {
+                string exe = Environment.ProcessPath ?? "";
+                if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) return;
+
+                using (var fileKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(FileShellKeyPath))
+                {
+                    fileKey.SetValue("", Loc.T("⚡ Конвертировать (QuickNotch)", "⚡ Convert with QuickNotch", "⚡ QuickNotch ile Dönüştür"));
+                    fileKey.SetValue("Icon", $"\"{exe}\",0");
+                    using var cmdKey = fileKey.CreateSubKey("command");
+                    cmdKey.SetValue("", $"\"{exe}\" --wheel \"%1\"");
+                }
+
+                using (var dirKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(DirShellKeyPath))
+                {
+                    dirKey.SetValue("", Loc.T("⚡ Упаковать в ZIP (QuickNotch)", "⚡ Pack to ZIP (QuickNotch)", "⚡ ZIP'e Paketle (QuickNotch)"));
+                    dirKey.SetValue("Icon", $"\"{exe}\",0");
+                    using var cmdKey = dirKey.CreateSubKey("command");
+                    cmdKey.SetValue("", $"\"{exe}\" --wheel \"%1\"");
+                }
+            }
+            else
+            {
+                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(FileShellKeyPath, false);
+                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(DirShellKeyPath, false);
+            }
+        }
+        catch { }
+    }
+
     public static List<ShiftConvertOption> GetOptionsForFiles(IReadOnlyList<string> files, bool forWheel = true)
     {
         string first = files.FirstOrDefault() ?? "";

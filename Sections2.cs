@@ -441,7 +441,7 @@ public sealed class SettingsSection : Section
             var aboutBox = R(body.Left + cw + 12, row2Y, cw, 96);
             p.Card(aboutBox, Theme.Surface, 20);
             p.Label(Loc.T("О программе", "About QuickNotch", "QuickNotch Hakkında"), R(aboutBox.Left + 16, aboutBox.Top + 12, cw - 32, 18), 12, Theme.Text, true);
-            p.Label("QuickNotch Dynamic Island v2.0", R(aboutBox.Left + 16, aboutBox.Top + 33, cw - 32, 16), 10, Theme.Muted);
+            p.Label("QuickNotch Dynamic Island v2.1.0", R(aboutBox.Left + 16, aboutBox.Top + 33, cw - 32, 16), 10, Theme.Muted);
             p.Label(Loc.T($"Хоткей: {HotkeyInfo.Text} • Esc: свернуть", $"Hotkey: {HotkeyInfo.Text} • Esc: collapse", $"Kısayol: {HotkeyInfo.Text} • Esc: daralt"),
                 R(aboutBox.Left + 16, aboutBox.Top + 51, cw - 32, 16), 9.5, Theme.Accent);
 

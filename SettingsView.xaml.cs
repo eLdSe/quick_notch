@@ -77,6 +77,7 @@ public partial class SettingsView : UserControl
             // 6.5 Настройки конвертера файлов
             if (ConvAutoCopyCheckBox != null) ConvAutoCopyCheckBox.IsChecked = s.ShiftConvertAutoCopy;
             if (ConvEnabledCheckBox != null) ConvEnabledCheckBox.IsChecked = s.ShiftConvertEnabled;
+            if (ConvContextMenuCheckBox != null) ConvContextMenuCheckBox.IsChecked = s.ShiftConvertContextMenu;
             if (ConvAutoRevealCheckBox != null) ConvAutoRevealCheckBox.IsChecked = s.ShiftConvertAutoReveal;
 
             // 7. Фон острова
@@ -316,6 +317,15 @@ public partial class SettingsView : UserControl
         SyncShiftConvertStandaloneConfig();
     }
 
+    private void OnConvContextMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _island == null) return;
+        bool enable = ConvContextMenuCheckBox?.IsChecked == true;
+        _island.S.ShiftConvertContextMenu = enable;
+        _island.SaveState();
+        ShiftConvertService.SetContextMenu(enable);
+    }
+
     private void OnConvAutoRevealClick(object sender, RoutedEventArgs e)
     {
         if (_loading || _island == null) return;
@@ -410,8 +420,11 @@ public partial class SettingsView : UserControl
         if (ConvEnabledTitle != null) ConvEnabledTitle.Text = Loc.T("Колесо конвертера (Shift)", "Converter Wheel (Shift)", "Dönüştürücü Çarkı (Shift)");
         if (ConvEnabledDesc != null) ConvEnabledDesc.Text = Loc.T("Меню форматов при перетаскивании с Shift", "Format wheel when dragging file + Shift", "Shift ile sürüklerken format menüsü");
 
-        if (ConvAutoRevealTitle != null) ConvAutoRevealTitle.Text = Loc.T("Показывать готовый файл в Проводнике", "Reveal Output File in Explorer", "Sonuç Dosyasını Klasörde Göster");
-        if (ConvAutoRevealDesc != null) ConvAutoRevealDesc.Text = Loc.T("Автоматически открывать папку и выделять файл после конвертации", "Automatically open folder and highlight converted file", "Dönüştürme sonrası klasörü otomatik aç ve dosyayı seç");
+        if (ConvContextMenuTitle != null) ConvContextMenuTitle.Text = Loc.T("Меню правой кнопки (ПКМ)", "Right-Click Menu (Explorer)", "Sağ Tık Menüsü (Gezgin)");
+        if (ConvContextMenuDesc != null) ConvContextMenuDesc.Text = Loc.T("Пункт «⚡ Конвертировать» в Проводнике", "Add '⚡ Convert' to Windows Explorer menu", "Windows Gezgini menüsüne '⚡ Dönüştür' ekle");
+
+        if (ConvAutoRevealTitle != null) ConvAutoRevealTitle.Text = Loc.T("Показывать в Проводнике", "Reveal in Explorer", "Klasörde Göster");
+        if (ConvAutoRevealDesc != null) ConvAutoRevealDesc.Text = Loc.T("Открывать папку с готовым файлом", "Open folder and highlight converted file", "Dönüştürme sonrası klasörü aç");
 
         if (ConvFormatsTitle != null) ConvFormatsTitle.Text = Loc.T("Хотите отдельный конвертер без островка?", "Want a standalone converter without the island?", "Ada olmadan bağımsız dönüştürücü ister misiniz?");
         if (ConvFormatsDesc != null) ConvFormatsDesc.Text = Loc.T("Автономное приложение ShiftConvert (Видео, Фото, PDF, OCR, ZIP) доступно отдельно", "Standalone ShiftConvert app (Video, Image, PDF, OCR, ZIP) is available separately", "Bağımsız ShiftConvert uygulaması (Video, Görsel, PDF, OCR, ZIP) ayrı olarak mevcuttur");
@@ -427,7 +440,7 @@ public partial class SettingsView : UserControl
         if (HotkeyCardTitle != null) HotkeyCardTitle.Text = Loc.T("Горячая клавиша активации", "Global Activation Hotkey", "Global Etkinleştirme Kısayolu");
         if (HotkeyCardDesc != null) HotkeyCardDesc.Text = Loc.T("Быстрое открытие и скрытие острова из любого приложения", "Quick toggle island from any application", "Herhangi bir uygulamadan adayı hızlıca aç/kapat");
 
-        if (AboutCardTitle != null) AboutCardTitle.Text = Loc.T("QuickNotch v1.0.4  ·  macOS Dynamic Island для Windows", "QuickNotch v1.0.4  ·  macOS Dynamic Island for Windows", "QuickNotch v1.0.4  ·  Windows için macOS Dynamic Island");
+        if (AboutCardTitle != null) AboutCardTitle.Text = Loc.T("QuickNotch v2.1.0  ·  macOS Dynamic Island для Windows", "QuickNotch v2.1.0  ·  macOS Dynamic Island for Windows", "QuickNotch v2.1.0  ·  Windows için macOS Dynamic Island");
         if (AboutCardDesc != null) AboutCardDesc.Text = Loc.T("Аппаратно-ускоренный движок WPF XAML (0% нагрузки на ЦП)", "Hardware-accelerated WPF XAML engine (0% idle CPU)", "Donanım hızlandırmalı WPF XAML motoru (%0 boşta CPU)");
         if (TestNotifyButton != null) TestNotifyButton.Content = Loc.T("🔔 Тест уведомления", "🔔 Test Notification", "🔔 Bildirim Testi");
     }

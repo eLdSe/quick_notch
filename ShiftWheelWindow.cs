@@ -51,6 +51,8 @@ public sealed class ShiftWheelWindow : Window
     private string[] _draggedFiles = Array.Empty<string>();
     private int _hoveredIndex = -1;
     private bool _confirmedFileDrag;
+    private bool _isClickMode;
+    private bool _isOneShot;
     private bool _isClosing;
 
     [DllImport("user32.dll")]
@@ -74,7 +76,7 @@ public sealed class ShiftWheelWindow : Window
             if (_active != null) return;
             try
             {
-                var win = new ShiftWheelWindow(island, screenPxX, screenPxY);
+                var win = new ShiftWheelWindow(island, screenPxX, screenPxY, null, false);
                 _active = win;
                 win.Show();
                 // Слегка дёргаем курсор на (0,0), чтобы Windows OLE DoDragDrop мгновенно вызвал DragEnter на нашем окне
@@ -87,9 +89,37 @@ public sealed class ShiftWheelWindow : Window
         });
     }
 
-    private ShiftWheelWindow(IslandView island, int screenPxX, int screenPxY)
+    public static void ShowForFilesAtCursor(IslandView island, string[] files, int screenPxX, int screenPxY, bool isOneShot = false)
+    {
+        if (files == null || files.Length == 0)
+        {
+            if (isOneShot) Application.Current?.Shutdown();
+            return;
+        }
+
+        island.Dispatcher.InvokeAsync(() =>
+        {
+            try { _active?.CloseWheel(suppressShutdown: true); } catch { }
+            try
+            {
+                var win = new ShiftWheelWindow(island, screenPxX, screenPxY, files, isOneShot);
+                _active = win;
+                win.Show();
+                win.Activate();
+            }
+            catch
+            {
+                _active = null;
+                if (isOneShot) Application.Current?.Shutdown();
+            }
+        });
+    }
+
+    private ShiftWheelWindow(IslandView island, int screenPxX, int screenPxY, string[]? preloadedFiles, bool isOneShot)
     {
         _island = island;
+        _isOneShot = isOneShot;
+        _isClickMode = preloadedFiles != null && preloadedFiles.Length > 0;
 
         Width = WheelSize;
         Height = WheelSize;
@@ -98,12 +128,13 @@ public sealed class ShiftWheelWindow : Window
         Background = Brushes.Transparent;
         ShowInTaskbar = false;
         Topmost = true;
-        ShowActivated = false;
+        ShowActivated = _isClickMode;
         ResizeMode = ResizeMode.NoResize;
         AllowDrop = true;
 
         // Начинаем почти прозрачными (0.01), чтобы проверить через DragEnter, действительно ли тянут файл
-        Opacity = 0.01;
+        Opacity = _isClickMode ? 1.0 : 0.01;
+        if (_isClickMode) Cursor = Cursors.Hand;
 
         PositionAtScreenPixels(screenPxX, screenPxY);
 
@@ -205,12 +236,11 @@ public sealed class ShiftWheelWindow : Window
         _probeTimer.Tick += (_, _) =>
         {
             _probeTimer.Stop();
-            if (!_confirmedFileDrag)
+            if (!_confirmedFileDrag && !_isClickMode)
             {
                 CloseWheel();
             }
         };
-        _probeTimer.Start();
 
         // Таймер безопасности: если кнопку мыши отпустили вне колеса или нажали Esc
         _safetyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(90) };
@@ -221,7 +251,7 @@ public sealed class ShiftWheelWindow : Window
                 CloseWheel();
                 return;
             }
-            if (_confirmedFileDrag && (GetAsyncKeyState(VK_LBUTTON) & 0x8000) == 0)
+            if (!_isClickMode && _confirmedFileDrag && (GetAsyncKeyState(VK_LBUTTON) & 0x8000) == 0)
             {
                 // Даём 1 тик на срабатывание OnDrop, затем закрываем
                 _safetyTimer.Stop();
@@ -232,6 +262,66 @@ public sealed class ShiftWheelWindow : Window
                 });
             }
         };
+
+        if (_isClickMode && preloadedFiles != null)
+        {
+            _confirmedFileDrag = true;
+            _draggedFiles = preloadedFiles;
+            _options = ShiftConvertService.GetOptionsForFiles(preloadedFiles);
+            BuildSectors();
+            SetHoveredSector(-1);
+            RevealWheelAnimation();
+            _safetyTimer.Start();
+
+            Deactivated += (_, _) =>
+            {
+                if (!_isClosing) CloseWheel();
+            };
+        }
+        else
+        {
+            _probeTimer.Start();
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (_isClickMode)
+        {
+            UpdateHoverFromPoint(e.GetPosition(_rootGrid));
+        }
+    }
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonUp(e);
+        if (!_isClickMode) return;
+        e.Handled = true;
+
+        int chosenIndex = _hoveredIndex;
+        var files = _draggedFiles;
+        var options = _options;
+        bool oneShot = _isOneShot;
+
+        if (chosenIndex >= 0 && chosenIndex < options.Count && files.Length > 0)
+        {
+            CloseWheel(suppressShutdown: true);
+            ExecuteConversion(_island, files, options[chosenIndex], shutdownOnComplete: oneShot);
+        }
+        else
+        {
+            CloseWheel();
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key == Key.Escape)
+        {
+            CloseWheel();
+        }
     }
 
     private void PositionAtScreenPixels(int pxX, int pxY)
@@ -265,7 +355,10 @@ public sealed class ShiftWheelWindow : Window
         {
             IntPtr hwnd = new WindowInteropHelper(this).Handle;
             int exStyle = WinApi.GetWindowLong(hwnd, WinApi.GWL_EXSTYLE);
-            WinApi.SetWindowLong(hwnd, WinApi.GWL_EXSTYLE, exStyle | WinApi.WS_EX_TOOLWINDOW | WinApi.WS_EX_NOACTIVATE);
+            int addStyle = _isClickMode
+                ? WinApi.WS_EX_TOOLWINDOW
+                : (WinApi.WS_EX_TOOLWINDOW | WinApi.WS_EX_NOACTIVATE);
+            WinApi.SetWindowLong(hwnd, WinApi.GWL_EXSTYLE, exStyle | addStyle);
         }
         catch { }
     }
@@ -339,7 +432,7 @@ public sealed class ShiftWheelWindow : Window
 
     private static CancellationTokenSource? _activeCts;
 
-    public static void ExecuteConversion(IslandView island, IReadOnlyList<string> files, ShiftConvertOption opt)
+    public static void ExecuteConversion(IslandView island, IReadOnlyList<string> files, ShiftConvertOption opt, bool shutdownOnComplete = false)
     {
         try { _activeCts?.Cancel(); } catch { }
         try { _activeCts?.Dispose(); } catch { }
@@ -465,6 +558,15 @@ public sealed class ShiftWheelWindow : Window
                         }
                     }
                 }, 3.6);
+
+                if (shutdownOnComplete || App.IsOneShotWheelMode)
+                {
+                    Task.Run(async () =>
+                    {
+                        await Task.Delay(3800).ConfigureAwait(false);
+                        Application.Current?.Dispatcher.InvokeAsync(() => Application.Current?.Shutdown());
+                    });
+                }
             });
         });
     }
@@ -644,7 +746,7 @@ public sealed class ShiftWheelWindow : Window
         return geo;
     }
 
-    private void CloseWheel()
+    private void CloseWheel(bool suppressShutdown = false)
     {
         if (_isClosing) return;
         _isClosing = true;
@@ -653,5 +755,9 @@ public sealed class ShiftWheelWindow : Window
         _lastCloseTicks = Environment.TickCount64;
         if (_active == this) _active = null;
         try { Close(); } catch { }
+        if ((_isOneShot || App.IsOneShotWheelMode) && !suppressShutdown)
+        {
+            Application.Current?.Shutdown();
+        }
     }
 }

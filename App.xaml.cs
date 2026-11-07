@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -8,12 +10,30 @@ using System.Windows.Media;
 
 namespace QuickNotchCs;
 
+public sealed class ContextWheelPayload
+{
+    public string[] Files { get; set; } = Array.Empty<string>();
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
 public partial class App : Application
 {
     private static Mutex? _singleInstanceMutex;
 
+    public static bool IsOneShotWheelMode { get; private set; }
+    public static string[]? PendingWheelFiles { get; private set; }
+    public static int PendingWheelX { get; private set; }
+    public static int PendingWheelY { get; private set; }
+
+    public static string ContextWheelPayloadPath =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "QuickNotch", "context_wheel.json");
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        var cliFiles = ParseCliFiles(e.Args);
+        WinApi.GetCursorPos(out var cursorPt);
+
         bool isNewInstance = true;
         try
         {
@@ -26,11 +46,35 @@ public partial class App : Application
 
         if (!isNewInstance)
         {
-            // Уведомляем уже запущенный экземпляр развернуться
-            uint wakeMsg = WinApi.RegisterWindowMessage(WinApi.WakeMessageName);
-            WinApi.PostMessage(WinApi.HWND_BROADCAST, wakeMsg, IntPtr.Zero, IntPtr.Zero);
+            if (cliFiles.Count > 0)
+            {
+                try
+                {
+                    string path = ContextWheelPayloadPath;
+                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                    var payload = new ContextWheelPayload { Files = cliFiles.ToArray(), X = cursorPt.X, Y = cursorPt.Y };
+                    File.WriteAllText(path, JsonSerializer.Serialize(payload));
+                    uint wheelMsg = WinApi.RegisterWindowMessage("QuickNotch_ContextWheel_Msg");
+                    WinApi.PostMessage(WinApi.HWND_BROADCAST, wheelMsg, IntPtr.Zero, IntPtr.Zero);
+                }
+                catch { }
+            }
+            else
+            {
+                // Уведомляем уже запущенный экземпляр развернуться
+                uint wakeMsg = WinApi.RegisterWindowMessage(WinApi.WakeMessageName);
+                WinApi.PostMessage(WinApi.HWND_BROADCAST, wakeMsg, IntPtr.Zero, IntPtr.Zero);
+            }
             Shutdown();
             return;
+        }
+
+        if (cliFiles.Count > 0)
+        {
+            IsOneShotWheelMode = true;
+            PendingWheelFiles = cliFiles.ToArray();
+            PendingWheelX = cursorPt.X;
+            PendingWheelY = cursorPt.Y;
         }
 
         // Принудительное аппаратное ускорение рендеринга через Direct3D / DirectX
@@ -84,6 +128,22 @@ public partial class App : Application
             File.AppendAllText(path, entry);
         }
         catch { }
+    }
+
+    private static List<string> ParseCliFiles(string[] args)
+    {
+        var list = new List<string>();
+        if (args == null || args.Length == 0) return list;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            string a = args[i].Trim().Trim('"');
+            if (string.Equals(a, "--wheel", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (File.Exists(a) || Directory.Exists(a))
+                list.Add(a);
+        }
+        return list;
     }
 
     protected override void OnExit(ExitEventArgs e)

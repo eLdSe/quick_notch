@@ -461,21 +461,44 @@
                 </Border>
             </Grid>
 
-            <!-- Средний ряд: Автооткрытие папки с результатом -->
-            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" 
-                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,12" Margin="0,0,0,8">
-                <Grid VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                        <TextBlock x:Name="ConvAutoRevealTitle" Text="Показывать готовый файл в Проводнике" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock x:Name="ConvAutoRevealDesc" Text="Автоматически открывать папку и выделять файл после конвертации" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
-                    </StackPanel>
-                    <CheckBox Grid.Column="1" x:Name="ConvAutoRevealCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnConvAutoRevealClick" />
-                </Grid>
-            </Border>
+            <!-- Средний ряд: Меню правой кнопки (ПКМ) и Показ в Проводнике -->
+            <Grid Grid.Row="1" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Меню правой кнопки мыши в Проводнике (ПКМ) -->
+                <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock x:Name="ConvContextMenuTitle" Text="Меню правой кнопки (ПКМ)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="ConvContextMenuDesc" Text="Пункт «⚡ Конвертировать» в Проводнике" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" x:Name="ConvContextMenuCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnConvContextMenuClick" />
+                    </Grid>
+                </Border>
+
+                <!-- Автооткрытие папки с результатом -->
+                <Border Grid.Column="2" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock x:Name="ConvAutoRevealTitle" Text="Показывать в Проводнике" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="ConvAutoRevealDesc" Text="Открывать папку с готовым файлом" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" x:Name="ConvAutoRevealCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnConvAutoRevealClick" />
+                    </Grid>
+                </Border>
+            </Grid>
 
             <!-- Нижний ряд: Ссылка на отдельный репозиторий ShiftConvert -->
             <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" 
@@ -571,7 +594,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock x:Name="AboutCardTitle" Text="QuickNotch v1.0.4  ·  macOS Dynamic Island для Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="AboutCardTitle" Text="QuickNotch v2.1.0  ·  macOS Dynamic Island для Windows" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
                         <TextBlock x:Name="AboutCardDesc" Text="Аппаратно-ускоренный движок WPF XAML (0% нагрузки на ЦП)" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" />
                     </StackPanel>
                     <Button Grid.Column="1" x:Name="TestNotifyButton" Content="🔔 Тест уведомления" Style="{StaticResource SettingsActionButton}" Padding="14,8" Click="OnTestNotificationClick" />

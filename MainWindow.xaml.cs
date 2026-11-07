@@ -9,6 +9,7 @@ public partial class MainWindow : Window
 {
     public IntPtr Handle { get; private set; }
     private uint _wakeMsg;
+    private uint _contextWheelMsg;
 
     public MainWindow()
     {
@@ -40,6 +41,7 @@ public partial class MainWindow : Window
             WinApi.AddClipboardFormatListener(Handle);
 
             _wakeMsg = WinApi.RegisterWindowMessage(WinApi.WakeMessageName);
+            _contextWheelMsg = WinApi.RegisterWindowMessage("QuickNotch_ContextWheel_Msg");
 
             Island.Host = this;
             Island.Initialize();
@@ -82,12 +84,28 @@ public partial class MainWindow : Window
             Island.ApplyAccent();
             Island.ApplyBackground();
 
-            SummonHookService.Initialize(Island);
-            if (Island.S.RobotCompanion && Island.S.RobotRoaming)
+            if (!App.IsOneShotWheelMode)
             {
-                Island.LaunchAeroToDesktop();
+                SummonHookService.Initialize(Island);
+                if (Island.S.RobotCompanion && Island.S.RobotRoaming)
+                {
+                    Island.LaunchAeroToDesktop();
+                }
+                if (Island.S.ShiftConvertContextMenu)
+                {
+                    System.Threading.Tasks.Task.Run(() => ShiftConvertService.SetContextMenu(true));
+                }
             }
+
             ShowWindow();
+
+            if (App.PendingWheelFiles is { Length: > 0 })
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    ShiftWheelWindow.ShowForFilesAtCursor(Island, App.PendingWheelFiles, App.PendingWheelX, App.PendingWheelY, App.IsOneShotWheelMode);
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
         }
         catch (Exception ex)
         {
@@ -120,6 +138,23 @@ public partial class MainWindow : Window
         {
             ShowWindow();
             Island.OnHotkey();
+            handled = true;
+        }
+        else if (_contextWheelMsg != 0 && (uint)msg == _contextWheelMsg)
+        {
+            try
+            {
+                string path = App.ContextWheelPayloadPath;
+                if (System.IO.File.Exists(path))
+                {
+                    var payload = System.Text.Json.JsonSerializer.Deserialize<ContextWheelPayload>(System.IO.File.ReadAllText(path));
+                    if (payload?.Files is { Length: > 0 })
+                    {
+                        ShiftWheelWindow.ShowForFilesAtCursor(Island, payload.Files, payload.X, payload.Y, isOneShot: false);
+                    }
+                }
+            }
+            catch { }
             handled = true;
         }
         else if (msg == WinApi.WM_CLIPBOARDUPDATE)

@@ -1030,11 +1030,11 @@ public sealed class IslandView : FrameworkElement
 			if (isGlass)
 			{
 				host.Resources["SurfaceBrush"] = new SolidColorBrush(Theme.IsLight 
-					? Color.FromArgb(130, 255, 255, 255) 
-					: Color.FromArgb(70, 26, 30, 42));
+					? Color.FromArgb(230, 255, 255, 255) 
+					: Color.FromArgb(215, 22, 24, 32));
 				host.Resources["Surface2Brush"] = new SolidColorBrush(Theme.IsLight 
-					? Color.FromArgb(140, 241, 245, 249) 
-					: Color.FromArgb(85, 18, 22, 32));
+					? Color.FromArgb(235, 241, 245, 249) 
+					: Color.FromArgb(225, 30, 34, 46));
 			}
 			else if (hasCustomBg)
 			{
@@ -1051,7 +1051,7 @@ public sealed class IslandView : FrameworkElement
 		if (DockHost != null)
 		{
 			DockHost.Resources["DockBgBrush"] = isGlass 
-				? new SolidColorBrush(Color.FromArgb(120, 16, 18, 24))
+				? new SolidColorBrush(Color.FromArgb(225, 16, 18, 24))
 				: (hasCustomBg 
 					? new SolidColorBrush(Color.FromArgb(180, 24, 24, 28))
 					: new SolidColorBrush(Color.FromRgb(28, 28, 30)));
@@ -1815,9 +1815,12 @@ public sealed class IslandView : FrameworkElement
 		}
 		// Непрерывные размеры выреза для бесшовного морфинга из любого состояния
 		double live = Ui.Clamp(SpLive.X);
-		double a = Ui.Lerp(215.0, 365.0, live);
-		double a2 = Ui.Lerp(38.0, 66.0, live);
-		double initRadius = Ui.Lerp(18.0, 22.0, live);
+		bool isNotchStyle = S.IslandStyle == "notch";
+		double idleH = (isNotchStyle ? 38.0 : ((S.IslandStyle == "compact") ? 30.0 : 34.0));
+		double idleR = (isNotchStyle ? 18.0 : ((S.IslandStyle == "compact") ? 15.0 : 17.0));
+		double a = Ui.Lerp(215.0, 310.0, live);
+		double a2 = idleH;
+		double initRadius = idleR;
 
 		double hideVal = Ui.Clamp(SpHide.X);
 		double startW = Ui.Lerp(a, 80.0, hideVal);
@@ -1934,7 +1937,7 @@ public sealed class IslandView : FrameworkElement
 			}
 			if (NotchHost != null)
 			{
-				if (num > 0.02)
+				if (num > 0.15)
 				{
 					if (NotchHost.Visibility != Visibility.Collapsed)
 					{
@@ -1951,7 +1954,7 @@ public sealed class IslandView : FrameworkElement
 					double hide3 = Ui.Clamp(SpHide.X);
 					double notchHv3 = Hv("summon:notch_bar");
 					NotchHost.UpdateMorph(hide3, notchHv3);
-					NotchHost.Opacity = Ui.Clamp(1.0 - num / 0.02);
+					NotchHost.Opacity = Ui.Clamp(1.0 - num / 0.15);
 				}
 			}
 		}

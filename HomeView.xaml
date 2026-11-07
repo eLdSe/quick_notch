@@ -644,14 +644,14 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="1"/>
-                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="19"/>
                             </Grid.ColumnDefinitions>
 
                             <Button Grid.Column="0"
                                     Style="{StaticResource QuickTileButtonStyle}"
                                     Click="OnBluetoothClick"
                                     ToolTip="Включить / Выключить Bluetooth">
-                                <Grid VerticalAlignment="Center" Margin="7,2,3,2">
+                                <Grid VerticalAlignment="Center" Margin="5,2,2,2">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
@@ -660,14 +660,14 @@
                                             Grid.Column="0"
                                             Text="&#xE702;"
                                             FontFamily="Segoe MDL2 Assets"
-                                            FontSize="15"
+                                            FontSize="14"
                                             Foreground="White"
                                             VerticalAlignment="Center"
-                                            Margin="0,0,5,0"/>
+                                            Margin="0,0,4,0"/>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock x:Name="BtTitleText"
                                                 Text="Bluetooth"
-                                                FontSize="10.5"
+                                                FontSize="10"
                                                 FontWeight="SemiBold"
                                                 Foreground="{DynamicResource TextPrimaryBrush}"
                                                 TextTrimming="CharacterEllipsis"/>

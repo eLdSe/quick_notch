@@ -45,6 +45,32 @@
             </Setter>
         </Style>
 
+        <!-- Anti-slop Apple Dark Glass ToolTip Style -->
+        <Style TargetType="ToolTip">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="HasDropShadow" Value="True" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI, -apple-system, BlinkMacSystemFont" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="#F018181C"
+                                BorderBrush="#35FFFFFF"
+                                BorderThickness="0.8"
+                                CornerRadius="8"
+                                Padding="8,4"
+                                SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Opacity="0.55" Color="#000000" RenderingBias="Performance" />
+                            </Border.Effect>
+                            <ContentPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Apple Minimal ScrollBar Style (taste-skill anti-slop) -->
         <Style x:Key="AppleScrollThumbStyle" TargetType="Thumb">
             <Setter Property="OverridesDefaultStyle" Value="True" />

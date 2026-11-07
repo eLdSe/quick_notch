@@ -56,78 +56,83 @@
                 MouseLeftButtonUp="OnNotchClick"
                 MouseEnter="OnNotchMouseEnter"
                 MouseLeave="OnNotchMouseLeave"
+                ClipToBounds="True"
                 SnapsToDevicePixels="True">
 
-            <Grid VerticalAlignment="Center">
-                <!-- 1. РЕЖИМ ПЛЕЕРА (когда играет музыка: двухстрочная компоновка строго по фото) -->
-                <Grid x:Name="MediaModeGrid" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="OnMediaNotchClick" ToolTip="Открыть плеер" Margin="2,0"
-                      RenderTransformOrigin="0.5,0.5">
+            <Grid VerticalAlignment="Stretch">
+                <!-- 1. РЕЖИМ ПЛЕЕРА (Apple Dynamic Island: сверхтонкий 38px, однострочный, с обложкой и эквалайзером) -->
+                <Grid x:Name="MediaModeGrid" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="OnMediaNotchClick" ToolTip="Открыть плеер" Margin="0"
+                      VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
                     <Grid.RenderTransform>
                         <ScaleTransform x:Name="MediaModeScale" ScaleX="1" ScaleY="1" />
                     </Grid.RenderTransform>
                     <Grid.ColumnDefinitions>
-                        <!-- 0: Обложка альбома -->
+                        <!-- 0: Обложка альбома 26x26 -->
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="12" />
-                        <!-- 2: Название, исполнитель и кнопки управления -->
-                        <ColumnDefinition Width="*" MinWidth="130" MaxWidth="220" />
-                        <ColumnDefinition Width="10" />
-                        <!-- 4: Эквалайзер и опции -->
+                        <ColumnDefinition Width="8" />
+                        <!-- 2: Текст трека и автора -->
+                        <ColumnDefinition Width="*" MinWidth="110" />
+                        <ColumnDefinition Width="8" />
+                        <!-- 4: Интерактивный блок: Кнопки на Hover / Эквалайзер в покое -->
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Обложка альбома (крупный квадрат со скругленными углами) -->
-                    <Border Grid.Column="0" Width="46" Height="46" CornerRadius="10" Background="#1C1C1E" BorderBrush="#26FFFFFF" BorderThickness="0.8" ClipToBounds="True" VerticalAlignment="Center">
+                    <!-- Обложка альбома (26x26 с микроскруглением и кликом Play/Pause) -->
+                    <Border Grid.Column="0" Width="26" Height="26" CornerRadius="8" Background="#1C1C1E" 
+                            BorderBrush="#25FFFFFF" BorderThickness="0.8" ClipToBounds="True" VerticalAlignment="Center"
+                            MouseLeftButtonUp="OnCoverPlayPauseClick" ToolTip="Воспроизведение / Пауза">
                         <Grid>
-                            <TextBlock Text="♫" FontSize="18" Foreground="#8E8E93" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Text="♫" FontSize="13" Foreground="#8E8E93" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <Image x:Name="MiniCoverImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
                         </Grid>
                     </Border>
 
-                    <!-- Инфо о треке + кнопки прямо под ним -->
-                    <Grid Grid.Column="2" VerticalAlignment="Center">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+                    <!-- Текст: Название (жирным) и Исполнитель (элегантный компактный блок) -->
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock x:Name="MiniTrackTitle" Text="Трек" FontSize="12" FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,1" />
+                        <TextBlock x:Name="MiniTrackArtist" Text="Исполнитель" FontSize="9.5" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
 
-                        <!-- Название трека и исполнитель -->
-                        <StackPanel Grid.Row="0" Margin="0,0,0,5">
-                            <TextBlock x:Name="MiniTrackTitle" Text="Трек" FontSize="12.5" FontWeight="Bold" 
-                                       Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock x:Name="MiniTrackArtist" Text="Исполнитель" FontSize="10" Margin="0,1,0,0"
-                                       Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                    <!-- Справа: блок двойного назначения (Эквалайзер / Кнопки управления) -->
+                    <Grid Grid.Column="4" VerticalAlignment="Center">
+                        <!-- 1. Танцующий неоновый 5-полосный эквалайзер в покое -->
+                        <StackPanel x:Name="MiniEqualizerHost" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <Border x:Name="EqBar1" Width="2.5" Height="6" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1.2,0" VerticalAlignment="Center" />
+                            <Border x:Name="EqBar2" Width="2.5" Height="14" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1.2,0" VerticalAlignment="Center" />
+                            <Border x:Name="EqBar3" Width="2.5" Height="9" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1.2,0" VerticalAlignment="Center" />
+                            <Border x:Name="EqBar4" Width="2.5" Height="15" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1.2,0" VerticalAlignment="Center" />
+                            <Border x:Name="EqBar5" Width="2.5" Height="8" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1.2,0" VerticalAlignment="Center" />
                         </StackPanel>
 
-                        <!-- Переключатели медиа: Предыдущий, Play/Pause, Следующий -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- Кнопка Prev -->
+                        <!-- 2. Элегантные микро-кнопки управления (плавно проявляются при наведении мыши) -->
+                        <StackPanel x:Name="MiniControlsHost" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Collapsed" Opacity="0">
+                            <!-- Предыдущий трек -->
                             <Border x:Name="MiniPrevBtn" Width="22" Height="22" CornerRadius="11" Background="Transparent" 
-                                    Cursor="Hand" Margin="0,0,5,0" VerticalAlignment="Center"
+                                    Cursor="Hand" Margin="0,0,2,0" VerticalAlignment="Center"
                                     MouseLeftButtonUp="OnMediaPrevClick" ToolTip="Предыдущий трек">
-                                <Path Fill="#C8C8CD" Data="M 0,0.5 L 2,0.5 L 2,9.5 L 0,9.5 Z M 9,0.5 L 2.5,5 L 9,9.5 Z" 
-                                      Width="9" Height="10" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True" />
+                                <Path Fill="#C8C8CD" Data="M 0,0.5 L 1.8,0.5 L 1.8,8.5 L 0,8.5 Z M 8,0.5 L 2.2,4.5 L 8,8.5 Z" 
+                                      Width="7.5" Height="8.5" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True" />
                             </Border>
 
-                            <!-- Кнопка Play/Pause в кружке с акцентным цветом темы (диаметр 26px) -->
-                            <Border x:Name="MiniPlayPauseBtn" Width="26" Height="26" CornerRadius="13" 
+                            <!-- Кнопка Play/Pause в кружке с акцентным цветом темы (22px) -->
+                            <Border x:Name="MiniPlayPauseBtn" Width="22" Height="22" CornerRadius="11" 
                                     Background="{DynamicResource AccentBrush}" 
-                                    Cursor="Hand" Margin="2,0" VerticalAlignment="Center"
+                                    Cursor="Hand" Margin="1,0" VerticalAlignment="Center"
                                     MouseLeftButtonUp="OnMediaPlayPauseClick" ToolTip="Воспроизведение / Пауза">
                                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                                     <Path x:Name="MiniPauseIcon" Fill="#FFFFFF" 
-                                          Data="M 0,0 L 2.4,0 L 2.4,9 L 0,9 Z M 5.2,0 L 7.6,0 L 7.6,9 L 5.2,9 Z" 
-                                          Width="8" Height="9" Stretch="Uniform" Visibility="Visible" SnapsToDevicePixels="True"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Data="M 0,0 L 2.2,0 L 2.2,8 L 0,8 Z M 4.8,0 L 7,0 L 7,8 L 4.8,8 Z" 
+                                          Width="7" Height="8" Stretch="Uniform" Visibility="Visible" SnapsToDevicePixels="True"
                                           RenderTransformOrigin="0.5,0.5">
                                         <Path.RenderTransform>
                                             <ScaleTransform x:Name="MiniPauseScale" ScaleX="1" ScaleY="1" />
                                         </Path.RenderTransform>
                                     </Path>
                                     <Path x:Name="MiniPlayIcon" Fill="#FFFFFF" 
-                                          Data="M 0,0 L 8,4.5 L 0,9 Z" 
-                                          Width="8" Height="9" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Data="M 0,0 L 7,4 L 0,8 Z" 
+                                          Width="7" Height="8" Stretch="Uniform" Visibility="Collapsed" SnapsToDevicePixels="True"
                                           RenderTransformOrigin="0.5,0.5">
                                         <Path.RenderTransform>
                                             <ScaleTransform x:Name="MiniPlayScale" ScaleX="1" ScaleY="1" />
@@ -136,36 +141,13 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Кнопка Next -->
+                            <!-- Следующий трек -->
                             <Border x:Name="MiniNextBtn" Width="22" Height="22" CornerRadius="11" Background="Transparent" 
-                                    Cursor="Hand" Margin="5,0,0,0" VerticalAlignment="Center"
+                                    Cursor="Hand" Margin="2,0,0,0" VerticalAlignment="Center"
                                     MouseLeftButtonUp="OnMediaNextClick" ToolTip="Следующий трек">
-                                <Path Fill="#C8C8CD" Data="M 0,0.5 L 6.5,5 L 0,9.5 Z M 7,0.5 L 9,0.5 L 9,9.5 L 7,9.5 Z" 
-                                      Width="9" Height="10" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True" />
+                                <Path Fill="#C8C8CD" Data="M 0,0.5 L 5.8,4.5 L 0,8.5 Z M 6.2,0.5 L 8,0.5 L 8,8.5 L 6.2,8.5 Z" 
+                                      Width="7.5" Height="8.5" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True" />
                             </Border>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- Справа: меню и эквалайзер из 7 столбиков -->
-                    <Grid Grid.Column="4" VerticalAlignment="Center" Margin="0,0,2,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <!-- Три точки в правом верхнем углу -->
-                        <TextBlock Grid.Row="0" Text="•••" FontSize="10" FontWeight="Bold" Foreground="#8E8E93" 
-                                   HorizontalAlignment="Right" Margin="0,0,0,8" Opacity="0.75" />
-
-                        <!-- Анимированный эквалайзер в акцентном цвете темы (7 столбиков разной высоты) -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right">
-                            <Border x:Name="EqBar1" Width="2.5" Height="6" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1,0" VerticalAlignment="Bottom" />
-                            <Border x:Name="EqBar2" Width="2.5" Height="14" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1,0" VerticalAlignment="Bottom" />
-                            <Border x:Name="EqBar3" Width="2.5" Height="9" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1,0" VerticalAlignment="Bottom" />
-                            <Border x:Name="EqBar4" Width="2.5" Height="18" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1,0" VerticalAlignment="Bottom" />
-                            <Border x:Name="EqBar5" Width="2.5" Height="12" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1,0" VerticalAlignment="Bottom" />
-                            <Border x:Name="EqBar6" Width="2.5" Height="15" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1,0" VerticalAlignment="Bottom" />
-                            <Border x:Name="EqBar7" Width="2.5" Height="7" Background="{DynamicResource AccentBrush}" CornerRadius="1.2" Margin="1,0" VerticalAlignment="Bottom" />
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -258,6 +240,18 @@
                             </LinearGradientBrush>
                         </Border.Background>
                     </Border>
+                </Grid>
+
+                <!-- 4. СВЕТОВАЯ НЕОНОВАЯ ЛИНИЯ ПРОГРЕССА ТРЕКА ПО НИЖНЕЙ КРОМКЕ ЧЁЛКИ -->
+                <Grid x:Name="MediaProgressContainer" 
+                      VerticalAlignment="Bottom" 
+                      HorizontalAlignment="Stretch" 
+                      Height="1.5" 
+                      Margin="-12,0,-12,0" 
+                      Visibility="Collapsed"
+                      IsHitTestVisible="False">
+                    <Border x:Name="MediaProgressTrack" Background="#14FFFFFF" HorizontalAlignment="Stretch" Height="1.5" />
+                    <Border x:Name="MediaProgressBar" Background="{DynamicResource AccentBrush}" HorizontalAlignment="Left" Width="0" Height="1.5" />
                 </Grid>
             </Grid>
         </Border>

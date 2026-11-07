@@ -3,7 +3,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace QuickNotchCs;
@@ -14,6 +16,10 @@ public partial class NotchView : UserControl
 	private readonly DispatcherTimer _eqTimer = new DispatcherTimer
 	{
 		Interval = TimeSpan.FromMilliseconds(50.0)
+	};
+	private readonly DispatcherTimer _clockTimer = new DispatcherTimer
+	{
+		Interval = TimeSpan.FromSeconds(1.0)
 	};
 	private int _eqPhase;
 	private double _eqDecay = 1.0;
@@ -50,6 +56,14 @@ public partial class NotchView : UserControl
 	{
 		InitializeComponent();
 		_eqTimer.Tick += OnEqTick;
+		_clockTimer.Tick += OnClockTick;
+		_clockTimer.Start();
+	}
+
+	private void OnClockTick(object? sender, EventArgs e)
+	{
+		RefreshTime();
+		RefreshBattery();
 	}
 
 	public void Attach(IslandView island)
@@ -86,60 +100,14 @@ public partial class NotchView : UserControl
 		if (EqBar3 != null) EqBar3.Background = Theme.AccentBrush;
 		if (EqBar4 != null) EqBar4.Background = Theme.AccentBrush;
 		if (EqBar5 != null) EqBar5.Background = Theme.AccentBrush;
-		if (EqBar6 != null) EqBar6.Background = Theme.AccentBrush;
-		if (EqBar7 != null) EqBar7.Background = Theme.AccentBrush;
+		if (MediaProgressBar != null) MediaProgressBar.Background = Theme.AccentBrush;
 
 		if (NotchShadow != null)
 		{
 			NotchShadow.Color = Colors.Black;
 		}
-		if (NotchTimeText != null)
-		{
-			NotchTimeText.Text = DateTime.Now.ToString("HH:mm");
-		}
-		var (num, flag) = _island.Battery;
-		if (NotchBatteryText != null && NotchBatteryFill != null)
-		{
-			if (num.HasValue)
-			{
-				int num2 = Math.Clamp(num.Value, 0, 100);
-				NotchBatteryText.Text = $"{num2}%";
-				NotchBatteryFill.Width = Math.Max(2.0, 16.5 * (double)num2 / 100.0);
-				if (flag)
-				{
-					NotchBatteryFill.Background = GreenBrushStatic;
-					if (NotchChargingBolt != null)
-					{
-						NotchChargingBolt.Visibility = Visibility.Visible;
-					}
-				}
-				else if (num2 <= 20)
-				{
-					NotchBatteryFill.Background = LowBatteryBrush;
-					if (NotchChargingBolt != null)
-					{
-						NotchChargingBolt.Visibility = Visibility.Collapsed;
-					}
-				}
-				else
-				{
-					NotchBatteryFill.Background = WhiteBrush;
-					if (NotchChargingBolt != null)
-					{
-						NotchChargingBolt.Visibility = Visibility.Collapsed;
-					}
-				}
-			}
-			else
-			{
-				NotchBatteryText.Text = "—";
-				NotchBatteryFill.Width = 0.0;
-				if (NotchChargingBolt != null)
-				{
-					NotchChargingBolt.Visibility = Visibility.Collapsed;
-				}
-			}
-		}
+		RefreshTime();
+		RefreshBattery();
 		WeatherSection weather = Sections.Weather;
 		if (weather.Data != null && NotchTempText != null)
 		{
@@ -232,7 +200,77 @@ public partial class NotchView : UserControl
 			_eqDecaying = true;
 		}
 
+		UpdateMediaControls(_isNotchHovered);
+		UpdateMediaProgress();
 		UpdateMorph(Ui.Clamp(_island.SpHide.X), _island.Hv("summon:notch_bar"));
+	}
+
+	public void RefreshTime()
+	{
+		if (NotchTimeText != null)
+		{
+			string current = DateTime.Now.ToString("HH:mm");
+			if (NotchTimeText.Text != current)
+			{
+				NotchTimeText.Text = current;
+			}
+		}
+	}
+
+	public void RefreshBattery()
+	{
+		if (_island == null || NotchBatteryText == null || NotchBatteryFill == null)
+		{
+			return;
+		}
+		var (num, flag) = _island.Battery;
+		if (num.HasValue)
+		{
+			int num2 = Math.Clamp(num.Value, 0, 100);
+			string bText = $"{num2}%";
+			if (NotchBatteryText.Text != bText)
+			{
+				NotchBatteryText.Text = bText;
+			}
+			double fillW = Math.Max(2.0, 16.5 * (double)num2 / 100.0);
+			if (Math.Abs(NotchBatteryFill.Width - fillW) > 0.1)
+			{
+				NotchBatteryFill.Width = fillW;
+			}
+			if (flag)
+			{
+				NotchBatteryFill.Background = GreenBrushStatic;
+				if (NotchChargingBolt != null)
+				{
+					NotchChargingBolt.Visibility = Visibility.Visible;
+				}
+			}
+			else if (num2 <= 20)
+			{
+				NotchBatteryFill.Background = LowBatteryBrush;
+				if (NotchChargingBolt != null)
+				{
+					NotchChargingBolt.Visibility = Visibility.Collapsed;
+				}
+			}
+			else
+			{
+				NotchBatteryFill.Background = WhiteBrush;
+				if (NotchChargingBolt != null)
+				{
+					NotchChargingBolt.Visibility = Visibility.Collapsed;
+				}
+			}
+		}
+		else
+		{
+			if (NotchBatteryText.Text != "—") NotchBatteryText.Text = "—";
+			if (NotchBatteryFill.Width != 0.0) NotchBatteryFill.Width = 0.0;
+			if (NotchChargingBolt != null)
+			{
+				NotchChargingBolt.Visibility = Visibility.Collapsed;
+			}
+		}
 	}
 
 	private void AnimateMiniPlayPause(bool playing)
@@ -300,8 +338,9 @@ public partial class NotchView : UserControl
 
 	private void OnEqTick(object? sender, EventArgs e)
 	{
-		if (EqBar1 == null || EqBar2 == null || EqBar3 == null || EqBar4 == null ||
-			EqBar5 == null || EqBar6 == null || EqBar7 == null)
+		UpdateMediaProgress();
+
+		if (EqBar1 == null || EqBar2 == null || EqBar3 == null || EqBar4 == null || EqBar5 == null)
 		{
 			return;
 		}
@@ -322,26 +361,47 @@ public partial class NotchView : UserControl
 		double num = (double)_eqPhase * 0.35;
 		double d = _eqDecay;
 		EqBar1.Height = 3.0 + 5.0 * (0.5 + 0.5 * Math.Sin(num * 1.8)) * d;
-		EqBar2.Height = 4.0 + 11.0 * (0.5 + 0.5 * Math.Sin(num * 2.4 + 1.2)) * d;
-		EqBar3.Height = 3.0 + 8.0 * (0.5 + 0.5 * Math.Cos(num * 1.6 + 0.7)) * d;
-		EqBar4.Height = 5.0 + 13.0 * (0.5 + 0.5 * Math.Sin(num * 2.1 + 2.1)) * d;
-		EqBar5.Height = 4.0 + 10.0 * (0.5 + 0.5 * Math.Cos(num * 2.7 + 0.5)) * d;
-		EqBar6.Height = 4.0 + 12.0 * (0.5 + 0.5 * Math.Sin(num * 1.9 + 1.8)) * d;
-		EqBar7.Height = 2.5 + 6.0 * (0.5 + 0.5 * Math.Cos(num * 2.3 + 3.0)) * d;
+		EqBar2.Height = 4.0 + 10.0 * (0.5 + 0.5 * Math.Sin(num * 2.4 + 1.2)) * d;
+		EqBar3.Height = 3.0 + 7.0 * (0.5 + 0.5 * Math.Cos(num * 1.6 + 0.7)) * d;
+		EqBar4.Height = 4.0 + 11.0 * (0.5 + 0.5 * Math.Sin(num * 2.1 + 2.1)) * d;
+		EqBar5.Height = 3.0 + 6.0 * (0.5 + 0.5 * Math.Cos(num * 2.7 + 0.5)) * d;
 	}
 
 	private void ResetEqBars()
 	{
-		if (EqBar1 != null && EqBar2 != null && EqBar3 != null && EqBar4 != null &&
-			EqBar5 != null && EqBar6 != null && EqBar7 != null)
+		if (EqBar1 != null && EqBar2 != null && EqBar3 != null && EqBar4 != null && EqBar5 != null)
 		{
 			EqBar1.Height = 3.0;
-			EqBar2.Height = 7.0;
-			EqBar3.Height = 5.0;
-			EqBar4.Height = 9.0;
-			EqBar5.Height = 6.0;
-			EqBar6.Height = 8.0;
-			EqBar7.Height = 4.0;
+			EqBar2.Height = 6.0;
+			EqBar3.Height = 4.0;
+			EqBar4.Height = 7.0;
+			EqBar5.Height = 3.0;
+		}
+	}
+
+	private void UpdateMediaProgress()
+	{
+		double hide = _island != null ? Ui.Clamp(_island.SpHide.X) : 0.0;
+		double live = _island != null ? Ui.Clamp(_island.SpLive.X) : 0.0;
+
+		// Линия прогресса видна как при проигрывании, так и при паузе,
+		// но ТОЛЬКО в режиме плеера (live > 0.3) и когда окна не закрывают вырез (hide < 0.1)
+		if (_island?.Media != null && _island.Media.Dur > 0 && hide < 0.1 && live > 0.3)
+		{
+			double fraction = Math.Clamp(_island.Media.Pos / _island.Media.Dur, 0.0, 1.0);
+			double totalW = (NotchCapsule != null && NotchCapsule.ActualWidth > 50.0) ? NotchCapsule.ActualWidth : 310.0;
+			if (MediaProgressBar != null)
+			{
+				MediaProgressBar.Width = totalW * fraction;
+			}
+			if (MediaProgressContainer != null && MediaProgressContainer.Visibility != Visibility.Visible)
+			{
+				MediaProgressContainer.Visibility = Visibility.Visible;
+			}
+		}
+		else if (MediaProgressContainer != null && MediaProgressContainer.Visibility != Visibility.Collapsed)
+		{
+			MediaProgressContainer.Visibility = Visibility.Collapsed;
 		}
 	}
 
@@ -353,11 +413,11 @@ public partial class NotchView : UserControl
 
 		// Плавный органичный морфинг между режимом ожидания и музыкальным режимом
 		double idleW = 215.0;
-		double mediaW = 365.0;
+		double mediaW = 310.0;
 		double idleH = (flag ? 38.0 : ((text == "compact") ? 30.0 : 34.0));
-		double mediaH = 66.0;
+		double mediaH = idleH;
 		double idleR = (flag ? 18.0 : ((text == "compact") ? 15.0 : 17.0));
-		double mediaR = 22.0;
+		double mediaR = idleR;
 
 		double a = Ui.Lerp(idleW, mediaW, live);
 		double a2 = Ui.Lerp(idleH, mediaH, live);
@@ -400,6 +460,7 @@ public partial class NotchView : UserControl
 			}
 			double num3 = Ui.Lerp(Ui.Lerp(12.0, 14.0, live), 4.0, hide);
 			NotchCapsule.Padding = new Thickness(num3, 0.0, num3, 0.0);
+			UpdateMediaProgress();
 		}
 
 		double num4 = (flag ? Ui.Clamp(1.0 - hide * 2.8) : 0.0);
@@ -593,21 +654,66 @@ public partial class NotchView : UserControl
 		_island?.Expand();
 	}
 
+	private void OnCoverPlayPauseClick(object sender, MouseButtonEventArgs e)
+	{
+		e.Handled = true;
+		_island?.TogglePlay();
+	}
+
+	private bool _isNotchHovered = false;
+
 	private void OnNotchMouseEnter(object sender, MouseEventArgs e)
 	{
+		_isNotchHovered = true;
 		_island?.SetHover("summon:notch_bar");
 		NotchCapsule.Background = NotchHoverBrush;
 		NotchCapsule.BorderBrush = NotchHoverBorderBrush;
 		if (LeftEar != null) LeftEar.Fill = NotchHoverBrush;
 		if (RightEar != null) RightEar.Fill = NotchHoverBrush;
+
+		UpdateMediaControls(isHovered: true);
 	}
 
 	private void OnNotchMouseLeave(object sender, MouseEventArgs e)
 	{
+		_isNotchHovered = false;
 		_island?.SetHover(null);
 		NotchCapsule.Background = NotchNormalBrush;
 		NotchCapsule.BorderBrush = NotchNormalBorderBrush;
 		if (LeftEar != null) LeftEar.Fill = NotchNormalBrush;
 		if (RightEar != null) RightEar.Fill = NotchNormalBrush;
+
+		UpdateMediaControls(isHovered: false);
+	}
+
+	public void UpdateMediaControls(bool isHovered)
+	{
+		if (MiniControlsHost == null || MiniEqualizerHost == null) return;
+		bool isPlaying = _island?.Media?.Playing == true;
+
+		if (isPlaying)
+		{
+			// Когда трек играет: в покое — танцующий эквалайзер, на ховере — кнопки ⏮ ⏸ ⏭
+			if (isHovered)
+			{
+				MiniEqualizerHost.Visibility = Visibility.Collapsed;
+				MiniControlsHost.Visibility = Visibility.Visible;
+				MiniControlsHost.Opacity = 1.0;
+			}
+			else
+			{
+				MiniControlsHost.Visibility = Visibility.Collapsed;
+				MiniControlsHost.Opacity = 0.0;
+				MiniEqualizerHost.Visibility = Visibility.Visible;
+			}
+		}
+		else
+		{
+			// Когда трек на паузе: эквалайзер скрыт (никаких мёртвых точек!),
+			// а кнопки управления ВСЕГДА видны с яркой кнопкой ▶ Play
+			MiniEqualizerHost.Visibility = Visibility.Collapsed;
+			MiniControlsHost.Visibility = Visibility.Visible;
+			MiniControlsHost.Opacity = 1.0;
+		}
 	}
 }

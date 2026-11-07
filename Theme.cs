@@ -17,20 +17,20 @@ public static class Theme
     public static bool IsLight { get; private set; } = false;
 
     public static Color Bg => IsLight
-        ? (GlassEnabled ? Color.FromArgb(160, 246, 248, 252) : Color.FromRgb(242, 244, 247))
-        : (GlassEnabled ? Color.FromArgb(125, 14, 16, 22) : Color.FromRgb(10, 10, 14));
+        ? (GlassEnabled ? Color.FromArgb(235, 246, 248, 252) : Color.FromRgb(242, 244, 247))
+        : (GlassEnabled ? Color.FromArgb(240, 12, 14, 18) : Color.FromRgb(10, 10, 14));
 
     public static Color Surface => IsLight
-        ? (GlassEnabled ? Color.FromArgb(130, 255, 255, 255) : Color.FromRgb(255, 255, 255))
-        : (GlassEnabled ? Color.FromArgb(70, 26, 30, 42) : Color.FromRgb(28, 28, 30));
+        ? (GlassEnabled ? Color.FromArgb(230, 255, 255, 255) : Color.FromRgb(255, 255, 255))
+        : (GlassEnabled ? Color.FromArgb(215, 22, 24, 32) : Color.FromRgb(28, 28, 30));
 
     public static Color Surface2 => IsLight
-        ? (GlassEnabled ? Color.FromArgb(140, 241, 245, 249) : Color.FromRgb(238, 241, 246))
-        : (GlassEnabled ? Color.FromArgb(85, 18, 22, 32) : Color.FromRgb(38, 38, 41));
+        ? (GlassEnabled ? Color.FromArgb(235, 241, 245, 249) : Color.FromRgb(238, 241, 246))
+        : (GlassEnabled ? Color.FromArgb(225, 30, 34, 46) : Color.FromRgb(38, 38, 41));
 
     public static Color Surface3 => IsLight
-        ? (GlassEnabled ? Color.FromArgb(150, 228, 234, 242) : Color.FromRgb(226, 230, 236))
-        : (GlassEnabled ? Color.FromArgb(100, 24, 28, 40) : Color.FromRgb(50, 50, 54));
+        ? (GlassEnabled ? Color.FromArgb(240, 228, 234, 242) : Color.FromRgb(226, 230, 236))
+        : (GlassEnabled ? Color.FromArgb(235, 38, 42, 56) : Color.FromRgb(50, 50, 54));
 
     public static Color Border => IsLight
         ? Color.FromArgb(90, 0, 0, 0)
@@ -226,8 +226,8 @@ public static class Theme
         double factor = Math.Clamp(opacity, 0.4, 1.0);
         if (IsLight)
         {
-            byte a1 = (byte)Math.Round(140 * factor);
-            byte a2 = (byte)Math.Round(175 * factor);
+            byte a1 = (byte)Math.Round(235 * factor);
+            byte a2 = (byte)Math.Round(248 * factor);
             var brush = new LinearGradientBrush(
                 Color.FromArgb(a1, 255, 255, 255),
                 Color.FromArgb(a2, 240, 244, 250),
@@ -238,11 +238,11 @@ public static class Theme
         }
         else
         {
-            byte a1 = (byte)Math.Round(115 * factor);
-            byte a2 = (byte)Math.Round(150 * factor);
+            byte a1 = (byte)Math.Round(238 * factor);
+            byte a2 = (byte)Math.Round(250 * factor);
             var brush = new LinearGradientBrush(
-                Color.FromArgb(a1, 18, 20, 28),
-                Color.FromArgb(a2, 10, 11, 16),
+                Color.FromArgb(a1, 16, 17, 24),
+                Color.FromArgb(a2, 10, 11, 15),
                 new Point(0.5, 0),
                 new Point(0.5, 1));
             brush.Freeze();

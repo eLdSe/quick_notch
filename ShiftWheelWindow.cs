@@ -576,11 +576,14 @@ public sealed class ShiftWheelWindow : Window
 
     private void RevealWheelAnimation()
     {
-        Opacity = 1.0;
-        var dur = TimeSpan.FromMilliseconds(165);
-        var ease = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.25 };
-        _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.68, 1.0, dur) { EasingFunction = ease });
-        _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.68, 1.0, dur) { EasingFunction = ease });
+        var dur = TimeSpan.FromMilliseconds(180);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var fadeAnim = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(140));
+        var scaleAnim = new DoubleAnimation(0.76, 1.0, dur) { EasingFunction = ease };
+
+        BeginAnimation(OpacityProperty, fadeAnim);
+        _scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+        _scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
     }
 
     private void BuildSectors()
@@ -704,14 +707,49 @@ public sealed class ShiftWheelWindow : Window
         }
         else
         {
-            _centerIconText.Text = "✕";
-            _centerTitleText.Text = Loc.T("Отмена", "Cancel", "İptal");
+            var badge = GetPayloadBadge();
+            _centerIconText.Text = badge.icon;
+            _centerTitleText.Text = badge.title;
             _centerTitleText.Foreground = Brushes.White;
-            _centerSubText.Text = _draggedFiles.Length > 1
-                ? $"{_draggedFiles.Length} {Loc.T("файл.", "files", "dosya")}"
-                : System.IO.Path.GetExtension(_draggedFiles.FirstOrDefault() ?? "").ToUpperInvariant().TrimStart('.');
-            _centerHub.BorderBrush = new SolidColorBrush(Color.FromArgb(0x45, 0xFF, 0xFF, 0xFF));
+            _centerSubText.Text = badge.sub;
+            _centerHub.BorderBrush = new SolidColorBrush(Color.FromArgb(0x45, 0xC6, 0xF2, 0x4E));
         }
+    }
+
+    private (string icon, string title, string sub) GetPayloadBadge()
+    {
+        if (_draggedFiles.Length == 0)
+        {
+            return ("⚡", "Shift", Loc.T("Конвертер", "Converter", "Dönüştürücü"));
+        }
+
+        if (_draggedFiles.Length > 1)
+        {
+            long totalBytes = 0;
+            foreach (var f in _draggedFiles)
+            {
+                try { if (File.Exists(f)) totalBytes += new FileInfo(f).Length; } catch { }
+            }
+            string sizeStr = totalBytes > 0 ? ShiftConvertService.FormatBytes(totalBytes) : Loc.T("Пакет", "Batch", "Paket");
+            return ("📚", $"{_draggedFiles.Length} {Loc.T("файлов", "files", "dosya")}", sizeStr);
+        }
+
+        string single = _draggedFiles[0];
+        string ext = System.IO.Path.GetExtension(single).ToUpperInvariant().TrimStart('.');
+        if (string.IsNullOrEmpty(ext)) ext = Loc.T("Файл", "File", "Dosya");
+
+        long singleBytes = 0;
+        try { if (File.Exists(single)) singleBytes = new FileInfo(single).Length; } catch { }
+        string singleSize = singleBytes > 0 ? ShiftConvertService.FormatBytes(singleBytes) : "";
+
+        string icon = "📄";
+        if (ShiftConvertService.IsPdfFile(single)) icon = "📕";
+        else if (ShiftConvertService.IsImageFile(single)) icon = "🖼️";
+        else if (ShiftConvertService.IsAudioFile(single)) icon = "🎵";
+        else if (ShiftConvertService.IsVideoFile(single)) icon = "🎬";
+        else if (ShiftConvertService.IsZipFile(single)) icon = "📦";
+
+        return (icon, ext, singleSize);
     }
 
     private static Geometry CreateSectorGeometry(double cx, double cy, double rInner, double rOuter, double startDeg, double endDeg)

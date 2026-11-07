@@ -832,7 +832,7 @@
                             Drop="OnFilesTileDrop"
                             Click="OnFilesTileClick"
                             MouseRightButtonUp="OnFilesTileRightClick"
-                            ToolTip="ЛКМ: Открыть файлы  ·  ПКМ или перетаскивание: Добавить файл">
+                            ToolTip="Перетащите файл или ПКМ: Конвертер (PNG, JPG, PDF, ICO)  ·  ЛКМ: Полка файлов">
                         <Border x:Name="FilesIndicator"
                                 CornerRadius="13"
                                 BorderThickness="1.2"

@@ -553,7 +553,7 @@ public partial class HomeView : UserControl
     private void OnQuickSubMenuRefreshClick(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        if (_activeQuickSubMenu != null)
+        if (_activeQuickSubMenu is "wifi" or "bluetooth")
         {
             OpenQuickSubMenu(_activeQuickSubMenu);
         }
@@ -824,18 +824,15 @@ public partial class HomeView : UserControl
         if (_island == null) return;
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title = Loc.T("Выберите приложение или файл", "Select application or file", "Uygulama veya dosya seçin"),
-            Filter = Loc.T("Все файлы (*.*)|*.*|Программы (*.exe;*.lnk)|*.exe;*.lnk", "All Files (*.*)|*.*|Programs (*.exe;*.lnk)|*.exe;*.lnk", "Tüm Dosyalar (*.*)|*.*|Programlar (*.exe;*.lnk)|*.exe;*.lnk")
+            Title = Loc.T("Выберите файл для конвертации или закрепления", "Select file to convert or pin", "Dönüştürmek veya sabitlemek için dosya seçin"),
+            Multiselect = true,
+            Filter = Loc.T("Все файлы (*.*)|*.*|Изображения (*.png;*.jpg;*.webp;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif|Программы (*.exe;*.lnk)|*.exe;*.lnk",
+                           "All Files (*.*)|*.*|Images (*.png;*.jpg;*.webp;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif|Programs (*.exe;*.lnk)|*.exe;*.lnk",
+                           "Tüm Dosyalar (*.*)|*.*|Görseller (*.png;*.jpg;*.webp;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif|Programlar (*.exe;*.lnk)|*.exe;*.lnk")
         };
-        if (dlg.ShowDialog() == true)
+        if (dlg.ShowDialog() == true && dlg.FileNames.Length > 0)
         {
-            string path = dlg.FileName;
-            string name = System.IO.Path.GetFileNameWithoutExtension(path);
-            if (string.IsNullOrWhiteSpace(name)) name = path;
-            Sections.Links.AddLink(new QuickLink { Label = name, Target = path });
-            RefreshConnectivity();
-            _island.LinksHost?.RefreshAll();
-            _island.Select("links");
+            OpenFileConvertSubMenu(dlg.FileNames);
         }
     }
 
@@ -859,21 +856,73 @@ public partial class HomeView : UserControl
     private void OnFilesTileDrop(object sender, DragEventArgs e)
     {
         if (_island == null) return;
+        if (FilesIndicator != null && FilesIcon != null)
+        {
+            StyleTile(FilesIndicator, FilesIcon, false);
+        }
         if (e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] files && files.Length > 0)
         {
-            foreach (string path in files)
-            {
-                if (string.IsNullOrWhiteSpace(path)) continue;
-                string name = System.IO.Path.GetFileNameWithoutExtension(path);
-                if (string.IsNullOrWhiteSpace(name)) name = System.IO.Path.GetFileName(path);
-                if (string.IsNullOrWhiteSpace(name)) name = path;
-                Sections.Links.AddLink(new QuickLink { Label = name, Target = path });
-            }
-            RefreshConnectivity();
-            _island.LinksHost?.RefreshAll();
-            _island.Select("links");
+            OpenFileConvertSubMenu(files);
         }
         e.Handled = true;
+    }
+
+    private void OpenFileConvertSubMenu(string[] files)
+    {
+        if (_island == null || QuickSubMenuItemsPanel == null || QuickSubMenuEmptyText == null) return;
+
+        _activeQuickSubMenu = "convert";
+        if (QuickDefaultHeader != null) QuickDefaultHeader.Visibility = Visibility.Collapsed;
+        if (QuickGridPanel != null) QuickGridPanel.Visibility = Visibility.Collapsed;
+        if (QuickSubMenuHeader != null) QuickSubMenuHeader.Visibility = Visibility.Visible;
+        if (QuickSubMenuPanel != null) QuickSubMenuPanel.Visibility = Visibility.Visible;
+        if (QuickSubMenuBackText != null) QuickSubMenuBackText.Text = Loc.T("Назад", "Back", "Geri");
+
+        string titleLabel = files.Length == 1
+            ? System.IO.Path.GetFileName(files[0])
+            : $"{files.Length} {Loc.T("файл.", "files", "dosya")}";
+        if (QuickSubMenuTitleText != null) QuickSubMenuTitleText.Text = $"⚡ {titleLabel}";
+
+        QuickSubMenuEmptyText.Visibility = Visibility.Collapsed;
+        QuickSubMenuItemsPanel.Children.Clear();
+
+        var options = ShiftConvertService.GetOptionsForFiles(files, forWheel: false);
+        if (!options.Any(o => o.Key == "links"))
+        {
+            options.Add(new ShiftConvertOption
+            {
+                Key = "links",
+                Label = Loc.T("В быстрые ссылки", "Pin to Quick Links", "Hızlı Bağlantılara Ekle"),
+                SubLabel = Loc.T("Полка", "Tray", "Raf"),
+                Icon = "📌",
+                Accent = Theme.Accent
+            });
+        }
+
+        foreach (var opt in options)
+        {
+            string badge = opt.SubLabel;
+            string rowTitle = opt.Key switch
+            {
+                "links" or "compress" or "clipboard" or "unzip" => opt.Label,
+                "ocr" => Loc.T("Распознать текст (OCR)", "Extract Text (OCR)", "Metni Tanı (OCR)"),
+                "square" => Loc.T("Обрезать 1:1 (Квадрат)", "Square Crop 1:1", "Kare Kırp 1:1"),
+                "grayscale" => Loc.T("Сделать чёрно-белым", "Convert to B&W", "Siyah-Beyaz Yap"),
+                "base64" => Loc.T("Скопировать Base64 код", "Copy Base64 Code", "Base64 Kopyala"),
+                "sha256" => Loc.T("Скопировать SHA-256 хеш", "Copy SHA-256 Hash", "SHA-256 Kopyala"),
+                "zip" => Loc.T("Упаковать в ZIP-архив", "Pack to ZIP Archive", "ZIP Arşivine Ekle"),
+                "format_json" => Loc.T("Форматировать JSON", "Format JSON", "JSON Biçimlendir"),
+                _ => $"{Loc.T("Конвертировать в", "Convert to", "Dönüştür:")} {opt.Label}"
+            };
+
+            var row = CreateSubMenuRow("\uE8AB", $"{opt.Icon}  {rowTitle}", badge, false, () =>
+            {
+                CloseQuickSubMenu();
+                ShiftWheelWindow.ExecuteConversion(_island, files, opt);
+                return System.Threading.Tasks.Task.CompletedTask;
+            });
+            QuickSubMenuItemsPanel.Children.Add(row);
+        }
     }
 
     private void OnVolumeSliderChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

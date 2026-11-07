@@ -59,12 +59,12 @@ public partial class App : Application
         {
             try
             {
-                string baseDir = AppContext.BaseDirectory;
-                foreach (var f in Directory.GetFiles(baseDir, "*delete_on_exit*"))
+                string? exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+                foreach (var f in Directory.GetFiles(exeDir, "*delete_on_exit*"))
                 {
                     try { File.Delete(f); } catch { }
                 }
-                foreach (var f in Directory.GetFiles(baseDir, "*.old*"))
+                foreach (var f in Directory.GetFiles(exeDir, "*.old*"))
                 {
                     try { File.Delete(f); } catch { }
                 }

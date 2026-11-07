@@ -182,6 +182,7 @@ public static class ShiftConvertService
             {
                 new() { Key = "mp3", Label = "MP3", SubLabel = Loc.T("Извлечь звук", "Extract Audio", "Sesi Çıkart"), Icon = "🎵", Accent = Color.FromRgb(0xC6, 0xF2, 0x4E) },
                 new() { Key = "vid_compress", Label = Loc.T("Сжать", "Compress", "Sıkıştır"), SubLabel = Loc.T("Меньше МБ (720p)", "Smaller 720p", "Küçült 720p"), Icon = "📉", Accent = Color.FromRgb(0x34, 0xD3, 0x99) },
+                new() { Key = "vid_enhance", Label = Loc.T("Улучшить", "Enhance", "İyileştir"), SubLabel = Loc.T("Чёткость HD 1080p", "HD 1080p Clarity", "HD 1080p Netlik"), Icon = "✨", Accent = Color.FromRgb(0x38, 0xBD, 0xF8) },
             };
 
             if (files.Count >= 2)
@@ -665,6 +666,7 @@ public static class ShiftConvertService
             "grayscale" => "B&W PNG",
             "compress" => "JPG",
             "vid_compress" => "MP4 720P",
+            "vid_enhance" => "HD 1080P",
             "vid_gif" => "GIF",
             "vid_mute" => "MUTE MP4",
             "vid_frame" => "FRAME PNG",
@@ -734,6 +736,8 @@ public static class ShiftConvertService
                     return ExtractAudioFromVideoAsync(inputPath, onProgress, ct).GetAwaiter().GetResult();
                 case "vid_compress":
                     return TranscodeVideoAsync(inputPath, compress720p: true, stripAudio: false, onProgress, ct).GetAwaiter().GetResult();
+                case "vid_enhance":
+                    return EnhanceVideoQualityAsync(inputPath, onProgress, ct).GetAwaiter().GetResult();
                 case "mp4":
                     return TranscodeVideoAsync(inputPath, compress720p: false, stripAudio: false, onProgress, ct).GetAwaiter().GetResult();
                 case "vid_mute":
@@ -1340,6 +1344,106 @@ public static class ShiftConvertService
             await op;
             ct.ThrowIfCancellationRequested();
             return outPath;
+        }
+        catch
+        {
+            try { File.Delete(outPath); } catch { }
+            throw;
+        }
+    }
+
+    private static async Task<string?> EnhanceVideoQualityAsync(string inputPath, Action<double>? onProgress, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var inSf = await Windows.Storage.StorageFile.GetFileFromPathAsync(inputPath);
+        var clip = await Windows.Media.Editing.MediaClip.CreateFromFileAsync(inSf);
+
+        var vProps = clip.GetVideoEncodingProperties();
+        int srcW = (int)(vProps?.Width ?? 1280);
+        int srcH = (int)(vProps?.Height ?? 720);
+        if (srcW <= 0) srcW = 1280;
+        if (srcH <= 0) srcH = 720;
+
+        // Если видео меньше 1080p — делаем качественный апскейл до Full HD (1920 по длинной стороне)
+        // Если уже 1080p или выше — сохраняем исходное разрешение
+        int targetW = srcW;
+        int targetH = srcH;
+        int longest = Math.Max(srcW, srcH);
+        if (longest < 1920)
+        {
+            double scale = 1920.0 / longest;
+            targetW = (int)Math.Round(srcW * scale);
+            targetH = (int)Math.Round(srcH * scale);
+        }
+
+        // Выравнивание до чётных значений для аппаратного кодировщика H.264
+        targetW = Math.Max(320, targetW & ~1);
+        targetH = Math.Max(320, targetH & ~1);
+
+        string outPath = GetUniqueOutputPath(inputPath, ".mp4", "_enhanced");
+        var outSf = await CreateEmptyWinRtFileAsync(outPath);
+
+        var profile = Windows.Media.MediaProperties.MediaEncodingProfile.CreateMp4(
+            Windows.Media.MediaProperties.VideoEncodingQuality.HD1080p);
+
+        if (profile.Video != null)
+        {
+            profile.Video.Width = (uint)targetW;
+            profile.Video.Height = (uint)targetH;
+            // Высокий битрейт (9.5 Мбит/с), чтобы убрать квадраты и сохранить чёткость мелких деталей
+            profile.Video.Bitrate = 9_500_000;
+        }
+        if (profile.Audio != null)
+        {
+            profile.Audio.Bitrate = 192_000;
+        }
+
+        var transcoder = new Windows.Media.Transcoding.MediaTranscoder
+        {
+            HardwareAccelerationEnabled = true,
+            VideoProcessingAlgorithm = Windows.Media.Transcoding.MediaVideoProcessingAlgorithm.MrfCrf444
+        };
+
+        var prep = await transcoder.PrepareFileTranscodeAsync(inSf, outSf, profile);
+        if (!prep.CanTranscode)
+        {
+            // Если драйвер видеокарты не поддерживает алгоритм MrfCrf444 — переключаемся на Default
+            transcoder.VideoProcessingAlgorithm = Windows.Media.Transcoding.MediaVideoProcessingAlgorithm.Default;
+            prep = await transcoder.PrepareFileTranscodeAsync(inSf, outSf, profile);
+        }
+
+        if (!prep.CanTranscode)
+        {
+            try { File.Delete(outPath); } catch { }
+            return null;
+        }
+
+        try
+        {
+            var op = prep.TranscodeAsync();
+            using var reg = ct.Register(() => { try { op.Cancel(); } catch { } });
+            op.Progress = (_, pct) => onProgress?.Invoke(pct);
+            await op;
+            ct.ThrowIfCancellationRequested();
+            return outPath;
+        }
+        catch (Exception) when (!ct.IsCancellationRequested && transcoder.VideoProcessingAlgorithm != Windows.Media.Transcoding.MediaVideoProcessingAlgorithm.Default)
+        {
+            // Если сбой произошел в процессе работы MrfCrf444 — перезапускаем с надежным Default
+            try { File.Delete(outPath); } catch { }
+            outSf = await CreateEmptyWinRtFileAsync(outPath);
+            transcoder.VideoProcessingAlgorithm = Windows.Media.Transcoding.MediaVideoProcessingAlgorithm.Default;
+            var prepFallback = await transcoder.PrepareFileTranscodeAsync(inSf, outSf, profile);
+            if (prepFallback.CanTranscode)
+            {
+                var op2 = prepFallback.TranscodeAsync();
+                using var reg2 = ct.Register(() => { try { op2.Cancel(); } catch { } });
+                op2.Progress = (_, pct) => onProgress?.Invoke(pct);
+                await op2;
+                ct.ThrowIfCancellationRequested();
+                return outPath;
+            }
+            throw;
         }
         catch
         {

@@ -42,47 +42,93 @@
                 <ColumnDefinition Width="42" />
                 <ColumnDefinition Width="14" />
                 <!-- 2. Текст -->
-                <ColumnDefinition Width="*" MinWidth="180" MaxWidth="320" />
+                <ColumnDefinition Width="*" MinWidth="160" MaxWidth="320" />
                 <ColumnDefinition Width="10" />
-                <!-- 3. Крестик -->
-                <ColumnDefinition Width="28" />
+                <!-- 3. Кнопка отмены / закрытия -->
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <!-- Иконка или обложка -->
-            <Border Grid.Column="0" Width="42" Height="42" CornerRadius="12" Background="#1C1C1E" ClipToBounds="True"
+            <Border x:Name="IconBoxBorder" Grid.Column="0" Width="42" Height="42" CornerRadius="12" Background="#1C1C1E" ClipToBounds="True"
                     BorderBrush="#3A3A3E" BorderThickness="1" VerticalAlignment="Center">
                 <Grid>
+                    <Path x:Name="SpinnerArc"
+                          Data="M 10,1.5 A 8.5,8.5 0 1 1 1.5,10"
+                          Stroke="#C6F24E"
+                          StrokeThickness="2.2"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round"
+                          Width="20" Height="20"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Visibility="Collapsed">
+                        <Path.RenderTransform>
+                            <RotateTransform x:Name="SpinnerRotate" Angle="0" CenterX="10" CenterY="10" />
+                        </Path.RenderTransform>
+                    </Path>
                     <TextBlock x:Name="IconSymbolText" Text="🔔" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     <Image x:Name="IconImage" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
                 </Grid>
             </Border>
 
-            <!-- Текстовый блок высокой чёткости -->
+            <!-- Текстовый блок высокой чёткости + полоса прогресса -->
             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                 <TextBlock x:Name="AppNameText" Text="УВЕДОМЛЕНИЕ" FontSize="11" FontWeight="Bold" 
-                           Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,2" />
+                           Foreground="{StaticResource AccentBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,1" />
                 <TextBlock x:Name="TitleText" Text="Заголовок" FontSize="13.5" FontWeight="SemiBold" 
                            Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="BodyText" Text="Описание события..." FontSize="12" 
                            Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                <Border x:Name="ProgressTrack"
+                        Height="3"
+                        CornerRadius="1.5"
+                        Background="#222226"
+                        Margin="0,5,0,0"
+                        Visibility="Collapsed">
+                    <Border x:Name="ProgressFill"
+                            Height="3"
+                            Width="20"
+                            CornerRadius="1.5"
+                            Background="#C6F24E"
+                            HorizontalAlignment="Left" />
+                </Border>
             </StackPanel>
 
-            <!-- Кнопка закрытия -->
-            <Button Grid.Column="4" Width="26" Height="26" Background="#262629" BorderThickness="0" Cursor="Hand" 
-                    Click="OnDismissClick" FocusVisualStyle="{x:Null}" VerticalAlignment="Center">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bg" Background="{TemplateBinding Background}" CornerRadius="13">
-                            <TextBlock Text="✕" FontSize="11" FontWeight="Bold" Foreground="#8E8E93" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bg" Property="Background" Value="#3A3A3E" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
+            <!-- Кнопка отмены (во время загрузки) и кнопка закрытия -->
+            <Grid Grid.Column="4" VerticalAlignment="Center">
+                <Button x:Name="CancelProcessBtn" Height="26" Background="#28161B" BorderThickness="0" Cursor="Hand"
+                        Click="OnDismissClick" FocusVisualStyle="{x:Null}" Visibility="Collapsed">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="cbg" Background="{TemplateBinding Background}" BorderBrush="#522631" BorderThickness="1" CornerRadius="13" Padding="10,0">
+                                <TextBlock x:Name="CancelBtnLabel" Text="✕ Отменить" FontSize="11" FontWeight="SemiBold" Foreground="#F87171" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="cbg" Property="Background" Value="#3B1C24" />
+                                    <Setter TargetName="cbg" Property="BorderBrush" Value="#F87171" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <Button x:Name="DismissBtn" Width="26" Height="26" Background="#262629" BorderThickness="0" Cursor="Hand" 
+                        Click="OnDismissClick" FocusVisualStyle="{x:Null}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bg" Background="{TemplateBinding Background}" CornerRadius="13">
+                                <TextBlock Text="✕" FontSize="11" FontWeight="Bold" Foreground="#8E8E93" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bg" Property="Background" Value="#3A3A3E" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

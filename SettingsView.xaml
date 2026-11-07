@@ -206,6 +206,8 @@
                              Content="Фон" Click="OnSubTabChanged" />
                 <RadioButton x:Name="TabBehaviorRadio" Style="{StaticResource SegmentButtonStyle}" 
                              Content="Поведение" Click="OnSubTabChanged" />
+                <RadioButton x:Name="TabConverterRadio" Style="{StaticResource SegmentButtonStyle}" 
+                             Content="Конвертер" Click="OnSubTabChanged" />
                 <RadioButton x:Name="TabSystemRadio" Style="{StaticResource SegmentButtonStyle}" 
                              Content="Система" Click="OnSubTabChanged" />
             </StackPanel>
@@ -411,7 +413,88 @@
             </Border>
         </Grid>
 
-        <!-- ==================== Вкладка 4: СИСТЕМА ==================== -->
+        <!-- ==================== Вкладка 4: КОНВЕРТЕР ==================== -->
+        <Grid Grid.Row="1" x:Name="ConverterPanel" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Верхний ряд: Копирование в буфер (Ctrl+V) и Колесо Shift-Convert -->
+            <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Автокопирование в буфер обмена -->
+                <Border Grid.Column="0" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock x:Name="ConvAutoCopyTitle" Text="Копировать в буфер (Ctrl+V)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="ConvAutoCopyDesc" Text="Автокопирование готового файла в буфер" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" x:Name="ConvAutoCopyCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnConvAutoCopyClick" />
+                    </Grid>
+                </Border>
+
+                <!-- Вызов колеса по клавише Shift -->
+                <Border Grid.Column="2" Style="{StaticResource AppleGlassCardStyle}" Padding="12,10">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock x:Name="ConvEnabledTitle" Text="Колесо конвертера (Shift)" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock x:Name="ConvEnabledDesc" Text="Меню форматов при перетаскивании с Shift" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1" x:Name="ConvEnabledCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnConvEnabledClick" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Средний ряд: Автооткрытие папки с результатом -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,12" Margin="0,0,0,8">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock x:Name="ConvAutoRevealTitle" Text="Показывать готовый файл в Проводнике" FontSize="12.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="ConvAutoRevealDesc" Text="Автоматически открывать папку и выделять файл после конвертации" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1" x:Name="ConvAutoRevealCheckBox" Style="{StaticResource AppleSwitchStyle}" VerticalAlignment="Center" Click="OnConvAutoRevealClick" />
+                </Grid>
+            </Border>
+
+            <!-- Нижний ряд: Ссылка на отдельный репозиторий ShiftConvert -->
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="18" Padding="18,12">
+                <Grid VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                        <TextBlock x:Name="ConvFormatsTitle" Text="Хотите отдельный конвертер без островка?" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="ConvFormatsDesc" Text="Автономное приложение ShiftConvert (Видео, Фото, PDF, OCR, ZIP) доступно отдельно" FontSize="9.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" x:Name="ConvRepoButton" Content="🔗 GitHub: ShiftConvert" Style="{StaticResource SettingsActionButton}" Padding="12,7" Click="OnConvRepoClick" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ==================== Вкладка 5: СИСТЕМА ==================== -->
         <Grid Grid.Row="1" x:Name="SystemPanel" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

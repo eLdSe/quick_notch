@@ -74,6 +74,11 @@ public partial class SettingsView : UserControl
             if (LangEnRadio != null) LangEnRadio.IsChecked = s.Language == "en";
             if (LangTrRadio != null) LangTrRadio.IsChecked = s.Language == "tr";
 
+            // 6.5 Настройки конвертера файлов
+            if (ConvAutoCopyCheckBox != null) ConvAutoCopyCheckBox.IsChecked = s.ShiftConvertAutoCopy;
+            if (ConvEnabledCheckBox != null) ConvEnabledCheckBox.IsChecked = s.ShiftConvertEnabled;
+            if (ConvAutoRevealCheckBox != null) ConvAutoRevealCheckBox.IsChecked = s.ShiftConvertAutoReveal;
+
             // 7. Фон острова
             RefreshBackgroundCard();
 
@@ -132,11 +137,12 @@ public partial class SettingsView : UserControl
 
     private void OnSubTabChanged(object sender, RoutedEventArgs e)
     {
-        if (AppearancePanel == null || BehaviorPanel == null || SystemPanel == null || BackgroundPanel == null) return;
+        if (AppearancePanel == null || BehaviorPanel == null || SystemPanel == null || BackgroundPanel == null || ConverterPanel == null) return;
 
         AppearancePanel.Visibility = TabAppearanceRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         BackgroundPanel.Visibility = TabBackgroundRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         BehaviorPanel.Visibility = TabBehaviorRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        ConverterPanel.Visibility = TabConverterRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SystemPanel.Visibility = TabSystemRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -294,12 +300,68 @@ public partial class SettingsView : UserControl
         NotificationService.TriggerTest();
     }
 
+    private void OnConvAutoCopyClick(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _island == null) return;
+        _island.S.ShiftConvertAutoCopy = ConvAutoCopyCheckBox?.IsChecked == true;
+        _island.SaveState();
+        SyncShiftConvertStandaloneConfig();
+    }
+
+    private void OnConvEnabledClick(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _island == null) return;
+        _island.S.ShiftConvertEnabled = ConvEnabledCheckBox?.IsChecked == true;
+        _island.SaveState();
+        SyncShiftConvertStandaloneConfig();
+    }
+
+    private void OnConvAutoRevealClick(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _island == null) return;
+        _island.S.ShiftConvertAutoReveal = ConvAutoRevealCheckBox?.IsChecked == true;
+        _island.SaveState();
+    }
+
+    private void OnConvRepoClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://github.com/eLdSe/shift_convert")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    }
+
+    private void SyncShiftConvertStandaloneConfig()
+    {
+        if (_island == null) return;
+        try
+        {
+            string cfgPath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ShiftConvert", "config.json");
+            if (!System.IO.File.Exists(cfgPath)) return;
+            var node = System.Text.Json.Nodes.JsonNode.Parse(System.IO.File.ReadAllText(cfgPath));
+            if (node is System.Text.Json.Nodes.JsonObject obj)
+            {
+                obj["AutoCopyClipboard"] = _island.S.ShiftConvertAutoCopy;
+                obj["HoldShiftEnabled"] = _island.S.ShiftConvertEnabled;
+                System.IO.File.WriteAllText(cfgPath, obj.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            }
+        }
+        catch { }
+    }
+
     public void RefreshLabels()
     {
         // Вкладки сегментов вверху
         if (TabAppearanceRadio != null) TabAppearanceRadio.Content = Loc.T("Оформление", "Appearance", "Görünüm");
         if (TabBackgroundRadio != null) TabBackgroundRadio.Content = Loc.T("Фон", "Background", "Arka Plan");
         if (TabBehaviorRadio != null) TabBehaviorRadio.Content = Loc.T("Поведение", "Behavior", "Davranış");
+        if (TabConverterRadio != null) TabConverterRadio.Content = Loc.T("Конвертер", "Converter", "Dönüştürücü");
         if (TabSystemRadio != null) TabSystemRadio.Content = Loc.T("Система", "System", "Sistem");
 
         // Вкладка 1: Оформление
@@ -341,7 +403,21 @@ public partial class SettingsView : UserControl
         if (DelayCardTitle != null) DelayCardTitle.Text = Loc.T("Задержка скрытия (Auto-Collapse)", "Auto-Collapse Delay", "Otomatik Kapanma Gecikmesi");
         if (DelayCardDesc != null) DelayCardDesc.Text = Loc.T("Время до сворачивания после ухода курсора", "Time before collapsing after cursor leaves", "İmleç ayrıldıktan sonra kapanma süresi");
 
-        // Вкладка 4: Система
+        // Вкладка 4: Конвертер
+        if (ConvAutoCopyTitle != null) ConvAutoCopyTitle.Text = Loc.T("Копировать в буфер (Ctrl+V)", "Copy to Clipboard (Ctrl+V)", "Panoya Kopyala (Ctrl+V)");
+        if (ConvAutoCopyDesc != null) ConvAutoCopyDesc.Text = Loc.T("Автокопирование готового файла в буфер", "Auto-copy converted file to clipboard", "Dönüştürülen dosyayı panoya kopyala");
+
+        if (ConvEnabledTitle != null) ConvEnabledTitle.Text = Loc.T("Колесо конвертера (Shift)", "Converter Wheel (Shift)", "Dönüştürücü Çarkı (Shift)");
+        if (ConvEnabledDesc != null) ConvEnabledDesc.Text = Loc.T("Меню форматов при перетаскивании с Shift", "Format wheel when dragging file + Shift", "Shift ile sürüklerken format menüsü");
+
+        if (ConvAutoRevealTitle != null) ConvAutoRevealTitle.Text = Loc.T("Показывать готовый файл в Проводнике", "Reveal Output File in Explorer", "Sonuç Dosyasını Klasörde Göster");
+        if (ConvAutoRevealDesc != null) ConvAutoRevealDesc.Text = Loc.T("Автоматически открывать папку и выделять файл после конвертации", "Automatically open folder and highlight converted file", "Dönüştürme sonrası klasörü otomatik aç ve dosyayı seç");
+
+        if (ConvFormatsTitle != null) ConvFormatsTitle.Text = Loc.T("Хотите отдельный конвертер без островка?", "Want a standalone converter without the island?", "Ada olmadan bağımsız dönüştürücü ister misiniz?");
+        if (ConvFormatsDesc != null) ConvFormatsDesc.Text = Loc.T("Автономное приложение ShiftConvert (Видео, Фото, PDF, OCR, ZIP) доступно отдельно", "Standalone ShiftConvert app (Video, Image, PDF, OCR, ZIP) is available separately", "Bağımsız ShiftConvert uygulaması (Video, Görsel, PDF, OCR, ZIP) ayrı olarak mevcuttur");
+        if (ConvRepoButton != null) ConvRepoButton.Content = Loc.T("🔗 GitHub: ShiftConvert", "🔗 GitHub: ShiftConvert", "🔗 GitHub: ShiftConvert");
+
+        // Вкладка 5: Система
         if (AutostartCardTitle != null) AutostartCardTitle.Text = Loc.T("Запуск с Windows", "Launch on Windows Startup", "Windows ile Başlat");
         if (AutostartCardDesc != null) AutostartCardDesc.Text = Loc.T("Автозагрузка при старте системы", "Auto-start when system boots", "Sistem başladığında otomatik başlat");
 

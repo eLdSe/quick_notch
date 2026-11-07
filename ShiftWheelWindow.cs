@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -64,6 +65,7 @@ public sealed class ShiftWheelWindow : Window
 
     public static void TryShowAtCursor(IslandView island, int screenPxX, int screenPxY)
     {
+        if (!island.S.ShiftConvertEnabled) return;
         if (_active != null) return;
         if (Environment.TickCount64 - _lastCloseTicks < 350) return;
 
@@ -335,25 +337,93 @@ public sealed class ShiftWheelWindow : Window
         }
     }
 
+    private static CancellationTokenSource? _activeCts;
+
     public static void ExecuteConversion(IslandView island, IReadOnlyList<string> files, ShiftConvertOption opt)
     {
-        // Для операций с буфером обмена или быстрыми ссылками выполняем в UI потоке или фоне
-        Task.Run(() =>
+        try { _activeCts?.Cancel(); } catch { }
+        try { _activeCts?.Dispose(); } catch { }
+        var cts = new CancellationTokenSource();
+        _activeCts = cts;
+
+        string targetInfo = files.Count == 1
+            ? System.IO.Path.GetFileName(files[0])
+            : $"{files.Count} {Loc.T("файл(ов)", "files", "dosya")}";
+
+        island.ShowNotification(new NotificationItem
         {
-            var res = ShiftConvertService.ConvertFiles(island, files, opt.Key);
+            App = "SHIFT CONVERT",
+            Title = Loc.T($"Выполняется: {opt.Label}…", $"Processing: {opt.Label}…", $"İşleniyor: {opt.Label}…"),
+            Body = $"{targetInfo} · {Loc.T("Нажмите ✕ для отмены", "Click ✕ to cancel", "İptal için ✕")}",
+            AccentColor = opt.Accent,
+            IsLoading = true,
+            ShowProgressBar = true,
+            OnCancel = () =>
+            {
+                try { cts.Cancel(); } catch { }
+            }
+        }, 25.0);
+
+        // Для операций с буфером обмена или быстрыми ссылками выполняем в UI потоке или фоне
+        Task.Run(async () =>
+        {
+            long startTicks = Environment.TickCount64;
+            var res = ShiftConvertService.ConvertFiles(island, files, opt.Key, cts.Token, pct =>
+            {
+                if (cts.IsCancellationRequested) return;
+                int clamped = Math.Clamp((int)Math.Round(pct), 1, 99);
+                island.Dispatcher.InvokeAsync(() =>
+                {
+                    if (cts.IsCancellationRequested) return;
+                    string progTitle = Loc.T(
+                        $"Выполняется: {opt.Label} ({clamped}%)…",
+                        $"Processing: {opt.Label} ({clamped}%)…",
+                        $"İşleniyor: {opt.Label} (%{clamped})…");
+                    island.ToastHost?.UpdateProgress(clamped, progTitle);
+                });
+            });
+            long elapsed = Environment.TickCount64 - startTicks;
+            if (!res.Cancelled && elapsed < 420)
+            {
+                await Task.Delay((int)(420 - elapsed)).ConfigureAwait(false);
+            }
+            if (ReferenceEquals(_activeCts, cts))
+            {
+                _activeCts = null;
+            }
+            try { cts.Dispose(); } catch { }
+
             island.Dispatcher.InvokeAsync(() =>
             {
                 island.HomeHost?.RefreshConnectivity();
                 island.LinksHost?.RefreshAll();
                 island.ClipboardHost?.RefreshAll();
 
+                if (res.Success && !res.Cancelled && island.S.ShiftConvertAutoReveal && !string.IsNullOrEmpty(res.OutputPath))
+                {
+                    try
+                    {
+                        if (File.Exists(res.OutputPath))
+                        {
+                            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{res.OutputPath}\"") { UseShellExecute = true });
+                        }
+                        else if (Directory.Exists(res.OutputPath))
+                        {
+                            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{res.OutputPath}\"") { UseShellExecute = true });
+                        }
+                    }
+                    catch { }
+                }
+
                 island.ShowNotification(new NotificationItem
                 {
                     App = "SHIFT CONVERT",
                     Title = res.Title,
                     Body = res.Message,
-                    IconSymbol = res.Success ? opt.Icon : "⚠️",
+                    IconSymbol = res.Success ? opt.Icon : (res.Cancelled ? "✕" : "⚠️"),
                     AccentColor = res.Success ? opt.Accent : Theme.Red,
+                    IsLoading = false,
+                    ShowProgressBar = true,
                     OnClick = () =>
                     {
                         if (!string.IsNullOrEmpty(res.OpenSection))

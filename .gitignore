@@ -35,6 +35,7 @@ installer/
 .vscode/
 .idea/
 .gemini/
+.taste-skill/
 *.suo
 *.user
 *.userosscache
@@ -54,6 +55,9 @@ state.json
 *.env
 .env*
 *.secret*
+
+# Standalone ShiftConvert repository (tracked separately in https://github.com/eLdSe/shift_convert)
+ShiftConvertApp/
 
 # OS generated files
 Thumbs.db

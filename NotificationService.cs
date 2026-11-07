@@ -21,7 +21,10 @@ public sealed class NotificationItem
     public string? IconSymbol { get; init; }
     public Color? AccentColor { get; init; }
     public Action? OnClick { get; init; }
+    public Action? OnCancel { get; init; }
     public bool UseCoverArt { get; init; }
+    public bool IsLoading { get; init; }
+    public bool ShowProgressBar { get; init; }
 }
 
 public static class NotificationService

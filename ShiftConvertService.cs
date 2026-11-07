@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -28,6 +29,7 @@ public sealed class ShiftConvertOption
 public sealed class ShiftConvertResult
 {
     public bool Success { get; init; }
+    public bool Cancelled { get; init; }
     public string? OutputPath { get; init; }
     public string? OpenSection { get; init; }
     public string Title { get; init; } = "";
@@ -46,12 +48,18 @@ public static class ShiftConvertService
         ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tiff", ".tif", ".ico", ".wdp", ".jxr"
     };
 
+    private static readonly HashSet<string> VideoExts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp4", ".mov", ".mkv", ".webm", ".avi", ".wmv", ".m4v"
+    };
+
     private static readonly HashSet<string> TextExts = new(StringComparer.OrdinalIgnoreCase)
     {
         ".txt", ".md", ".json", ".csv", ".log", ".xml", ".html", ".htm", ".cs", ".py", ".js", ".ts", ".yaml", ".yml", ".ini", ".sql", ".sh", ".bat", ".ps1"
     };
 
     public static bool IsImageFile(string path) => ImageExts.Contains(Path.GetExtension(path));
+    public static bool IsVideoFile(string path) => VideoExts.Contains(Path.GetExtension(path));
     public static bool IsTextFile(string path) => TextExts.Contains(Path.GetExtension(path));
     public static bool IsZipFile(string path) => string.Equals(Path.GetExtension(path), ".zip", StringComparison.OrdinalIgnoreCase);
 
@@ -61,7 +69,9 @@ public static class ShiftConvertService
         string ext = Path.GetExtension(first).ToLowerInvariant();
         bool isDir = Directory.Exists(first);
         bool allImages = files.Count > 0 && files.All(IsImageFile);
+        bool allVideos = files.Count > 0 && files.All(IsVideoFile);
         bool isImg = !isDir && (allImages || IsImageFile(first));
+        bool isVid = !isDir && (allVideos || IsVideoFile(first));
         bool isTxt = !isDir && IsTextFile(first);
         bool isZip = !isDir && IsZipFile(first);
 
@@ -116,6 +126,48 @@ public static class ShiftConvertService
             }
 
             return filtered;
+        }
+
+        // 1.5 ВИДЕО (MP3 звук, Сжатие 720p, MP4 конвертация/склейка, GIF анимация, Без звука, Кадр PNG)
+        if (isVid)
+        {
+            var vidList = new List<ShiftConvertOption>
+            {
+                new() { Key = "mp3", Label = "MP3", SubLabel = Loc.T("Извлечь звук", "Extract Audio", "Sesi Çıkart"), Icon = "🎵", Accent = Color.FromRgb(0xC6, 0xF2, 0x4E) },
+                new() { Key = "vid_compress", Label = Loc.T("Сжать", "Compress", "Sıkıştır"), SubLabel = Loc.T("Меньше МБ (720p)", "Smaller 720p", "Küçült 720p"), Icon = "📉", Accent = Color.FromRgb(0x34, 0xD3, 0x99) },
+            };
+
+            if (files.Count >= 2)
+            {
+                vidList.Add(new()
+                {
+                    Key = "mp4",
+                    Label = "MP4",
+                    SubLabel = Loc.T($"Склеить {files.Count} видео", $"Merge {files.Count} videos", $"{files.Count} birleştir"),
+                    Icon = "🎬",
+                    Accent = Color.FromRgb(0x38, 0xBD, 0xF8)
+                });
+            }
+            else if (!string.Equals(ext, ".mp4", StringComparison.OrdinalIgnoreCase))
+            {
+                vidList.Add(new()
+                {
+                    Key = "mp4",
+                    Label = "MP4",
+                    SubLabel = Loc.T("Универсальный H.264", "Universal H.264", "Evrensel MP4"),
+                    Icon = "🎬",
+                    Accent = Color.FromRgb(0x38, 0xBD, 0xF8)
+                });
+            }
+
+            vidList.Add(new() { Key = "vid_gif", Label = "GIF", SubLabel = Loc.T("Анимация из видео", "Animated GIF", "Animasyon GIF"), Icon = "🎞", Accent = Color.FromRgb(0xF4, 0x72, 0xB6) });
+            vidList.Add(new() { Key = "vid_mute", Label = Loc.T("Без звука", "Mute", "Sessiz"), SubLabel = Loc.T("Убрать микрофон", "Strip Audio", "Sesi Kaldır"), Icon = "🔇", Accent = Color.FromRgb(0xFB, 0xBF, 0x24) });
+            vidList.Add(new() { Key = "vid_frame", Label = Loc.T("Кадр PNG", "Frame PNG", "Kare PNG"), SubLabel = Loc.T("Обложка в буфер", "Cover to Clipboard", "Kapak Kopyala"), Icon = "🖼", Accent = Color.FromRgb(0x60, 0xA5, 0xFA) });
+            vidList.Add(new() { Key = "zip", Label = "ZIP", SubLabel = Loc.T("В архив", "Archive", "Arşivle"), Icon = "📦", Accent = Color.FromRgb(0xFB, 0x92, 0x3C) });
+            vidList.Add(new() { Key = "links", Label = Loc.T("В ссылки", "Pin File", "Sabitle"), SubLabel = Loc.T("Быстрый запуск", "Quick Launch", "Hızlı Başlat"), Icon = "📌", Accent = Color.FromRgb(0xC0, 0x84, 0xFC) });
+            vidList.Add(new() { Key = "clipboard", Label = Loc.T("В буфер", "Copy", "Panoya"), SubLabel = Loc.T("Скопировать", "To Clipboard", "Kopyala"), Icon = "📋", Accent = Color.FromRgb(0xA7, 0x8B, 0xFA) });
+
+            return forWheel && vidList.Count > 8 ? vidList.Take(8).ToList() : vidList;
         }
 
         // 2. ТАБЛИЦЫ CSV / ДАННЫЕ JSON / MARKDOWN / ТЕКСТ
@@ -181,27 +233,42 @@ public static class ShiftConvertService
         return genericList;
     }
 
-    public static ShiftConvertResult ConvertFiles(IslandView? island, IReadOnlyList<string> files, string targetKey)
+    private static ShiftConvertResult CreateCancelledResult() => new()
+    {
+        Success = false,
+        Cancelled = true,
+        Title = Loc.T("Конвертация отменена", "Conversion Cancelled", "Dönüştürme İptal Edildi"),
+        Message = Loc.T("Операция остановлена, неполные файлы удалены", "Operation stopped, partial files removed", "İşlem durduruldu, eksik dosyalar silindi")
+    };
+
+    public static ShiftConvertResult ConvertFiles(IslandView? island, IReadOnlyList<string> files, string targetKey, CancellationToken ct = default, Action<double>? onProgress = null)
     {
         if (files.Count == 0)
         {
             return new ShiftConvertResult { Success = false, Title = "Shift Convert", Message = Loc.T("Файлы не выбраны", "No files selected", "Dosya seçilmedi") };
         }
 
+        bool autoCopy = island?.S.ShiftConvertAutoCopy ?? true;
+        string suffixCtrlV = autoCopy ? " · Ctrl+V" : "";
+
         try
         {
+            ct.ThrowIfCancellationRequested();
+
             // 1. Упаковка одного или нескольких файлов/папок в один общий ZIP
             if (targetKey == "zip")
             {
-                string zipPath = CreateZipFromItems(files);
-                CopyOutputFilesToClipboard(island, new[] { zipPath }, null);
+                onProgress?.Invoke(3);
+                string zipPath = CreateZipFromItems(files, ct, onProgress);
+                onProgress?.Invoke(99);
+                if (autoCopy) CopyOutputFilesToClipboard(island, new[] { zipPath }, null);
                 long zipBytes = new FileInfo(zipPath).Length;
                 return new ShiftConvertResult
                 {
                     Success = true,
                     OutputPath = zipPath,
                     Title = Loc.T("📦 Упаковано в ZIP", "📦 Packed to ZIP", "📦 ZIP Oluşturuldu"),
-                    Message = $"{Path.GetFileName(zipPath)} ({FormatBytes(zipBytes)}) · Ctrl+V"
+                    Message = $"{Path.GetFileName(zipPath)} ({FormatBytes(zipBytes)}){suffixCtrlV}"
                 };
             }
 
@@ -212,11 +279,24 @@ public static class ShiftConvertService
                 int extractedCount = 0;
                 foreach (string f in files.Where(IsZipFile))
                 {
+                    ct.ThrowIfCancellationRequested();
                     string destDir = GetUniqueDirectoryPath(f);
-                    Directory.CreateDirectory(destDir);
-                    ZipFile.ExtractToDirectory(f, destDir, overwriteFiles: true);
-                    lastExtractedDir = destDir;
-                    extractedCount++;
+                    try
+                    {
+                        Directory.CreateDirectory(destDir);
+                        ZipFile.ExtractToDirectory(f, destDir, overwriteFiles: true);
+                        lastExtractedDir = destDir;
+                        extractedCount++;
+                    }
+                    catch
+                    {
+                        if (ct.IsCancellationRequested)
+                        {
+                            try { if (Directory.Exists(destDir)) Directory.Delete(destDir, true); } catch { }
+                            throw new OperationCanceledException(ct);
+                        }
+                        throw;
+                    }
                 }
                 if (extractedCount > 0 && lastExtractedDir != null)
                 {
@@ -230,19 +310,38 @@ public static class ShiftConvertService
                 }
             }
 
+            // 2.5 Склейка нескольких видео в один MP4
+            var vidFiles = files.Where(f => File.Exists(f) && IsVideoFile(f)).ToList();
+            if (targetKey == "mp4" && vidFiles.Count >= 2)
+            {
+                string? mergedMp4 = MergeVideosAsMp4Async(vidFiles, onProgress, ct).GetAwaiter().GetResult();
+                if (!string.IsNullOrEmpty(mergedMp4) && File.Exists(mergedMp4))
+                {
+                    if (autoCopy) CopyOutputFilesToClipboard(island, new[] { mergedMp4 }, null);
+                    long mp4Size = new FileInfo(mergedMp4).Length;
+                    return new ShiftConvertResult
+                    {
+                        Success = true,
+                        OutputPath = mergedMp4,
+                        Title = Loc.T($"🎬 Склеено {vidFiles.Count} видео в MP4", $"🎬 Merged {vidFiles.Count} videos to MP4", $"🎬 {vidFiles.Count} Video MP4'e Birleştirildi"),
+                        Message = $"{Path.GetFileName(mergedMp4)} ({FormatBytes(mp4Size)}){suffixCtrlV}"
+                    };
+                }
+            }
+
             // 3. Склейка нескольких картинок в ОДИН многостраничный PDF
             var imgFiles = files.Where(f => File.Exists(f) && IsImageFile(f)).ToList();
             if (targetKey == "pdf" && imgFiles.Count >= 2)
             {
                 string mergedPdf = SaveImagesAsMultiPagePdf(imgFiles);
-                CopyOutputFilesToClipboard(island, new[] { mergedPdf }, null);
+                if (autoCopy) CopyOutputFilesToClipboard(island, new[] { mergedPdf }, null);
                 long pdfSize = new FileInfo(mergedPdf).Length;
                 return new ShiftConvertResult
                 {
                     Success = true,
                     OutputPath = mergedPdf,
                     Title = Loc.T($"📕 Склеено {imgFiles.Count} стр. в PDF", $"📕 Merged {imgFiles.Count} pages to PDF", $"📕 {imgFiles.Count} Sayfa PDF'e Birleştirildi"),
-                    Message = $"{Path.GetFileName(mergedPdf)} ({FormatBytes(pdfSize)}) · Ctrl+V"
+                    Message = $"{Path.GetFileName(mergedPdf)} ({FormatBytes(pdfSize)}){suffixCtrlV}"
                 };
             }
 
@@ -330,8 +429,13 @@ public static class ShiftConvertService
                 }
             }
         }
+        catch (OperationCanceledException)
+        {
+            return CreateCancelledResult();
+        }
         catch (Exception ex)
         {
+            if (ct.IsCancellationRequested) return CreateCancelledResult();
             return new ShiftConvertResult
             {
                 Success = false,
@@ -349,6 +453,14 @@ public static class ShiftConvertService
 
         foreach (string file in files)
         {
+            if (ct.IsCancellationRequested)
+            {
+                foreach (string partial in createdFiles)
+                {
+                    try { if (File.Exists(partial)) File.Delete(partial); } catch { }
+                }
+                return CreateCancelledResult();
+            }
             if (!File.Exists(file) && !Directory.Exists(file)) continue;
             try
             {
@@ -405,7 +517,19 @@ public static class ShiftConvertService
                     continue;
                 }
 
-                string? outPath = ConvertSingleFile(file, targetKey, out BitmapSource? outBmp);
+                string? outPath = ConvertSingleFile(file, targetKey, out BitmapSource? outBmp, onProgress, ct);
+                if (ct.IsCancellationRequested)
+                {
+                    if (!string.IsNullOrEmpty(outPath))
+                    {
+                        try { if (File.Exists(outPath)) File.Delete(outPath); } catch { }
+                    }
+                    foreach (string partial in createdFiles)
+                    {
+                        try { if (File.Exists(partial)) File.Delete(partial); } catch { }
+                    }
+                    return CreateCancelledResult();
+                }
                 if (!string.IsNullOrEmpty(outPath) && File.Exists(outPath))
                 {
                     lastOutput = outPath;
@@ -415,7 +539,25 @@ public static class ShiftConvertService
                     okCount++;
                 }
             }
-            catch { }
+            catch (OperationCanceledException)
+            {
+                foreach (string partial in createdFiles)
+                {
+                    try { if (File.Exists(partial)) File.Delete(partial); } catch { }
+                }
+                return CreateCancelledResult();
+            }
+            catch
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    foreach (string partial in createdFiles)
+                    {
+                        try { if (File.Exists(partial)) File.Delete(partial); } catch { }
+                    }
+                    return CreateCancelledResult();
+                }
+            }
         }
 
         if (okCount == 0)
@@ -452,8 +594,8 @@ public static class ShiftConvertService
             };
         }
 
-        // Автоматически копируем готовые сконвертированные файлы в системный Буфер обмена (чтобы сразу работал Ctrl+V)
-        if (createdFiles.Count > 0)
+        // Автоматически копируем готовые сконвертированные файлы в системный Буфер обмена (если включено в настройках)
+        if (createdFiles.Count > 0 && autoCopy)
         {
             CopyOutputFilesToClipboard(island, createdFiles, createdFiles.Count == 1 ? lastConvertedBitmap : null);
         }
@@ -464,8 +606,8 @@ public static class ShiftConvertService
 
         string fileName = Path.GetFileName(lastOutput ?? "");
         string body = okCount == 1
-            ? $"{fileName}{sizeInfo} · Ctrl+V"
-            : Loc.T($"Готово файлов: {okCount}{sizeInfo} · Ctrl+V", $"Converted {okCount} files{sizeInfo} · Ctrl+V", $"{okCount} dosya dönüştürüldü{sizeInfo} · Ctrl+V");
+            ? $"{fileName}{sizeInfo}{suffixCtrlV}"
+            : Loc.T($"Готово файлов: {okCount}{sizeInfo}{suffixCtrlV}", $"Converted {okCount} files{sizeInfo}{suffixCtrlV}", $"{okCount} dosya dönüştürüldü{sizeInfo}{suffixCtrlV}");
 
         string labelUpper = targetKey switch
         {
@@ -475,6 +617,10 @@ public static class ShiftConvertService
             "square" => "1:1 PNG",
             "grayscale" => "B&W PNG",
             "compress" => "JPG",
+            "vid_compress" => "MP4 720P",
+            "vid_gif" => "GIF",
+            "vid_mute" => "MUTE MP4",
+            "vid_frame" => "FRAME PNG",
             _ => targetKey.ToUpperInvariant()
         };
 
@@ -528,9 +674,36 @@ public static class ShiftConvertService
         }
     }
 
-    private static string? ConvertSingleFile(string inputPath, string targetKey, out BitmapSource? producedBitmap)
+    private static string? ConvertSingleFile(string inputPath, string targetKey, out BitmapSource? producedBitmap, Action<double>? onProgress = null, CancellationToken ct = default)
     {
         producedBitmap = null;
+        ct.ThrowIfCancellationRequested();
+
+        if (IsVideoFile(inputPath))
+        {
+            switch (targetKey)
+            {
+                case "mp3":
+                    return ExtractAudioFromVideoAsync(inputPath, onProgress, ct).GetAwaiter().GetResult();
+                case "vid_compress":
+                    return TranscodeVideoAsync(inputPath, compress720p: true, stripAudio: false, onProgress, ct).GetAwaiter().GetResult();
+                case "mp4":
+                    return TranscodeVideoAsync(inputPath, compress720p: false, stripAudio: false, onProgress, ct).GetAwaiter().GetResult();
+                case "vid_mute":
+                    return TranscodeVideoAsync(inputPath, compress720p: false, stripAudio: true, onProgress, ct).GetAwaiter().GetResult();
+                case "vid_gif":
+                    return ConvertVideoToAnimatedGifAsync(inputPath, onProgress, ct).GetAwaiter().GetResult();
+                case "vid_frame":
+                {
+                    var (framePath, frameBmp) = ExtractVideoFramePngAsync(inputPath, onProgress, ct).GetAwaiter().GetResult();
+                    producedBitmap = frameBmp;
+                    return framePath;
+                }
+                default:
+                    return null;
+            }
+        }
+
         if (IsImageFile(inputPath))
         {
             var bmp = LoadBitmap(inputPath);
@@ -718,23 +891,49 @@ public static class ShiftConvertService
 
     private static string CompressImage(string inputPath, BitmapSource bmp, out BitmapSource compressedBmp)
     {
+        long origBytes = File.Exists(inputPath) ? new FileInfo(inputPath).Length : long.MaxValue;
         int w = bmp.PixelWidth;
         int h = bmp.PixelHeight;
-        if (w > 2560 || h > 2560)
+        if (w > 2048 || h > 2048)
         {
-            double scale = 2560.0 / Math.Max(w, h);
+            double scale = 2048.0 / Math.Max(w, h);
             w = Math.Max(1, (int)Math.Round(w * scale));
             h = Math.Max(1, (int)Math.Round(h * scale));
             bmp = ResizeBitmap(bmp, w, h);
         }
 
-        var flat = FlattenTransparency(bmp, Colors.White);
-        compressedBmp = flat;
+        var currentBmp = FlattenTransparency(bmp, Colors.White);
+        byte[]? bestBytes = null;
+
+        int[] qualities = { 72, 58, 45, 34 };
+        foreach (int q in qualities)
+        {
+            var enc = new JpegBitmapEncoder { QualityLevel = q };
+            enc.Frames.Add(BitmapFrame.Create(currentBmp));
+            using var ms = new MemoryStream();
+            enc.Save(ms);
+            bestBytes = ms.ToArray();
+            if (bestBytes.Length < origBytes * 0.78)
+            {
+                break;
+            }
+        }
+
+        if (bestBytes != null && bestBytes.Length >= origBytes * 0.95 && w > 320 && h > 320)
+        {
+            int nw = Math.Max(160, (int)Math.Round(w * 0.72));
+            int nh = Math.Max(160, (int)Math.Round(h * 0.72));
+            currentBmp = FlattenTransparency(ResizeBitmap(bmp, nw, nh), Colors.White);
+            var enc = new JpegBitmapEncoder { QualityLevel = 52 };
+            enc.Frames.Add(BitmapFrame.Create(currentBmp));
+            using var ms = new MemoryStream();
+            enc.Save(ms);
+            bestBytes = ms.ToArray();
+        }
+
+        compressedBmp = currentBmp;
         string outPath = GetUniqueOutputPath(inputPath, ".jpg", "_compressed");
-        var enc = new JpegBitmapEncoder { QualityLevel = 72 };
-        enc.Frames.Add(BitmapFrame.Create(flat));
-        using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write);
-        enc.Save(fs);
+        File.WriteAllBytes(outPath, bestBytes ?? Array.Empty<byte>());
         return outPath;
     }
 
@@ -932,40 +1131,433 @@ public static class ShiftConvertService
         return sb.ToString().Trim();
     }
 
+    // ==================== АППАРАТНЫЙ ВИДЕО-ДВИЖОК WINDOWS MEDIA FOUNDATION ====================
+
+    private static async Task<Windows.Storage.StorageFile> CreateEmptyWinRtFileAsync(string outputPath)
+    {
+        string dir = Path.GetDirectoryName(outputPath) ?? "";
+        string fileName = Path.GetFileName(outputPath);
+        var folder = await Windows.Storage.StorageFolder.GetFolderFromPathAsync(dir);
+        return await folder.CreateFileAsync(fileName, Windows.Storage.CreationCollisionOption.ReplaceExisting);
+    }
+
+    private static async Task<string?> ExtractAudioFromVideoAsync(string inputPath, Action<double>? onProgress, CancellationToken ct = default)
+    {
+        var inSf = await Windows.Storage.StorageFile.GetFileFromPathAsync(inputPath);
+        var transcoder = new Windows.Media.Transcoding.MediaTranscoder
+        {
+            HardwareAccelerationEnabled = true
+        };
+
+        string outMp3 = GetUniqueOutputPath(inputPath, ".mp3");
+        var outSf = await CreateEmptyWinRtFileAsync(outMp3);
+        var mp3Profile = Windows.Media.MediaProperties.MediaEncodingProfile.CreateMp3(
+            Windows.Media.MediaProperties.AudioEncodingQuality.High);
+
+        var prep = await transcoder.PrepareFileTranscodeAsync(inSf, outSf, mp3Profile);
+        if (prep.CanTranscode)
+        {
+            try
+            {
+                var op = prep.TranscodeAsync();
+                using var reg = ct.Register(() => { try { op.Cancel(); } catch { } });
+                op.Progress = (_, pct) => onProgress?.Invoke(pct);
+                await op;
+                ct.ThrowIfCancellationRequested();
+                return outMp3;
+            }
+            catch
+            {
+                try { File.Delete(outMp3); } catch { }
+                throw;
+            }
+        }
+
+        try { File.Delete(outMp3); } catch { }
+
+        string outM4a = GetUniqueOutputPath(inputPath, ".m4a");
+        var outM4aSf = await CreateEmptyWinRtFileAsync(outM4a);
+        var m4aProfile = Windows.Media.MediaProperties.MediaEncodingProfile.CreateM4a(
+            Windows.Media.MediaProperties.AudioEncodingQuality.High);
+
+        var prepM4a = await transcoder.PrepareFileTranscodeAsync(inSf, outM4aSf, m4aProfile);
+        if (prepM4a.CanTranscode)
+        {
+            try
+            {
+                var op = prepM4a.TranscodeAsync();
+                using var reg = ct.Register(() => { try { op.Cancel(); } catch { } });
+                op.Progress = (_, pct) => onProgress?.Invoke(pct);
+                await op;
+                ct.ThrowIfCancellationRequested();
+                return outM4a;
+            }
+            catch
+            {
+                try { File.Delete(outM4a); } catch { }
+                throw;
+            }
+        }
+
+        try { File.Delete(outM4a); } catch { }
+        return null;
+    }
+
+    private static async Task<string?> TranscodeVideoAsync(string inputPath, bool compress720p, bool stripAudio, Action<double>? onProgress, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        long srcBytes = File.Exists(inputPath) ? new FileInfo(inputPath).Length : 0;
+        var inSf = await Windows.Storage.StorageFile.GetFileFromPathAsync(inputPath);
+        var clip = await Windows.Media.Editing.MediaClip.CreateFromFileAsync(inSf);
+        double durationSec = Math.Max(0.5, clip.OriginalDuration.TotalSeconds);
+        double srcTotalBps = srcBytes > 0 ? (srcBytes * 8.0) / durationSec : 2_500_000.0;
+
+        var vProps = clip.GetVideoEncodingProperties();
+        int srcW = (int)(vProps?.Width ?? 1280);
+        int srcH = (int)(vProps?.Height ?? 720);
+        if (srcW <= 0) srcW = 1280;
+        if (srcH <= 0) srcH = 720;
+
+        string suffix = compress720p ? "_compressed" : (stripAudio ? "_muted" : "");
+        string outPath = GetUniqueOutputPath(inputPath, ".mp4", suffix);
+        var outSf = await CreateEmptyWinRtFileAsync(outPath);
+
+        var profile = Windows.Media.MediaProperties.MediaEncodingProfile.CreateMp4(
+            Windows.Media.MediaProperties.VideoEncodingQuality.HD720p);
+
+        int targetW = srcW;
+        int targetH = srcH;
+
+        if (compress720p)
+        {
+            double targetTotalBps = Math.Min(srcTotalBps * 0.42, 1_350_000.0);
+            uint audioBps = targetTotalBps < 260_000 ? 64_000u : 96_000u;
+            uint videoBps = (uint)Math.Clamp(targetTotalBps - audioBps, 95_000.0, 1_250_000.0);
+
+            int maxDim = videoBps < 400_000 ? 854 : 1280;
+            int longest = Math.Max(srcW, srcH);
+            if (longest > maxDim)
+            {
+                double scale = maxDim / (double)longest;
+                targetW = (int)Math.Round(srcW * scale);
+                targetH = (int)Math.Round(srcH * scale);
+            }
+
+            if (profile.Video != null)
+            {
+                profile.Video.Width = (uint)Math.Max(160, targetW & ~1);
+                profile.Video.Height = (uint)Math.Max(160, targetH & ~1);
+                profile.Video.Bitrate = videoBps;
+            }
+            if (profile.Audio != null)
+            {
+                profile.Audio.Bitrate = audioBps;
+            }
+        }
+        else
+        {
+            uint maxVideoBps = (uint)Math.Clamp(srcTotalBps * 0.85, 250_000.0, 6_000_000.0);
+            if (profile.Video != null)
+            {
+                profile.Video.Width = (uint)Math.Max(160, targetW & ~1);
+                profile.Video.Height = (uint)Math.Max(160, targetH & ~1);
+                profile.Video.Bitrate = maxVideoBps;
+            }
+            if (stripAudio)
+            {
+                profile.Audio = null;
+            }
+            else if (profile.Audio != null)
+            {
+                profile.Audio.Bitrate = 128_000;
+            }
+        }
+
+        var transcoder = new Windows.Media.Transcoding.MediaTranscoder
+        {
+            HardwareAccelerationEnabled = true
+        };
+
+        var prep = await transcoder.PrepareFileTranscodeAsync(inSf, outSf, profile);
+        if (!prep.CanTranscode)
+        {
+            try { File.Delete(outPath); } catch { }
+            return null;
+        }
+
+        try
+        {
+            var op = prep.TranscodeAsync();
+            using var reg = ct.Register(() => { try { op.Cancel(); } catch { } });
+            op.Progress = (_, pct) => onProgress?.Invoke(pct);
+            await op;
+            ct.ThrowIfCancellationRequested();
+            return outPath;
+        }
+        catch
+        {
+            try { File.Delete(outPath); } catch { }
+            throw;
+        }
+    }
+
+    private static async Task<string?> MergeVideosAsMp4Async(IReadOnlyList<string> videoPaths, Action<double>? onProgress, CancellationToken ct = default)
+    {
+        var comp = new Windows.Media.Editing.MediaComposition();
+        foreach (string path in videoPaths)
+        {
+            ct.ThrowIfCancellationRequested();
+            var sf = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
+            var clip = await Windows.Media.Editing.MediaClip.CreateFromFileAsync(sf);
+            comp.Clips.Add(clip);
+        }
+
+        if (comp.Clips.Count == 0) return null;
+
+        string outPath = GetUniqueOutputPath(videoPaths[0], ".mp4", "_merged");
+        var outSf = await CreateEmptyWinRtFileAsync(outPath);
+
+        try
+        {
+            var op = comp.RenderToFileAsync(outSf, Windows.Media.Editing.MediaTrimmingPreference.Fast);
+            using var reg = ct.Register(() => { try { op.Cancel(); } catch { } });
+            op.Progress = (_, pct) => onProgress?.Invoke(pct);
+            var reason = await op;
+            ct.ThrowIfCancellationRequested();
+            if (reason != Windows.Media.Transcoding.TranscodeFailureReason.None)
+            {
+                try { File.Delete(outPath); } catch { }
+                return null;
+            }
+            return outPath;
+        }
+        catch
+        {
+            try { File.Delete(outPath); } catch { }
+            throw;
+        }
+    }
+
+    private static async Task<(string? OutputPath, BitmapSource? FrameBmp)> ExtractVideoFramePngAsync(string inputPath, Action<double>? onProgress, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        onProgress?.Invoke(20);
+        var inSf = await Windows.Storage.StorageFile.GetFileFromPathAsync(inputPath);
+        var clip = await Windows.Media.Editing.MediaClip.CreateFromFileAsync(inSf);
+        var comp = new Windows.Media.Editing.MediaComposition();
+        comp.Clips.Add(clip);
+
+        double totalSec = comp.Duration.TotalSeconds;
+        double sampleSec = totalSec > 1.2 ? Math.Min(totalSec * 0.15, totalSec - 0.1) : Math.Max(0.0, totalSec * 0.5);
+
+        using var thumbStream = await comp.GetThumbnailAsync(
+            TimeSpan.FromSeconds(sampleSec),
+            0,
+            0,
+            Windows.Media.Editing.VideoFramePrecision.NearestFrame);
+
+        ct.ThrowIfCancellationRequested();
+        onProgress?.Invoke(75);
+        using var netStream = thumbStream.AsStreamForRead();
+        using var ms = new MemoryStream();
+        await netStream.CopyToAsync(ms, ct);
+        ms.Position = 0;
+
+        var bi = new BitmapImage();
+        bi.BeginInit();
+        bi.CacheOption = BitmapCacheOption.OnLoad;
+        bi.StreamSource = ms;
+        bi.EndInit();
+        bi.Freeze();
+
+        string outPng = SaveEncodedImage(inputPath, ".png", bi, new PngBitmapEncoder(), "_frame");
+        onProgress?.Invoke(100);
+        return (outPng, bi);
+    }
+
+    private static async Task<string?> ConvertVideoToAnimatedGifAsync(string inputPath, Action<double>? onProgress, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var inSf = await Windows.Storage.StorageFile.GetFileFromPathAsync(inputPath);
+        var clip = await Windows.Media.Editing.MediaClip.CreateFromFileAsync(inSf);
+        var comp = new Windows.Media.Editing.MediaComposition();
+        comp.Clips.Add(clip);
+
+        double totalSec = Math.Min(comp.Duration.TotalSeconds, 8.0);
+        if (totalSec <= 0.05) totalSec = 1.0;
+
+        var props = clip.GetVideoEncodingProperties();
+        int srcW = (int)(props?.Width ?? 640);
+        int srcH = (int)(props?.Height ?? 360);
+        if (srcW <= 0) srcW = 640;
+        if (srcH <= 0) srcH = 360;
+
+        int targetW = Math.Min(480, srcW);
+        int targetH = Math.Max(64, (int)Math.Round(srcH * (targetW / (double)srcW)));
+
+        int fps = 10;
+        int frameCount = Math.Clamp((int)Math.Round(totalSec * fps), 4, 80);
+
+        var encoder = new GifBitmapEncoder();
+        for (int i = 0; i < frameCount; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            double t = Math.Min(comp.Duration.TotalSeconds - 0.02, (i / (double)fps));
+            if (t < 0) t = 0;
+
+            using var thumb = await comp.GetThumbnailAsync(
+                TimeSpan.FromSeconds(t),
+                targetW,
+                targetH,
+                Windows.Media.Editing.VideoFramePrecision.NearestFrame);
+
+            using var netStream = thumb.AsStreamForRead();
+            using var frameMs = new MemoryStream();
+            await netStream.CopyToAsync(frameMs, ct);
+            frameMs.Position = 0;
+
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = BitmapCacheOption.OnLoad;
+            bi.StreamSource = frameMs;
+            bi.EndInit();
+            bi.Freeze();
+
+            encoder.Frames.Add(BitmapFrame.Create(bi));
+            onProgress?.Invoke(10.0 + (i + 1) * 80.0 / frameCount);
+        }
+
+        ct.ThrowIfCancellationRequested();
+        using var rawGifStream = new MemoryStream();
+        encoder.Save(rawGifStream);
+        byte[] patchedGif = PatchAnimatedGifDelayAndLoop(rawGifStream.ToArray(), delayCentiseconds: 10);
+
+        string outGif = GetUniqueOutputPath(inputPath, ".gif");
+        await File.WriteAllBytesAsync(outGif, patchedGif, ct);
+        onProgress?.Invoke(100);
+        return outGif;
+    }
+
+    private static byte[] PatchAnimatedGifDelayAndLoop(byte[] rawGif, ushort delayCentiseconds = 10)
+    {
+        if (rawGif.Length < 14) return rawGif;
+
+        int pos = 13;
+        byte packed = rawGif[10];
+        if ((packed & 0x80) != 0)
+        {
+            int gctSize = 3 * (1 << ((packed & 0x07) + 1));
+            pos += gctSize;
+        }
+        if (pos >= rawGif.Length) return rawGif;
+
+        using var outMs = new MemoryStream(rawGif.Length + 256);
+        outMs.Write(rawGif, 0, pos);
+
+        ReadOnlySpan<byte> netscapeLoop = new byte[]
+        {
+            0x21, 0xFF, 0x0B,
+            (byte)'N', (byte)'E', (byte)'T', (byte)'S', (byte)'C', (byte)'A', (byte)'P', (byte)'E',
+            (byte)'2', (byte)'.', (byte)'0',
+            0x03, 0x01, 0x00, 0x00, 0x00
+        };
+        outMs.Write(netscapeLoop);
+
+        byte delayLo = (byte)(delayCentiseconds & 0xFF);
+        byte delayHi = (byte)((delayCentiseconds >> 8) & 0xFF);
+
+        for (int i = pos; i < rawGif.Length; i++)
+        {
+            if (i + 7 < rawGif.Length &&
+                rawGif[i] == 0x21 &&
+                rawGif[i + 1] == 0xF9 &&
+                rawGif[i + 2] == 0x04 &&
+                rawGif[i + 7] == 0x00)
+            {
+                rawGif[i + 4] = delayLo;
+                rawGif[i + 5] = delayHi;
+            }
+        }
+
+        outMs.Write(rawGif, pos, rawGif.Length - pos);
+        return outMs.ToArray();
+    }
+
     // ==================== АРХИВАТОР ZIP ====================
 
-    private static string CreateZipFromItems(IReadOnlyList<string> items)
+    private static string CreateZipFromItems(IReadOnlyList<string> items, CancellationToken ct = default, Action<double>? onProgress = null)
     {
         string first = items[0];
         string outZip = GetUniqueOutputPath(first, ".zip");
 
-        if (items.Count == 1 && Directory.Exists(first))
-        {
-            ZipFile.CreateFromDirectory(first, outZip, CompressionLevel.Optimal, includeBaseDirectory: false);
-            return outZip;
-        }
-
-        using var fs = new FileStream(outZip, FileMode.Create, FileAccess.Write);
-        using var archive = new ZipArchive(fs, ZipArchiveMode.Create);
-
+        var entriesToPack = new List<(string FullPath, string EntryName, long Size)>();
         foreach (string item in items)
         {
+            ct.ThrowIfCancellationRequested();
             if (File.Exists(item))
             {
-                archive.CreateEntryFromFile(item, Path.GetFileName(item), CompressionLevel.Optimal);
+                long sz = new FileInfo(item).Length;
+                entriesToPack.Add((item, Path.GetFileName(item), sz));
             }
             else if (Directory.Exists(item))
             {
-                string rootName = Path.GetFileName(item.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+                string rootName = items.Count == 1
+                    ? ""
+                    : Path.GetFileName(item.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
                 foreach (string subFile in Directory.EnumerateFiles(item, "*", SearchOption.AllDirectories))
                 {
+                    ct.ThrowIfCancellationRequested();
                     string rel = Path.GetRelativePath(item, subFile);
-                    archive.CreateEntryFromFile(subFile, Path.Combine(rootName, rel), CompressionLevel.Optimal);
+                    string entryName = string.IsNullOrEmpty(rootName) ? rel : Path.Combine(rootName, rel);
+                    long sz = 0;
+                    try { sz = new FileInfo(subFile).Length; } catch { }
+                    entriesToPack.Add((subFile, entryName.Replace('\\', '/'), sz));
                 }
             }
         }
 
-        return outZip;
+        long totalBytes = Math.Max(1L, entriesToPack.Sum(e => e.Size));
+        long processedBytes = 0;
+        int lastReportedPct = 0;
+        byte[] buffer = new byte[81920];
+        try
+        {
+            using var fs = new FileStream(outZip, FileMode.Create, FileAccess.Write, FileShare.None);
+            using var archive = new ZipArchive(fs, ZipArchiveMode.Create);
+
+            foreach (var (fullPath, entryName, _) in entriesToPack)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (!File.Exists(fullPath)) continue;
+
+                var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+                try { entry.LastWriteTime = File.GetLastWriteTime(fullPath); } catch { }
+
+                using var srcStream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var dstStream = entry.Open();
+
+                int read;
+                while ((read = srcStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    dstStream.Write(buffer, 0, read);
+                    processedBytes += read;
+
+                    int pct = Math.Clamp((int)Math.Round((processedBytes * 96.0) / totalBytes) + 2, 2, 98);
+                    if (pct > lastReportedPct)
+                    {
+                        lastReportedPct = pct;
+                        onProgress?.Invoke(pct);
+                    }
+                }
+            }
+            return outZip;
+        }
+        catch
+        {
+            try { if (File.Exists(outZip)) File.Delete(outZip); } catch { }
+            throw;
+        }
     }
 
     private static string GetUniqueDirectoryPath(string archivePath)

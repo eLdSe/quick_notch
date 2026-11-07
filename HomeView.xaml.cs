@@ -918,6 +918,7 @@ public partial class HomeView : UserControl
             var row = CreateSubMenuRow("\uE8AB", $"{opt.Icon}  {rowTitle}", badge, false, () =>
             {
                 CloseQuickSubMenu();
+                _island.Collapse();
                 ShiftWheelWindow.ExecuteConversion(_island, files, opt);
                 return System.Threading.Tasks.Task.CompletedTask;
             });

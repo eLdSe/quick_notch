@@ -1190,16 +1190,20 @@ public sealed class IslandView : FrameworkElement
 	{
 		Dispatcher.InvokeAsync(() =>
 		{
-			if (S.NotifyEnabled && !(Target > 0.1))
+			if ((S.NotifyEnabled || item.ShowProgressBar) && !(Target > 0.1))
 			{
 				ActiveNotification = item;
+				ToastHost?.ShowNotification(item);
 				_notifySummoned = true;
 				if (!Host.IsVisible)
 				{
 					Host.ShowWindow();
 				}
 				SpHide.Target = 0.0;
-				SpNotify.X = 0.0;
+				if (SpNotify.X < 0.15)
+				{
+					SpNotify.X = 0.0;
+				}
 				SpNotify.Target = 1.0;
 				_notifyTimer.Stop();
 				_notifyTimer.Interval = TimeSpan.FromSeconds(durationSec);
@@ -1884,7 +1888,8 @@ public sealed class IslandView : FrameworkElement
 				ToastHost.ShowNotification(ActiveNotification);
 			}
 			double w = Ui.Lerp(a, 430.0, num4);
-			double h = Ui.Lerp(a2, 68.0, num4);
+			double targetH = (ActiveNotification?.ShowProgressBar == true) ? 76.0 : 68.0;
+			double h = Ui.Lerp(a2, targetH, num4);
 			double radius = Ui.Lerp(14.0, 24.0, num4);
 			ToastHost.UpdateMorph(w, h, radius, num4);
 			ToastHost.Opacity = Ui.Clamp(num4 * 3.0);

@@ -69,6 +69,11 @@ public sealed class AppSettings
     [JsonPropertyName("pomodoro_rounds")] public int PomodoroRounds { get; set; } = 4;
     [JsonPropertyName("pomodoro_sound")] public bool PomodoroSound { get; set; } = true;
 
+    // Настройки конвертера файлов (Shift Convert)
+    [JsonPropertyName("shift_convert_enabled")] public bool ShiftConvertEnabled { get; set; } = true;
+    [JsonPropertyName("shift_convert_auto_copy")] public bool ShiftConvertAutoCopy { get; set; } = true;
+    [JsonPropertyName("shift_convert_auto_reveal")] public bool ShiftConvertAutoReveal { get; set; } = false;
+
     public string GetEffectiveAiModel()
     {
         bool isPro = AiMode == "pro";

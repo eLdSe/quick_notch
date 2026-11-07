@@ -443,19 +443,22 @@ public sealed class ShiftWheelWindow : Window
             ? System.IO.Path.GetFileName(files[0])
             : $"{files.Count} {Loc.T("файл(ов)", "files", "dosya")}";
 
-        island.ShowNotification(new NotificationItem
+        if (opt.Key != "vid_frame")
         {
-            App = "SHIFT CONVERT",
-            Title = Loc.T($"Выполняется: {opt.Label}…", $"Processing: {opt.Label}…", $"İşleniyor: {opt.Label}…"),
-            Body = $"{targetInfo} · {Loc.T("Нажмите ✕ для отмены", "Click ✕ to cancel", "İptal için ✕")}",
-            AccentColor = opt.Accent,
-            IsLoading = true,
-            ShowProgressBar = true,
-            OnCancel = () =>
+            island.ShowNotification(new NotificationItem
             {
-                try { cts.Cancel(); } catch { }
-            }
-        }, 25.0);
+                App = "SHIFT CONVERT",
+                Title = Loc.T($"Выполняется: {opt.Label}…", $"Processing: {opt.Label}…", $"İşleniyor: {opt.Label}…"),
+                Body = $"{targetInfo} · {Loc.T("Нажмите ✕ для отмены", "Click ✕ to cancel", "İptal için ✕")}",
+                AccentColor = opt.Accent,
+                IsLoading = true,
+                ShowProgressBar = true,
+                OnCancel = () =>
+                {
+                    try { cts.Cancel(); } catch { }
+                }
+            }, 25.0);
+        }
 
         // Для операций с буфером обмена или быстрыми ссылками выполняем в UI потоке или фоне
         Task.Run(async () =>

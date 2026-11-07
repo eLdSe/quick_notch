@@ -138,8 +138,7 @@ public partial class App : Application
         for (int i = 0; i < args.Length; i++)
         {
             string a = args[i].Trim().Trim('"');
-            if (string.Equals(a, "--wheel", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(a, "--drag-wheel", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(a, "--wheel", StringComparison.OrdinalIgnoreCase))
                 continue;
             if (File.Exists(a) || Directory.Exists(a))
                 list.Add(a);

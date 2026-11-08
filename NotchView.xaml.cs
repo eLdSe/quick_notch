@@ -390,9 +390,13 @@ public partial class NotchView : UserControl
 		{
 			double fraction = Math.Clamp(_island.Media.Pos / _island.Media.Dur, 0.0, 1.0);
 			double totalW = (NotchCapsule != null && NotchCapsule.ActualWidth > 50.0) ? NotchCapsule.ActualWidth : 310.0;
+			double trackW = (MediaProgressTrack != null && MediaProgressTrack.ActualWidth > 10.0)
+				? MediaProgressTrack.ActualWidth
+				: Math.Max(0.0, totalW - 40.0);
+
 			if (MediaProgressBar != null)
 			{
-				MediaProgressBar.Width = totalW * fraction;
+				MediaProgressBar.Width = Math.Clamp(trackW * fraction, 0.0, trackW);
 			}
 			if (MediaProgressContainer != null && MediaProgressContainer.Visibility != Visibility.Visible)
 			{

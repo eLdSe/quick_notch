@@ -246,12 +246,12 @@
                 <Grid x:Name="MediaProgressContainer" 
                       VerticalAlignment="Bottom" 
                       HorizontalAlignment="Stretch" 
-                      Height="1.5" 
-                      Margin="-12,0,-12,0" 
+                      Height="2" 
+                      Margin="6,0,6,1.5" 
                       Visibility="Collapsed"
                       IsHitTestVisible="False">
-                    <Border x:Name="MediaProgressTrack" Background="#14FFFFFF" HorizontalAlignment="Stretch" Height="1.5" />
-                    <Border x:Name="MediaProgressBar" Background="{DynamicResource AccentBrush}" HorizontalAlignment="Left" Width="0" Height="1.5" />
+                    <Border x:Name="MediaProgressTrack" Background="#18FFFFFF" CornerRadius="1" HorizontalAlignment="Stretch" Height="2" />
+                    <Border x:Name="MediaProgressBar" Background="{DynamicResource AccentBrush}" CornerRadius="1" HorizontalAlignment="Left" Width="0" Height="2" />
                 </Grid>
             </Grid>
         </Border>

@@ -344,9 +344,12 @@ public sealed class SettingsWindow : Window
 
         // Топ-бар: Заголовок таба + Кнопки Свернуть/Закрыть
         var topBar = new Grid { Margin = new Thickness(22, 0, 16, 0), Background = Brushes.Transparent };
-        topBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
         topBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         topBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        // Область перетаскивания окна привязана только к левой колонке с заголовком
+        var topDragArea = new Grid { Background = Brushes.Transparent, Cursor = Cursors.SizeAll };
+        topDragArea.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
 
         var topTextStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         _topTabTitle = new TextBlock
@@ -363,10 +366,12 @@ public sealed class SettingsWindow : Window
         };
         topTextStack.Children.Add(_topTabTitle);
         topTextStack.Children.Add(_topTabDesc);
-        Grid.SetColumn(topTextStack, 0);
-        topBar.Children.Add(topTextStack);
+        topDragArea.Children.Add(topTextStack);
+        Grid.SetColumn(topDragArea, 0);
+        topBar.Children.Add(topDragArea);
 
         var topButtonsRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        topButtonsRow.MouseLeftButtonDown += (_, e) => e.Handled = true;
 
         var minBtn = new Border
         {
@@ -388,7 +393,12 @@ public sealed class SettingsWindow : Window
         };
         minBtn.MouseEnter += (_, _) => minBtn.Background = BgSurfaceHover;
         minBtn.MouseLeave += (_, _) => minBtn.Background = Brushes.Transparent;
-        minBtn.MouseLeftButtonUp += (_, _) => WindowState = WindowState.Minimized;
+        minBtn.MouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            WindowState = WindowState.Minimized;
+        };
+        minBtn.MouseLeftButtonUp += (_, e) => e.Handled = true;
         topButtonsRow.Children.Add(minBtn);
 
         var closeBtn = new Border
@@ -418,7 +428,12 @@ public sealed class SettingsWindow : Window
             closeBtn.Background = Brushes.Transparent;
             ((TextBlock)closeBtn.Child).Foreground = TextMuted;
         };
-        closeBtn.MouseLeftButtonUp += (_, _) => Close();
+        closeBtn.MouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            Close();
+        };
+        closeBtn.MouseLeftButtonUp += (_, e) => e.Handled = true;
         topButtonsRow.Children.Add(closeBtn);
 
         Grid.SetColumn(topButtonsRow, 1);

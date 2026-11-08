@@ -1281,6 +1281,132 @@ public sealed class SettingsWindow : Window
         cardAbout.Child = aboutInner;
         tab5Panel.Children.Add(cardAbout);
 
+        // Инструкция 1: Быстрый старт и Управление
+        tab5Panel.Children.Add(CreateGuideCard(
+            Loc.T("🏝️ Быстрый старт и Управление", "🏝️ Quick Start & Controls", "🏝️ Hızlı Başlangıç ve Kontroller"),
+            [
+                ("🖱️", Loc.T("Клик по верхней чёлке экрана", "Click Screen Notch", "Ekran Çentiğine Tıklayın"),
+                       Loc.T("Раскрывает интерактивный остров Dynamic Island с быстрым доступом к звуку, батарее, календарю и виджетам",
+                             "Expands the interactive Dynamic Island with quick controls for audio, battery, calendar and widgets",
+                             "Ses, pil, takvim ve araçlara hızlı erişim sağlayan etkileşimli Dynamic Island'ı açar"),
+                       null),
+                ("⌨️", Loc.T("Глобальная горячая клавиша", "Global Activation Hotkey", "Global Kısayol"),
+                       Loc.T("Мгновенный вызов и скрытие острова из любой игры, полноэкранного видео или программы без мыши",
+                             "Instantly toggle and hide the island from any full-screen game, video or desktop application",
+                             "Herhangi bir tam ekran oyun veya videodan fare kullanmadan adayı anında açıp kapatın"),
+                       "Ctrl + Alt + N"),
+                ("💻", Loc.T("Умный режим над окнами (Home Bar)", "Smart Window Mode (Home Bar)", "Pencerelerin Üstünde Akıllı Mod"),
+                       Loc.T("При развернутых окнах чёлка аккуратно сжимается в полоску 80×5 px, не мешая вкладкам браузера",
+                             "When windows are maximized, the notch neatly condenses into an 80×5 px strip without obstructing browser tabs",
+                             "Pencereler tam ekran olduğunda çentik tarayıcı sekmelerini kapatmadan 80×5 px ince çizgiye küçülür"),
+                       "80×5 px")
+            ]));
+
+        // Инструкция 2: Медиаплеер и 10-секундный таймер
+        tab5Panel.Children.Add(CreateGuideCard(
+            Loc.T("🎵 Интеллектуальный медиаплеер", "🎵 Smart Media Player", "🎵 Akıllı Medya Oynatıcı"),
+            [
+                ("🎧", Loc.T("Автодетекция любого звука", "Auto-Detect Media Sessions", "Otomatik Medya Algılama"),
+                       Loc.T("Автоматически подхватывает треки и видео из Spotify, Яндекс Музыки, YouTube, VK, Chrome, Edge и Telegram",
+                             "Seamlessly detects audio and video playback from Spotify, Yandex Music, YouTube, VK, Chrome, Edge and Telegram",
+                             "Spotify, Yandex Müzik, YouTube, VK, Chrome, Edge ve Telegram'dan çalan parçaları otomatik yakalar"),
+                       null),
+                ("⏱️", Loc.T("Таймер ожидания при паузе (10 секунд)", "Pause Grace Period (10s)", "Duraklatma Bekleme Süresi (10s)"),
+                       Loc.T("При нажатии на паузу плеер и полоска перемотки не исчезают сразу, а ожидают 10 секунд перед плавным сворачиванием",
+                             "When you pause music, the player and seekbar do not vanish immediately; they wait 10s before auto-collapsing",
+                             "Müzik duraklatıldığında oynatıcı ve çubuk hemen kaybolmaz, kapanmadan önce 10 saniye bekler"),
+                       "10 сек"),
+                ("📊", Loc.T("Танцующий эквалайзер и обложка", "Dancing Visualizer & Album Art", "Dans Eden Ekolayzer ve Kapak"),
+                       Loc.T("В компактном режиме чёлки отображается миниатюрная обложка альбома и живой 5-полосный эквалайзер",
+                             "Compact notch lockup features album cover art, play/pause toggle and a dancing 5-bar visualizer",
+                             "Kompakt çentikte albüm kapağı, oynat/duraklat ve 5 çubuklu hareketli ekolayzer gösterilir"),
+                       null),
+                ("⏮️", Loc.T("Управление и перемотка трека", "Playback & Seek Controls", "Oynatma ve İlerleme Kontrolleri"),
+                       Loc.T("Клик по мини-плееру переключает Play/Pause, а клик по синей полоске прогресса перематывает песню",
+                             "Clicking album cover toggles Play/Pause, clicking the progress bar instantly seeks the audio track",
+                             "Albüm kapağına tıklamak Oynat/Duraklat yapar, ilerleme çubuğuna tıklamak şarkıyı sarar"),
+                       null)
+            ]));
+
+        // Инструкция 3: Конвертер ShiftConvert
+        tab5Panel.Children.Add(CreateGuideCard(
+            Loc.T("⚡ Конвертер файлов ShiftConvert", "⚡ ShiftConvert File Engine", "⚡ ShiftConvert Dosya Motoru"),
+            [
+                ("🚀", Loc.T("Жест Shift + Перетаскивание файла", "Shift + Drag File Gesture", "Shift + Dosya Sürükleme Hareketi"),
+                       Loc.T("Зажмите Shift и потяните любой файл — у курсора появится круговое колесо форматов (MP4, MKV, WebM, PNG, JPG, WebP, MP3, WAV, PDF)",
+                             "Hold Shift while dragging any file to open the instant radial format wheel (MP4, MKV, WebM, PNG, JPG, WebP, MP3, WAV, PDF)",
+                             "Shift tuşunu basılı tutup dosyayı sürükleyin — imleçte dairesel format çarkı anında belirir"),
+                       "Shift + Drag"),
+                ("📁", Loc.T("Контекстное меню Проводника", "Windows Explorer Context Menu", "Windows Gezgini Sağ Tık Menüsü"),
+                       Loc.T("Нажмите правой кнопкой мыши (ПКМ) по любому файлу в Windows → пункт «⚡ Конвертировать»",
+                             "Right-click any file in Windows Explorer → choose '⚡ Convert' from the context menu",
+                             "Windows Gezgini'nde herhangi bir dosyaya sağ tıklayın → '⚡ Dönüştür' seçeneğini seçin"),
+                       "ПКМ"),
+                ("📋", Loc.T("Автокопирование в буфер обмена", "Instant Clipboard Copy", "Panoya Otomatik Kopyalama"),
+                       Loc.T("Сконвертированный файл автоматически попадает в буфер — вставляйте его сразу через Ctrl + V в Telegram или браузер",
+                             "Converted file is automatically copied to clipboard — paste it directly via Ctrl + V into chats or apps",
+                             "Dönüştürülen dosya otomatik panoya alınır — Ctrl + V ile sohbetlere veya uygulamalara doğrudan yapıştırın"),
+                       "Ctrl + V")
+            ]));
+
+        // Инструкция 4: Всплывающие уведомления и Звуки
+        tab5Panel.Children.Add(CreateGuideCard(
+            Loc.T("🔔 Всплывающие уведомления и Звуки", "🔔 Dynamic Island Toasts & Sounds", "🔔 Dynamic Island Bildirimleri ve Sesler"),
+            [
+                ("💊", Loc.T("Капсульные тосты острова", "Capsule Toast Expansions", "Kapsül Bildirimleri"),
+                       Loc.T("Системные события (подключение USB, разряд батареи, устройства) раскрывают чёлку в элегантную капсулу",
+                             "System events (USB plug-in, battery level, hardware changes) elegantly expand the notch into a capsule pill",
+                             "Sistem olayları (USB takılması, pil uyarısı, cihazlar) çentiği şık bir bildirim kapsülü şeklinde açar"),
+                       null),
+                ("🔔", Loc.T("Выбор из 5 мелодий оповещения", "5 Notification Chime Options", "5 Bildirim Sesi Seçeneği"),
+                       Loc.T("В разделе «Уведомления и Звук» доступны: Деликатный колокольчик, Мягкий хлоп, Стеклянный аккорд, Классический звонок или Без звука",
+                             "Choose in 'Notifications & Sound': Gentle Chime, Soft Pop, Glass Chord, Classic Notify or Silent mode",
+                             "'Bildirimler ve Ses' bölümünde: Zarif Çan, Yumuşak Balon, Cam Akor, Klasik Zil veya Sessiz mod"),
+                       "5 звуков")
+            ]));
+
+        // Инструкция 5: Робот Aero и Продуктивность
+        tab5Panel.Children.Add(CreateGuideCard(
+            Loc.T("🤖 Робот Aero и Продуктивность", "🤖 Aero Companion & Productivity", "🤖 Aero ve Verimlilik Araçları"),
+            [
+                ("🤖", Loc.T("Интерактивный робот-компаньон", "Interactive Aero Companion", "Etkileşimli Aero Robotu"),
+                       Loc.T("Следит за курсором мыши, реагирует на клики и умеет летать по всему рабочему столу Windows (кнопка в разделе Чёлка)",
+                             "Follows your cursor, reacts to clicks and can freely fly around your Windows desktop",
+                             "İmleci takip eder, tıklamalara tepki verir ve masaüstünde serbestçe uçabilir"),
+                       null),
+                ("📋", Loc.T("История буфера обмена (Clipboard)", "Clipboard History Manager", "Pano Geçmişi Yöneticisi"),
+                       Loc.T("Сохраняет историю скопированных текстов с возможностью закреплять важные фрагменты",
+                             "Stores copied text snippets with one-click search and pin favorites for instant reuse",
+                             "Kopyalanan metinleri saklar, önemli notları sabitlemenizi ve tek tıkla yapıştırmanızı sağlar"),
+                       null),
+                ("🍅", Loc.T("Фокус-таймер Помодоро", "Pomodoro Focus Timer", "Pomodoro Odak Zamanlayıcısı"),
+                       Loc.T("Работа интервалами по 25 минут фокуса и 5 минут отдыха для максимальной продуктивности",
+                             "Stay productive with 25-minute focus intervals and 5-minute rest breaks with gentle chimes",
+                             "Maksimum verimlilik için 25 dakikalık odaklanma ve 5 dakikalık mola aralıkları"),
+                       "25 / 5 мин")
+            ]));
+
+        // Инструкция 6: Архитектурные стандарты
+        tab5Panel.Children.Add(CreateGuideCard(
+            Loc.T("⚙️ Архитектурные стандарты (Zero-Lag Engine)", "⚙️ Architecture Standards (Zero-Lag Engine)", "⚙️ Mimari Standartlar"),
+            [
+                ("⚡", Loc.T("0.0% нагрузки на CPU в простое", "0.0% CPU Idle Footprint", "%0.0 Boşta CPU Kullanımı"),
+                       Loc.T("Никаких холостых циклов опроса (Addy Osmani Production Standards) — приложение засыпает при неактивности",
+                             "Zero busy loops (Addy Osmani Production Standards) — app completely sleeps when idle and waits for OS events",
+                             "Sıfır gereksiz döngü — uygulama boşta iken tamamen uyur ve sadece sistem olaylarına uyanır"),
+                       "0.0% CPU"),
+                ("🎯", Loc.T("Аппаратное ускорение 60 FPS", "Hardware Accelerated 60 FPS", "Donanım Hızlandırmalı 60 FPS"),
+                       Loc.T("Рендеринг через DirectX / Direct2D с математической физикой пружин (Spring Dynamics) без дёрганий",
+                             "Hardware-accelerated DirectX / Direct2D pipeline with smooth Spring Dynamics physics",
+                             "DirectX / Direct2D GPU hızlandırma ve yumuşak yay fiziği (Spring Dynamics) ile takılmasız akıcılık"),
+                       "Direct2D"),
+                ("📦", Loc.T("Полная автономность (Single EXE)", "Fully Portable Single EXE", "Tek Parça Bağımsız EXE"),
+                       Loc.T("Приложение не требует установки громоздких внешних плееров или DLL — готово к работе из любой папки",
+                             "Self-contained executable with zero external runtime or third-party player dependencies",
+                             "Harici bağımlılık gerektirmeyen tek parça taşınabilir yürütülebilir dosya"),
+                       "Single File")
+            ]));
+
         var tab5Scroll = WrapInScroll(tab5Panel);
         _tabPanels[5] = tab5Scroll;
         contentHost.Children.Add(tab5Scroll);
@@ -1587,6 +1713,106 @@ public sealed class SettingsWindow : Window
             Padding = new Thickness(18, 14, 18, 14),
             Margin = new Thickness(0, 0, 0, 10)
         };
+    }
+
+    private static Border CreateGuideCard(string sectionTitle, (string icon, string title, string desc, string? badge)[] items)
+    {
+        var card = CreateCard();
+        var stack = new StackPanel();
+
+        var titleRow = new TextBlock
+        {
+            Text = sectionTitle,
+            FontSize = 13.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = AccentViolet,
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+        stack.Children.Add(titleRow);
+
+        for (int i = 0; i < items.Length; i++)
+        {
+            var (icon, itemTitle, desc, badge) = items[i];
+
+            if (i > 0)
+            {
+                stack.Children.Add(new Border { Height = 1, Background = RuleHairline, Margin = new Thickness(0, 8, 0, 8) });
+            }
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var iconBorder = new Border
+            {
+                Width = 28,
+                Height = 28,
+                CornerRadius = new CornerRadius(8),
+                Background = BgRaised,
+                BorderBrush = BorderInteractive,
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Top,
+                Child = new TextBlock
+                {
+                    Text = icon,
+                    FontSize = 13,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+            Grid.SetColumn(iconBorder, 0);
+            grid.Children.Add(iconBorder);
+
+            var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            var hRow = new StackPanel { Orientation = Orientation.Horizontal };
+            hRow.Children.Add(new TextBlock
+            {
+                Text = itemTitle,
+                FontSize = 13,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = TextPrimary
+            });
+
+            if (!string.IsNullOrEmpty(badge))
+            {
+                var bBorder = new Border
+                {
+                    CornerRadius = new CornerRadius(5),
+                    Background = BgRaisedHover,
+                    BorderBrush = BorderInteractive,
+                    BorderThickness = new Thickness(1),
+                    Padding = new Thickness(6, 1, 6, 1),
+                    Margin = new Thickness(8, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Child = new TextBlock
+                    {
+                        Text = badge,
+                        FontSize = 10,
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = AccentViolet
+                    }
+                };
+                hRow.Children.Add(bBorder);
+            }
+            textStack.Children.Add(hRow);
+
+            textStack.Children.Add(new TextBlock
+            {
+                Text = desc,
+                FontSize = 11.5,
+                Foreground = TextFaint,
+                Margin = new Thickness(0, 3, 0, 0),
+                TextWrapping = TextWrapping.Wrap
+            });
+            Grid.SetColumn(textStack, 1);
+            grid.Children.Add(textStack);
+
+            stack.Children.Add(grid);
+        }
+
+        card.Child = stack;
+        return card;
     }
 
     private static ScrollViewer WrapInScroll(UIElement content)

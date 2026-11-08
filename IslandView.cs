@@ -1210,6 +1210,11 @@ public sealed class IslandView : FrameworkElement
 				_notifyTimer.Start();
 				StartFrames();
 				Kick();
+
+				if (S.NotifySoundEnabled && !item.ShowProgressBar)
+				{
+					NotificationSoundService.Play(S.NotifySound);
+				}
 			}
 		});
 	}
@@ -2348,6 +2353,11 @@ public sealed class IslandView : FrameworkElement
 
 	public void Select(string key)
 	{
+		if (key == "settings")
+		{
+			SettingsWindow.ShowOrActivate(this);
+			return;
+		}
 		if (!(key == CurrentTool))
 		{
 			List<string> list = Sections.All.Select((Section s) => s.Key).ToList();

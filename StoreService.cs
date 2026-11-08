@@ -45,6 +45,8 @@ public sealed class AppSettings
     [JsonPropertyName("glass_enabled")] public bool GlassEnabled { get; set; } = true;
     [JsonPropertyName("glass_opacity")] public double GlassOpacity { get; set; } = 0.95;
     [JsonPropertyName("notify_enabled")] public bool NotifyEnabled { get; set; } = true;
+    [JsonPropertyName("notify_sound")] public string NotifySound { get; set; } = "messaging";
+    [JsonPropertyName("notify_sound_enabled")] public bool NotifySoundEnabled { get; set; } = true;
     [JsonPropertyName("summon_mode")] public string SummonMode { get; set; } = "notch";
     [JsonPropertyName("theme_mode")] public string ThemeMode { get; set; } = "dark";
     [JsonPropertyName("island_style")] public string IslandStyle { get; set; } = "notch";
@@ -93,6 +95,8 @@ public sealed class AppSettings
         HideWhenCovered = true; // Сворачивать в аккуратную полоску чёлки при открытых окнах
         GlassOpacity = 0.95;
         if (!Theme.IsAccentKey(Accent)) Accent = "violet";
+        if (NotifySound != "messaging" && NotifySound != "balloon" && NotifySound != "infobar" && NotifySound != "standard" && NotifySound != "none")
+            NotifySound = "messaging";
         if (Language != "en" && Language != "ru" && Language != "tr") Language = "ru";
         if (ThemeMode != "dark" && ThemeMode != "light" && ThemeMode != "auto") ThemeMode = "dark";
         IslandStyle = "notch";

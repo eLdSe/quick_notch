@@ -182,7 +182,7 @@ public partial class TopBarView : UserControl
     private void OnSettingsClick(object sender, RoutedEventArgs e)
     {
         if (_island == null) return;
-        _island.Select(_island.CurrentTool == "settings" ? "home" : "settings");
+        SettingsWindow.ShowOrActivate(_island);
     }
 
     private void OnBreadcrumbClick(object sender, RoutedEventArgs e)

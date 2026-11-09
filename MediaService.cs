@@ -32,13 +32,12 @@ public sealed class MediaState
 
 /// <summary>
 /// Системный плеер через GlobalSystemMediaTransportControls.
-/// Потокобезопасная архитектура с защитой от сбоев CsWinRT Finalizer и гонок подписок.
+/// Потокобезопасная архитектура с защитой от сбоев CsWinRT Finalizer и нативного повреждения кучи (0xc0000374).
 /// </summary>
 public static class MediaService
 {
     private static GlobalSystemMediaTransportControlsSessionManager? _manager;
     private static GlobalSystemMediaTransportControlsSession? _subscribedSession;
-    private static string? _subscribedAppId;
     private static readonly SemaphoreSlim _gate = new(1, 1);
 
     private static (string Key, byte[]? Data, int Tries) _cover = ("", null, 0);
@@ -85,13 +84,13 @@ public static class MediaService
     private static void ScheduleUpdate()
     {
         long now = Environment.TickCount64;
-        if (_scheduledChanged && now - _lastChangedTicks < 150) return;
+        if (_scheduledChanged && now - _lastChangedTicks < 200) return;
         _scheduledChanged = true;
         _lastChangedTicks = now;
 
         _ = Task.Run(async () =>
         {
-            await Task.Delay(80);
+            await Task.Delay(100);
             try
             {
                 await _gate.WaitAsync();
@@ -120,57 +119,60 @@ public static class MediaService
     /// <summary>
     /// Обновляет подписку на события плеера.
     /// ВАЖНО: вызывается ТОЛЬКО под блокировкой _gate!
-    /// Проверяет SourceAppUserModelId, чтобы не пересоздавать WinRT-подписки каждые несколько секунд.
+    /// Защита от сбоев нативного WinRT/COM: никогда не дёргает отписку на мёртвых сессиях.
     /// </summary>
     private static void UpdateSessionSubscriptionLocked(GlobalSystemMediaTransportControlsSession? newSession)
     {
-        string? newId = null;
-        try { newId = newSession?.SourceAppUserModelId; } catch { }
-
-        // Если сессия та же самая — сохраняем существующий объект и подписки!
-        if (_subscribedSession != null && !string.IsNullOrEmpty(_subscribedAppId) && _subscribedAppId == newId)
+        // Если объект сессии физически тот же самый — ничего не меняем
+        if (ReferenceEquals(_subscribedSession, newSession) && _subscribedSession != null)
         {
             return;
         }
 
-        // Отписываемся от предыдущей сессии
+        // Отписываемся от предыдущей сессии ТОЛЬКО если она ещё жива и отвечает
         if (_subscribedSession != null)
         {
             try
             {
+                // Проверяем жива ли сессия: если GetPlaybackInfo() бросает ошибку, нативный C++ объект уже уничтожен
+                _ = _subscribedSession.GetPlaybackInfo();
                 _subscribedSession.PlaybackInfoChanged -= OnPlaybackInfoChanged;
                 _subscribedSession.MediaPropertiesChanged -= OnMediaPropertiesChanged;
-                _subscribedSession.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
             }
-            catch { }
-            _subscribedSession = null;
-            _subscribedAppId = null;
+            catch
+            {
+                // Сессия уже закрыта ОС — НЕ вызываем -=, чтобы не повредить нативную кучу Windows.Media.MediaControl.dll!
+            }
+            finally
+            {
+                _subscribedSession = null;
+            }
         }
 
         _subscribedSession = newSession;
-        _subscribedAppId = newId;
 
-        // Подписываемся на новую сессию
+        // Подписываемся на новую сессию (ТОЛЬКО на PlaybackInfo и MediaProperties, без спама Timeline)
         if (_subscribedSession != null)
         {
             try
             {
                 _subscribedSession.PlaybackInfoChanged += OnPlaybackInfoChanged;
                 _subscribedSession.MediaPropertiesChanged += OnMediaPropertiesChanged;
-                _subscribedSession.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
             }
-            catch { }
+            catch
+            {
+                _subscribedSession = null;
+            }
         }
     }
 
     private static void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args) => FireMediaChangedThrottled();
     private static void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args) => FireMediaChangedThrottled();
-    private static void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args) => FireMediaChangedThrottled();
 
     private static void FireMediaChangedThrottled()
     {
         long now = Environment.TickCount64;
-        if (now - _lastChangedTicks < 120) return;
+        if (now - _lastChangedTicks < 200) return;
         _lastChangedTicks = now;
         MediaChanged?.Invoke();
     }
@@ -185,48 +187,92 @@ public static class MediaService
                 _manager ??= await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
                 if (_manager == null) return null;
 
-                var cur = _manager.GetCurrentSession();
-                var sessions = _manager.GetSessions();
+                // 1. Сначала проверяем GetCurrentSession() — это самый быстрый и стабильный путь!
+                GlobalSystemMediaTransportControlsSession? cur = null;
+                try { cur = _manager.GetCurrentSession(); } catch { }
 
-                // Ищем сессию, которая сейчас реально воспроизводит аудио
-                GlobalSystemMediaTransportControlsSession? best = null;
                 if (cur != null)
                 {
+                    bool isCurValid = false;
                     try
                     {
                         var info = cur.GetPlaybackInfo();
-                        if (info != null && info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                        if (info != null)
                         {
-                            best = cur;
+                            isCurValid = true;
+                            // Если текущая сессия играет — используем её напрямую без дорогого GetSessions()!
+                            if (info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                            {
+                                UpdateSessionSubscriptionLocked(cur);
+                                return cur;
+                            }
                         }
                     }
                     catch { }
-                }
 
-                if (best == null && sessions != null)
-                {
-                    foreach (var s in sessions)
+                    // Если cur валидна, но стоит на паузе — проверяем, нет ли другой реально играющей сессии
+                    if (isCurValid)
                     {
                         try
                         {
-                            var info = s.GetPlaybackInfo();
-                            if (info != null && info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                            var sessions = _manager.GetSessions();
+                            if (sessions != null)
                             {
-                                best = s;
-                                break;
+                                foreach (var s in sessions)
+                                {
+                                    try
+                                    {
+                                        var info = s.GetPlaybackInfo();
+                                        if (info != null && info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                                        {
+                                            UpdateSessionSubscriptionLocked(s);
+                                            return s;
+                                        }
+                                    }
+                                    catch { }
+                                }
                             }
                         }
                         catch { }
+
+                        UpdateSessionSubscriptionLocked(cur);
+                        return cur;
                     }
                 }
 
-                best ??= cur ?? (sessions != null && sessions.Count > 0 ? sessions[0] : null);
-
-                if (best != null)
+                // 2. Fallback: если GetCurrentSession() пуст, ищем любую валидную сессию
+                try
                 {
-                    UpdateSessionSubscriptionLocked(best);
-                    return best;
+                    var sessions = _manager.GetSessions();
+                    if (sessions != null && sessions.Count > 0)
+                    {
+                        GlobalSystemMediaTransportControlsSession? fallback = null;
+                        foreach (var s in sessions)
+                        {
+                            try
+                            {
+                                var info = s.GetPlaybackInfo();
+                                if (info != null)
+                                {
+                                    if (info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing)
+                                    {
+                                        UpdateSessionSubscriptionLocked(s);
+                                        return s;
+                                    }
+                                    fallback ??= s;
+                                }
+                            }
+                            catch { }
+                        }
+
+                        if (fallback != null)
+                        {
+                            UpdateSessionSubscriptionLocked(fallback);
+                            return fallback;
+                        }
+                    }
                 }
+                catch { }
 
                 UpdateSessionSubscriptionLocked(null);
                 return null;
@@ -306,7 +352,7 @@ public static class MediaService
     }
 
     /// <summary>
-    /// Читает обложку трека. Потоки потокобезопасно и гарантированно закрываются через using.
+    /// Читает обложку трека. Потоки потокобезопасно и гарантированно закрываются через using с таймаутом.
     /// </summary>
     private static async Task<byte[]?> ReadCoverAsync(GlobalSystemMediaTransportControlsSessionMediaProperties? props, string key)
     {
@@ -320,14 +366,22 @@ public static class MediaService
         {
             if (props.Thumbnail != null)
             {
-                using var stream = await props.Thumbnail.OpenReadAsync();
-                if (stream != null && stream.Size > 0 && stream.Size < 8_000_000)
+                var openTask = props.Thumbnail.OpenReadAsync().AsTask();
+                if (await Task.WhenAny(openTask, Task.Delay(1200)) == openTask)
                 {
-                    using var inputStream = stream.GetInputStreamAt(0);
-                    using var reader = new DataReader(inputStream);
-                    await reader.LoadAsync((uint)stream.Size);
-                    data = new byte[stream.Size];
-                    reader.ReadBytes(data);
+                    using var stream = await openTask;
+                    if (stream != null && stream.Size > 0 && stream.Size < 8_000_000)
+                    {
+                        using var inputStream = stream.GetInputStreamAt(0);
+                        using var reader = new DataReader(inputStream);
+                        var loadTask = reader.LoadAsync((uint)stream.Size).AsTask();
+                        if (await Task.WhenAny(loadTask, Task.Delay(1200)) == loadTask)
+                        {
+                            await loadTask;
+                            data = new byte[stream.Size];
+                            reader.ReadBytes(data);
+                        }
+                    }
                 }
             }
         }

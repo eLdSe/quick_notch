@@ -1135,13 +1135,44 @@ public sealed class ClipboardSection : Section
 
     private static System.Windows.Media.Imaging.BitmapSource? LoadBitmapFromFile(string path)
     {
-        var bi = new System.Windows.Media.Imaging.BitmapImage();
-        bi.BeginInit();
-        bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-        bi.UriSource = new Uri(path, UriKind.Absolute);
-        bi.EndInit();
-        bi.Freeze();
-        return bi;
+        try
+        {
+            var bi = new System.Windows.Media.Imaging.BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bi.UriSource = new Uri(path, UriKind.Absolute);
+            bi.EndInit();
+            bi.Freeze();
+            return bi;
+        }
+        catch
+        {
+            try
+            {
+                using var image = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Bgra32>(path);
+                int width = image.Width;
+                int height = image.Height;
+                int stride = width * 4;
+                byte[] pixelBytes = new byte[stride * height];
+                image.CopyPixelDataTo(pixelBytes);
+
+                var wbmp = System.Windows.Media.Imaging.BitmapSource.Create(
+                    width,
+                    height,
+                    96,
+                    96,
+                    System.Windows.Media.PixelFormats.Bgra32,
+                    null,
+                    pixelBytes,
+                    stride);
+                wbmp.Freeze();
+                return wbmp;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 
     private static string ComputeBitmapHash(System.Windows.Media.Imaging.BitmapSource bmp)

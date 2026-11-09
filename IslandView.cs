@@ -1513,7 +1513,26 @@ public sealed class IslandView : FrameworkElement
 			}
 			catch
 			{
-				CoverBrush = null;
+				try
+				{
+					using var img = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Bgra32>(data);
+					int width = img.Width;
+					int height = img.Height;
+					byte[] pixelBytes = new byte[width * 4 * height];
+					img.CopyPixelDataTo(pixelBytes);
+					var wbmp = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixelBytes, width * 4);
+					wbmp.Freeze();
+					var imageBrush = new ImageBrush(wbmp)
+					{
+						Stretch = Stretch.UniformToFill
+					};
+					imageBrush.Freeze();
+					CoverBrush = imageBrush;
+				}
+				catch
+				{
+					CoverBrush = null;
+				}
 			}
 		}
 		return true;

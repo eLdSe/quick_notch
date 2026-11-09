@@ -986,10 +986,42 @@ public static class ShiftConvertService
         }
         catch
         {
-            // WIC fallback for HEIC/HEIF or exotic image types via WinRT
+            // WIC fallback for WebP, HEIC/HEIF or exotic image types
         }
 
+        var imageSharpBmp = LoadBitmapViaImageSharp(path);
+        if (imageSharpBmp != null) return imageSharpBmp;
+
         return LoadBitmapViaWinRt(path);
+    }
+
+    private static BitmapSource? LoadBitmapViaImageSharp(string path)
+    {
+        try
+        {
+            using var image = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Bgra32>(path);
+            int width = image.Width;
+            int height = image.Height;
+            int stride = width * 4;
+            byte[] pixelBytes = new byte[stride * height];
+            image.CopyPixelDataTo(pixelBytes);
+
+            var wbmp = BitmapSource.Create(
+                width,
+                height,
+                96,
+                96,
+                PixelFormats.Bgra32,
+                null,
+                pixelBytes,
+                stride);
+            wbmp.Freeze();
+            return wbmp;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static BitmapSource? LoadBitmapViaWinRt(string path)

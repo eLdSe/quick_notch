@@ -20,14 +20,39 @@ public static class IslandBackground
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
 
-        var bmp = new BitmapImage();
-        bmp.BeginInit();
-        bmp.CacheOption = BitmapCacheOption.OnLoad;       // файл не остаётся занятым
-        bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-        bmp.DecodePixelWidth = 1400;                      // огромные фото не едят память
-        bmp.UriSource = new Uri(path, UriKind.Absolute);
-        bmp.EndInit();
-        bmp.Freeze();
+        BitmapSource? bmp = null;
+        try
+        {
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = BitmapCacheOption.OnLoad;       // файл не остаётся занятым
+            bi.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+            bi.DecodePixelWidth = 1400;                      // огромные фото не едят память
+            bi.UriSource = new Uri(path, UriKind.Absolute);
+            bi.EndInit();
+            bi.Freeze();
+            bmp = bi;
+        }
+        catch
+        {
+            try
+            {
+                using var img = SixLabors.ImageSharp.Image.Load<SixLabors.ImageSharp.PixelFormats.Bgra32>(path);
+                int width = img.Width;
+                int height = img.Height;
+                byte[] pixelBytes = new byte[width * 4 * height];
+                img.CopyPixelDataTo(pixelBytes);
+                var wbmp = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixelBytes, width * 4);
+                wbmp.Freeze();
+                bmp = wbmp;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        if (bmp == null) return null;
 
         // Запас по краям, чтобы размытие не давало прозрачную кайму
         double pad = blur > 0 ? blur * 2 : 0;
